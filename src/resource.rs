@@ -1,0 +1,52 @@
+use std::{fmt::Display, str::FromStr};
+
+use petgraph::prelude::DiGraphMap;
+
+#[derive(Debug, Clone)]
+pub struct Company {
+    pub order: u16,
+    pub place: String,
+    pub frequency: Frequency,
+    pub container_count: u8,
+    pub container_volume: u16,
+    pub emptying_time: f32,
+    pub matrix_id: u16,
+    pub x_coordinate: u32,
+    pub y_coordinate: u32, // maybe turn this into a nalgebra vector if we need it
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Frequency {
+    Once,
+    Twice,
+    Thrice,
+    FourTimes,
+}
+
+impl FromStr for Frequency {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim() {
+            "1PWK" => Ok(Frequency::Once),
+            "2PWK" => Ok(Frequency::Twice),
+            "3PWK" => Ok(Frequency::Thrice),
+            "4PWK" => Ok(Frequency::FourTimes),
+            _ => Err(format!("Invalid frequency: {}", s)),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Distance {
+    pub absolute_distance: u16,
+    pub travel_time: u16,
+}
+
+impl Display for Distance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+       write!(f, "Distance: {}, Travel time: {}", self.absolute_distance, self.travel_time)
+    }
+}
+
+pub type DistanceMatrix = DiGraphMap<u16, Distance>;
