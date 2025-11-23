@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use petgraph::{matrix_graph::MatrixGraph, prelude::GraphMap};
+use petgraph::matrix_graph::MatrixGraph;
 
 use crate::resource::{Company, Distance, DistanceMatrix};
 
@@ -19,7 +19,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error>> {
     let orderfile = include_str!("../data/Orderbestand.txt");
 
     // Split in lines, skip headers
-    Ok(orderfile
+    orderfile
         .lines()
         .skip(1)
         .map(|line| -> Result<Company, Box<dyn Error>> {
@@ -37,7 +37,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error>> {
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
             })
         })
-        .collect::<Result<Vec<Company>, Box<dyn Error>>>()?)
+        .collect::<Result<Vec<Company>, Box<dyn Error>>>()
 }
 
 pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error>> {

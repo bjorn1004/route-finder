@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use petgraph::{matrix_graph::DiMatrix, prelude::DiGraphMap};
+use petgraph::matrix_graph::DiMatrix;
 
 #[derive(Debug, Clone)]
 pub struct Company {
