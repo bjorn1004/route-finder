@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use petgraph::prelude::DiGraphMap;
+use petgraph::matrix_graph::DiMatrix;
 
 #[derive(Debug, Clone)]
 pub struct Company {
@@ -45,8 +45,12 @@ pub struct Distance {
 
 impl Display for Distance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-       write!(f, "Distance: {}, Travel time: {}", self.absolute_distance, self.travel_time)
+        write!(
+            f,
+            "Distance: {}, Travel time: {}",
+            self.absolute_distance, self.travel_time
+        )
     }
 }
 
-pub type DistanceMatrix = DiGraphMap<u16, Distance>;
+pub type DistanceMatrix = DiMatrix<u16, Distance>;

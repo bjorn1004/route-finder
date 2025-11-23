@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use petgraph::prelude::GraphMap;
+use petgraph::matrix_graph::MatrixGraph;
 
 use crate::resource::{Company, Distance, DistanceMatrix};
 
@@ -19,7 +19,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error>> {
     let orderfile = include_str!("../data/Orderbestand.txt");
 
     // Split in lines, skip headers
-    Ok(orderfile
+    orderfile
         .lines()
         .skip(1)
         .map(|line| -> Result<Company, Box<dyn Error>> {
@@ -37,14 +37,14 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error>> {
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
             })
         })
-        .collect::<Result<Vec<Company>, Box<dyn Error>>>()?)
+        .collect::<Result<Vec<Company>, Box<dyn Error>>>()
 }
 
 pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error>> {
     let distance_matrix_file = include_str!("../data/AfstandenMatrix.txt");
 
-    Ok(distance_matrix_file.lines().skip(1).try_fold(
-        GraphMap::new(),
+    distance_matrix_file.lines().skip(1).try_fold(
+        MatrixGraph::new(),
         |mut graph, line| -> Result<DistanceMatrix, Box<dyn Error>> {
             let mut colunms = line.split(';');
 
@@ -55,9 +55,9 @@ pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error>> {
                 travel_time: get_next(&mut colunms, "Rijtijd")?.parse()?,
             };
 
-            graph.add_edge(node_a, node_b, distance);
+            graph.add_edge(node_a.into(), node_b.into(), distance);
 
             Ok(graph)
         },
-    )?)
+    )
 }
