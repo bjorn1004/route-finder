@@ -6,6 +6,7 @@ use crate::parser::{parse_distance_matrix, parse_orderfile};
 
 mod parser;
 mod resource;
+mod datastructures;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let order_vec = parse_orderfile()?;
