@@ -27,12 +27,18 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
         self.list.choose_mut(rng)
     }
 
-    fn get_at_index(&self) -> &Option<&Node<T>> {
-        todo!()
+    fn get_at_index(&self, i: usize) -> Option<&Node<T>> {
+        if i < self.list.len(){
+            return Some(&self.list[i]);
+        }
+        None
     }
 
-    fn get_mut_at_index(&mut self) -> &mut Option<Node<T>> {
-        todo!()
+    fn get_mut_at_index(&mut self, i: usize) -> Option<&mut Node<T>> {
+        if i < self.list.len(){
+            return Some(&mut self.list[i]);
+        }
+        None
     }
 
     fn insert_after(&mut self, node: Node<T>, value: T) -> &Node<T> {
