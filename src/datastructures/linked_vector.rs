@@ -1,15 +1,11 @@
-use crate::datastructures::linked_vectors::{LinkedVector, Node};
-use rand::{Rng, RngCore};
-use rand::prelude::{IndexedMutRandom, IndexedRandom};
+use crate::datastructures::linked_vectors::{LinkedVector, Node, NodeIndex};
+use rand::{Rng};
+use rand::prelude::{IndexedRandom};
 
 pub struct CompactLinkedVector<T> {
     list: Vec<Node<T>>,
-    head: Option<usize>, // the index of the head in our list
-    tail: Option<usize>, // the index of the tail in our list
-
-    #[cfg(debug_assertions)]
-    uuid  : usize,
-
+    head: Option<NodeIndex>, // the index of the head in our list
+    tail: Option<NodeIndex>, // the index of the tail in our list
 }
 impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     fn get_random<R>(&self, rng: &mut R) -> Option<&Node<T>>
@@ -33,7 +29,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     fn get_tail(&self) -> Option<&Node<T>> {
         Some(&self.list[self.tail?])
     }
-    fn insert_after(&mut self, index: usize, value: T) -> &Node<T> {
+    fn insert_after(&mut self, index: NodeIndex, value: T) -> &Node<T> {
         if index > self.list.len() { panic!("tried to index out of range")}
         let node = self.get_at_index(index).unwrap();
 
@@ -44,7 +40,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
         }
     }
 
-    fn insert_before(&mut self, index: usize, value: T) -> &Node<T> {
+    fn insert_before(&mut self, index: NodeIndex, value: T) -> &Node<T> {
         if index > self.list.len() { panic!("tried to index out of range")}
         let node = self.get_at_index(index).unwrap();
         self.insert_(Some(node.index), value)
@@ -63,27 +59,11 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     }
 }
 impl<T> CompactLinkedVector<T> {
-    #[cfg(debug_assertions)]
     fn new() -> Self{
         CompactLinkedVector{
             list: vec![],
             head: None,
             tail: None,
-            uuid: 0,
-        }
-    }
-    #[cfg(not(debug_assertions))]
-    fn new() -> Self{
-        CompactLinkedVector{
-            list: vec![],
-            head: None,
-        }
-    }
-
-    #[cfg(debug_assertions)]
-    fn check_id(&self, node: &Node<T>){
-        if self.uuid != node.list_id{
-            panic!("Incorrect node in this list")
         }
     }
     /// This function will contain all the logic for swapping prev and next indices.
@@ -101,7 +81,6 @@ impl<T> CompactLinkedVector<T> {
                 index: new_index,
                 prev: None,
                 next: None,
-                list_id: self.uuid,
             };
             self.head = Some(0);
             self.tail = Some(0);
@@ -123,7 +102,6 @@ impl<T> CompactLinkedVector<T> {
                 index: new_index,
                 prev,
                 next: Some(node),
-                list_id: self.uuid,
             };
             self.list.push(new_node);
             &self.list[new_index]
@@ -139,7 +117,6 @@ impl<T> CompactLinkedVector<T> {
                 index: new_index,
                 prev: self.tail,
                 next: None,
-                list_id: self.uuid,
             };
 
             self.tail = Some(new_index);
