@@ -13,11 +13,17 @@ impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
     where
         R: Rng + ?Sized
     {
-         if let Some(node) = self.list.choose(rng){
-             Some((node.index, &node.value))
-         } else {
-             None
-         }
+
+        if self.list.len() - self.empty_indexes.len() == 0{
+            return None;
+        }
+        while let Some(node) = self.list.choose(rng){
+            if node.next.is_none() && node.prev.is_none(){
+                continue
+            }
+            return Some((node.index, &node.value))
+        }
+        panic!("something went wrong in the random function");
     }
 
     fn get_value(&self, index: NodeIndex) -> Option<&T> {
@@ -217,5 +223,177 @@ mod tests{
         assert!(lv.head.is_none());
         assert!(lv.tail.is_none());
         assert_eq!(lv.empty_indexes.len(), 2)
+    }
+
+
+
+    // From this point on, the tests are written by chatgpt
+    #[test]
+    fn insert_front_and_back_multiple() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(1);
+        let b = lv.push_back(2);
+        let c = lv.push_back(3);
+
+        assert_eq!(lv.get_head_index(), Some(a));
+        assert_eq!(lv.get_tail_index(), Some(c));
+
+        assert_eq!(lv.list[a].next, Some(b));
+        assert_eq!(lv.list[b].next, Some(c));
+        assert_eq!(lv.list[c].prev, Some(b));
+    }
+
+    #[test]
+    fn insert_before_middle() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        lv.push_back(1);
+        let b = lv.push_back(3);
+        lv.push_back(4);
+
+        let inserted = lv.insert_before(b, 2);
+
+        assert_eq!(lv.list[inserted].value, 2);
+        assert_eq!(lv.list[inserted].next, Some(b));
+        assert_eq!(lv.list[b].prev, Some(inserted));
+    }
+
+    #[test]
+    fn insert_after_middle() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(1);
+        let b = lv.push_back(3);
+
+        let inserted = lv.insert_after(a, 2);
+
+        assert_eq!(lv.list[inserted].value, 2);
+        assert_eq!(lv.list[inserted].prev, Some(a));
+        assert_eq!(lv.list[inserted].next, Some(b));
+        assert_eq!(lv.list[a].next, Some(inserted));
+        assert_eq!(lv.list[b].prev, Some(inserted));
+    }
+
+    #[test]
+    fn remove_head() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(1);
+        let b = lv.push_back(2);
+
+        lv.remove(a);
+
+        assert_eq!(lv.get_head_index(), Some(b));
+        assert_eq!(lv.list[b].prev, None);
+        assert_eq!(lv.list[b].value, 2);
+    }
+
+    #[test]
+    fn remove_tail() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(1);
+        let b = lv.push_back(2);
+
+        lv.remove(b);
+
+        assert_eq!(lv.get_tail_index(), Some(a));
+        assert_eq!(lv.list[a].next, None);
+    }
+
+    #[test]
+    fn remove_middle() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(1);
+        let b = lv.push_back(2);
+        let c = lv.push_back(3);
+
+        lv.remove(b);
+
+        assert_eq!(lv.list[a].next, Some(c));
+        assert_eq!(lv.list[c].prev, Some(a));
+    }
+
+    #[test]
+    fn reuse_empty_nodes() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(10);
+        let b = lv.push_back(20);
+
+        lv.remove(a);
+
+        // the next insert should reuse the index 'a'
+        let c = lv.push_back(30);
+
+        assert_eq!(c, a, "Empty slot was not reused");
+        assert_eq!(lv.list[c].value, 30);
+        assert_eq!(lv.list[b].next, Some(c));
+    }
+
+    #[test]
+    fn insert_after_tail() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(1);
+        let b = lv.insert_after(a, 2);
+
+        assert_eq!(lv.get_tail_index(), Some(b));
+        assert_eq!(lv.list[a].next, Some(b));
+        assert_eq!(lv.list[b].prev, Some(a));
+    }
+
+    #[test]
+    fn insert_before_head() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(2);
+        let b = lv.insert_before(a, 1);
+
+        assert_eq!(lv.get_head_index(), Some(b));
+        assert_eq!(lv.list[b].next, Some(a));
+    }
+
+    #[test]
+    fn random_insertions_and_removals_stay_consistent() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut nodes = vec![];
+
+        // insert 10 nodes
+        for i in 0..10 {
+            nodes.push(lv.push_back(i));
+        }
+
+        // remove even indices
+        for &n in &nodes {
+            if lv.list[n].value % 2 == 0 {
+                lv.remove(n);
+            }
+        }
+
+        // check linked list integrity
+        // forward traversal
+        let mut curr = lv.get_head_index();
+        let mut last = None;
+
+        while let Some(i) = curr {
+            let node = &lv.list[i];
+            if let Some(prev) = node.prev {
+                assert_eq!(lv.list[prev].next, Some(i));
+            }
+            last = Some(i);
+            curr = node.next;
+        }
+
+        assert_eq!(last, lv.get_tail_index());
+    }
+
+    #[test]
+    fn get_random_never_returns_empty_nodes() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let a = lv.push_back(10);
+        let b = lv.push_back(20);
+
+        lv.remove(a);
+
+        let mut rng = rand::rng();
+        for _ in 0..100 {
+            let (idx, value) = lv.get_random(&mut rng).unwrap();
+            assert_ne!(idx, a, "get_random returned removed index!");
+            assert_eq!(*value, 20);
+        }
     }
 }
