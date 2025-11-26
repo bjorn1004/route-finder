@@ -1,4 +1,4 @@
-use rand::{Rng, RngCore};
+use rand::{Rng};
 
 pub trait LinkedVector<T>{
     fn get_random<R>(&self, rng: &mut R) -> Option<(NodeIndex, &T)> where R:Rng + ?Sized;
