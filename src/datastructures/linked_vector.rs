@@ -6,7 +6,7 @@ pub struct LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
     list: Vec<Node<T>>,
     head: Option<NodeIndex>, // the index of the head in our list
     tail: Option<NodeIndex>, // the index of the tail in our list
-    empty_indexes: Vec<NodeIndex>,
+    empty_indices: Vec<NodeIndex>,
 }
 impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
     fn get_random<R>(&self, rng: &mut R) -> Option<(NodeIndex, &T)>
@@ -14,7 +14,7 @@ impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
         R: Rng + ?Sized
     {
 
-        if self.list.len() - self.empty_indexes.len() == 0{
+        if self.list.len() - self.empty_indices.len() == 0{
             return None;
         }
         while let Some(node) = self.list.choose(rng){
@@ -110,7 +110,7 @@ impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
         let node = &mut self.list[index];
         node.next = None;
         node.prev = None;
-        self.empty_indexes.push(node.index);
+        self.empty_indices.push(node.index);
     }
 }
 impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
@@ -119,14 +119,14 @@ impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
             list: vec![],
             head: None,
             tail: None,
-            empty_indexes: vec![],
+            empty_indices: vec![],
         }
     }
     /// This function will contain all the logic for swapping prev and next indices.
     /// If the list is empty, we add it as the first element of the list.
     /// If node is Some(node) we add the value in front of the node in the linkedlist.
     /// If node is None, we add the value to the end of the linked list
-    /// In all cases, the value will be put at the end of the vector
+    /// The new node will be placed in an empty spot or at the end of the list.
     fn insert_(&mut self, node_index: Option<usize>, value: T) -> NodeIndex{
         let new_index = self.get_valid_empty_index();
         let new_node: Node<T>;
@@ -182,16 +182,109 @@ impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
         new_index
     }
     fn get_valid_empty_index(&mut self) -> NodeIndex{
-        if let Some(index) = self.empty_indexes.pop(){
+        if let Some(index) = self.empty_indices.pop(){
             index
         } else {
             self.list.len()
         }
+    }
 
+    /// Please don't use this function often,
+    /// it takes O(nlogn) where n is the length of the empty indices
+    fn compact(&mut self){
+        self.empty_indices.sort();
+        while let Some(index) = self.empty_indices.pop(){
+            self.move_back_to_new_index(index);
+        }
+    }
+
+    fn move_back_to_new_index(&mut self, new_i: NodeIndex){
+        let node = self.list.pop();
+        if let Some(node) = node {
+            if let Some(head) = self.head{
+                if head == node.index{
+                    self.head = Some(new_i)
+                }
+            }
+
+            if let Some(tail) = self.tail{
+                if tail == node.index{
+                    self.tail = Some(new_i)
+                }
+            }
+
+            if let Some(next) = node.next {
+                self.list[next].prev = Some(new_i)
+            }
+            if let Some(prev) = node.prev {
+                self.list[prev].next = Some(new_i)
+            }
+
+            self.list[new_i] = node;
+            self.list[new_i].index = new_i;
+        }
+    }
+}
+
+// made this iterator using chatgpt, I am not competent enough with lifetimes to do this myself.
+pub struct Iter<'a, T> {
+    list: &'a LinkedVectorWIthErrorValuesAsEmptyNodes<T>,
+    current: Option<NodeIndex>,
+}
+
+impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
+    pub fn iter(&self) -> Iter<'_, T> {
+        Iter {
+            list: self,
+            current: self.head,
+        }
+    }
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = (NodeIndex, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let idx = self.current?;
+        let node = &self.list.list[idx];
+        self.current = node.next;
+        Some((idx, &node.value))
     }
 }
 #[cfg(test)]
 mod tests{
+    fn is_compacted<T>(ls: LinkedVectorWIthErrorValuesAsEmptyNodes<T>){
+        if ls.list.is_empty(){
+            assert_eq!(ls.head, None);
+            assert_eq!(ls.tail, None);
+            return
+        }
+
+        if ls.list.len() == 1{
+            assert_eq!(ls.head, Some(0));
+            assert_eq!(ls.tail, Some(0));
+            assert_eq!(ls.list[0].next, None);
+            assert_eq!(ls.list[0].prev, None);
+            assert!(ls.empty_indices.is_empty());
+            return
+        }
+
+        let mut count = 0;
+        assert_ne!(ls.head, ls.tail);
+        for node in &ls.list{
+            count += 1;
+            if node.next.is_none() && node.prev.is_none(){
+                panic!("empty node");
+            }
+        }
+        let mut iter_count = 0;
+        for _ in ls.iter(){
+            iter_count += 1;
+        }
+
+        assert_eq!(count, iter_count)
+    }
+
     use super::*;
     #[test]
     fn push_back_to_empty_list(){
@@ -222,7 +315,7 @@ mod tests{
         lv.remove(node1);
         assert!(lv.head.is_none());
         assert!(lv.tail.is_none());
-        assert_eq!(lv.empty_indexes.len(), 2)
+        assert_eq!(lv.empty_indices.len(), 2)
     }
 
 
@@ -395,5 +488,38 @@ mod tests{
             assert_ne!(idx, a, "get_random returned removed index!");
             assert_eq!(*value, 20);
         }
+    }
+    #[test]
+    fn compact() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut nodes = vec![];
+
+        // insert 10 nodes
+        for i in 0..10 {
+            nodes.push(lv.push_back(i));
+        }
+
+        // remove even indices
+        for &n in &nodes {
+            if lv.list[n].value % 2 == 0 {
+                lv.remove(n);
+            }
+        }
+        lv.compact();
+        is_compacted(lv);
+    }
+    #[test]
+    fn compact_empty_list() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut nodes = vec![];
+        for i in 0..2{
+            nodes.push(lv.push_back(i))
+        }
+
+        for &n in &nodes {
+            lv.remove(n);
+        }
+        lv.compact();
+        is_compacted(lv);
     }
 }
