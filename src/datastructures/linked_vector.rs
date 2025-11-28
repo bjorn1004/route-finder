@@ -13,10 +13,18 @@ impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
     where
         R: Rng + ?Sized
     {
+        if self.empty_indices.len() != 0{
+            panic!("plz run compact before getting random values")
+        }
 
-        if self.list.len() - self.empty_indices.len() == 0{
+        if self.list.len() == 0{
             return None;
         }
+
+        if self.list.len() == 1{
+            return Some((0, &self.list[0].value))
+        }
+
         while let Some(node) = self.list.choose(rng){
             if node.next.is_none() && node.prev.is_none(){
                 continue
@@ -73,6 +81,9 @@ impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
     fn insert_before(&mut self, index: NodeIndex, value: T) -> NodeIndex {
         if index >= self.list.len() { panic!("tried to index out of range")}
         let node = &self.list[index];
+        if node.next.is_none() && node.prev.is_none(){
+            panic!("Tried to insert before an empty node")
+        }
         self.insert_(Some(node.index), value)
     }
 
@@ -201,6 +212,12 @@ impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
     fn move_back_to_new_index(&mut self, new_i: NodeIndex){
         let node = self.list.pop();
         if let Some(node) = node {
+            if node.index == new_i {
+                return
+            }
+            if self.is_empty(&node){
+                return
+            }
             if let Some(head) = self.head{
                 if head == node.index{
                     self.head = Some(new_i)
@@ -223,6 +240,9 @@ impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
             self.list[new_i] = node;
             self.list[new_i].index = new_i;
         }
+    }
+    fn is_empty(&self, node: &Node<T>) -> bool{
+        node.index != self.head.unwrap() && node.index != self.tail.unwrap() && node.next.is_none() && node.prev.is_none()
     }
 }
 
@@ -478,14 +498,15 @@ mod tests{
     fn get_random_never_returns_empty_nodes() {
         let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
         let a = lv.push_back(10);
-        let b = lv.push_back(20);
+        lv.push_back(20);
 
         lv.remove(a);
 
+        lv.compact();
         let mut rng = rand::rng();
+        lv.compact();
         for _ in 0..100 {
-            let (idx, value) = lv.get_random(&mut rng).unwrap();
-            assert_ne!(idx, a, "get_random returned removed index!");
+            let (_, value) = lv.get_random(&mut rng).unwrap();
             assert_eq!(*value, 20);
         }
     }
@@ -521,5 +542,204 @@ mod tests{
         }
         lv.compact();
         is_compacted(lv);
+    }
+
+    /// AI generated stress test function
+    #[test]
+    fn stress_test_random_ops() {
+        use rand::{Rng, SeedableRng};
+        use rand::rngs::StdRng;
+        use std::hint::black_box;
+
+        let mut rng = StdRng::seed_from_u64(12345); // deterministic test
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+
+        // Fill with ~1000 elements
+        let mut indices = vec![];
+        for i in 0..1000{
+            indices.push(lv.push_back(i));
+        }
+
+        // Helper: Check consistency
+        let mut check_list_integrity = |lv: &LinkedVectorWIthErrorValuesAsEmptyNodes<_>| {
+            if lv.list.is_empty() {
+                assert!(lv.head.is_none());
+                assert!(lv.tail.is_none());
+                return;
+            }
+
+            // Walk forward
+            let mut count_forward = 0;
+            let mut curr = lv.get_head_index();
+            let mut last = None;
+
+            while let Some(i) = curr {
+                let node = &lv.list[i];
+                if let Some(prev) = node.prev {
+                    assert_eq!(lv.list[prev].next, Some(i));
+                }
+                last = Some(i);
+                curr = node.next;
+                count_forward += 1;
+            }
+
+            assert_eq!(last, lv.get_tail_index());
+
+            // Walk backward
+            let mut count_backward = 0;
+            curr = lv.get_tail_index();
+            while let Some(i) = curr {
+                let node = &lv.list[i];
+                if let Some(next) = node.next {
+                    assert_eq!(lv.list[next].prev, Some(i));
+                }
+                curr = node.prev;
+                count_backward += 1;
+            }
+
+            assert_eq!(count_forward, count_backward);
+        };
+
+        for step in 0..500_000 {
+            let action: u8 = rand::Rng::random(&mut rng);
+
+            match action % 3 {
+                0 => {
+                    // Random removal
+                    if !indices.is_empty() {
+                        let idx_pos = rng.gen_range(0..indices.len());
+                        let idx = indices.remove(idx_pos);
+
+                        if idx < lv.list.len() {
+                            let node = &lv.list[idx];
+                            if node.next.is_some()
+                                || node.prev.is_some()
+                                || Some(idx) == lv.head
+                                || Some(idx) == lv.tail
+                            {
+                                lv.remove(idx);
+                            }
+                        }
+                    }
+                }
+                1 => {
+                    // Random insert_before or insert_after
+                    if !indices.is_empty() {
+                        let pos = rng.gen_range(0..indices.len());
+                        let target = indices[pos];
+                        let value: i32 = rand::Rng::random(&mut rng);
+
+                        let inserted = if rand::Rng::random::<bool>(&mut rng) {
+                            lv.insert_before(target, value)
+                        } else {
+                            lv.insert_after(target, value)
+                        };
+
+                        indices.push(inserted);
+                    } else {
+                        // List empty -> push
+                        let value: i32 = rand::Rng::random(&mut rng);
+                        indices.push(lv.push_back(value));
+                    }
+                }
+                _ => {
+                    // Push front or back
+                    let value: i32 = rand::Rng::random(&mut rng);
+                    let idx = if rand::Rng::random::<bool>(&mut rng) {
+                        lv.push_front(value)
+                    } else {
+                        lv.push_back(value)
+                    };
+                    indices.push(idx);
+                }
+            }
+
+            // Occasionally compact + verify + test get_random
+            if step % 200 == 0 {
+                lv.compact();
+                check_list_integrity(&lv);
+
+                if !lv.list.is_empty() && lv.empty_indices.is_empty() {
+                    let mut rng2 = StdRng::seed_from_u64(9999);
+                    for _ in 0..20 {
+                        let (_, v) = lv.get_random(&mut rng2).unwrap();
+                        black_box(v);
+                    }
+                }
+            }
+        }
+
+        // Final compact & check
+        lv.compact();
+        check_list_integrity(&lv);
+        is_compacted(lv);
+    }
+    #[test]
+    fn compact_creates_no_self_loops_bug4() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+
+        // Build a list: 0 <-> 1 <-> 2 <-> 3
+        // Indices:       0    1    2    3
+        let a = lv.push_back(10); // 0
+        let b = lv.push_back(20); // 1
+        let c = lv.push_back(30); // 2
+        let d = lv.push_back(40); // 3
+
+        // Remove index 1 -> this becomes an empty slot
+        lv.remove(b);
+
+        // Force the bug:
+        //
+        // Now next empty index = 1
+        // compact() will move the LAST node (index 3) into slot index 1
+        // but node[3].prev == 2, not 1, so no bug yet.
+        //
+        // To trigger bug #4: remove index 2 as well.
+        // Now empty_indices = [1, 2]
+        //
+        // compact pops 2 first:
+        //   moves node 3 → index 2
+        //
+        // Then compact pops 1:
+        //   moves node  ? → index 1
+        //
+        // After the first move, node 3 now has index 2 AND prev == 1
+        // So when moving node (old index 2) into index 1,
+        // prev == new_i → creates self-loop.
+        //
+        lv.remove(c);
+
+        // Now compact() will corrupt the list
+        lv.compact();
+
+        // Detect self-loops
+        for node in &lv.list {
+            if let Some(next) = node.next {
+                assert_ne!(
+                    next,
+                    node.index,
+                    "BUG: compact created a self-loop at index {}",
+                    node.index
+                );
+            }
+        }
+    }
+    #[test]
+    #[should_panic]
+    fn bug4_self_loop_insert_before_reuses_same_index() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+
+        // Step 1: Create two nodes
+        let a = lv.push_back(10); // index 0
+        let b = lv.push_back(20); // index 1
+
+        // Step 2: Remove b — index 1 becomes empty
+        lv.remove(b);
+        assert_eq!(lv.empty_indices, vec![1]);
+
+        // Step 3: insert_before(b, 999)
+        // IMPORTANT: b is the same index (1), but we removed it.
+        // So insert_before(1) will reuse index 1.
+        let x = lv.insert_before(b, 999);
     }
 }
