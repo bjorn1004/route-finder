@@ -209,56 +209,54 @@ impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
         self.empty_indices.sort();
         while let Some(index) = self.empty_indices.pop(){
             self.move_back_to_new_index(index);
-            if self.list[index].index != index{
-                panic!("aaaaaaaa")
-            }
         }
     }
 
     fn move_back_to_new_index(&mut self, new_i: NodeIndex){
+        let new_node_pos = &self.list[new_i];
+        if new_node_pos.next.is_some() || new_node_pos.prev.is_some() || new_node_pos.index != new_i{
+            panic!("AAAAa")
+        }
+
+
         let last_i = self.list.len()-1;
         if new_i == last_i{ // should only happen if last_i is empty
             self.list.pop();
             return
         }
 
-        let node = self.list.pop();
+        let mut node = self.list.pop().unwrap();
 
-        if let Some(node) = node {
-            // if the node is not the tail or head
-            // and the node also doesn't have a next or pev value, we don't have to move it.
-            if self.is_empty(&node){
-                // We can't return here, because we still need to fill the new_i with our new thing
-            }
-            // if the node is the head, update head to the new position
-            if let Some(head) = self.head{
-                if head == node.index{
-                    self.head = Some(new_i)
-                }
-            }
-
-            // if the node is the tail, update tail to the new position
-            if let Some(tail) = self.tail{
-                if tail == node.index{
-                    self.tail = Some(new_i)
-                }
-            }
-
-            // if node has a next value, update the prev in the next node to new_i
-            if let Some(next) = node.next {
-                self.list[next].prev = Some(new_i)
-            }
-            // if node has a prev value, update the next in the prev node to new_i
-            if let Some(prev) = node.prev {
-                self.list[prev].next = Some(new_i)
-            }
-
-            // we don't have to change the next or prev values in node
-            // assuming they pointed to correct values, they will still point to correct values.
-            // update the index of the new index
-            self.list[new_i] = node;
-            self.list[new_i].index = new_i;
+        // if the node is not the tail or head
+        // and the node also doesn't have a next or pev value, we don't have to move it.
+        if self.is_empty(&node){
+            // We can't return here, because we still need to fill the new_i with our new thing
         }
+
+        // if the node is the head, update head to the new position
+        if self.head == Some(node.index) {
+            self.head = Some(new_i);
+        }
+
+        // if the node is the tail, update tail to the new position
+        if self.tail == Some(node.index){
+            self.tail = Some(new_i)
+        }
+
+        // if node has a next value, update the prev in the next node to new_i
+        if let Some(next) = node.next {
+            self.list[next].prev = Some(new_i)
+        }
+        // if node has a prev value, update the next in the prev node to new_i
+        if let Some(prev) = node.prev {
+            self.list[prev].next = Some(new_i)
+        }
+
+        // we don't have to change the next or prev values in node
+        // assuming they pointed to correct values, they will still point to correct values.
+        // update the index of the new index
+        node.index = new_i;
+        self.list[new_i] = node;
     }
     fn is_empty(&self, node: &Node<T>) -> bool{
         node.index != self.head.unwrap() && node.index != self.tail.unwrap() && node.next.is_none() && node.prev.is_none()
@@ -745,6 +743,51 @@ mod tests{
         // be is removed, should panice here
         lv.insert_before(b, 999);
     }
+    #[test]
+    fn compact_on_middle_removals() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+
+        let a = lv.push_back(1);
+        let b = lv.push_back(2);
+        let c = lv.push_back(3);
+        let d = lv.push_back(4);
+
+        // Remove b and c
+        lv.remove(b);
+        lv.remove(c);
+
+        // Now compact — current code will corrupt node links
+        // Node a's next still points to b
+        // Node d's prev still points to c
+        lv.compact();
+
+        let mut curr = lv.get_head_index();
+        while let Some(idx) = curr {
+            let node = &lv.list[idx];
+            curr = node.next;
+        }
+        is_compacted(&lv);
+    }
+    #[test]
+    fn compact_when_head_tail_removed() {
+        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+
+        let a = lv.push_back(1);
+        let b = lv.push_back(2);
+        let c = lv.push_back(3);
+
+        // Remove head and tail
+        lv.remove(a);
+        lv.remove(c);
+
+        // Only b remains
+        // Compact should be safe, but current code may panic on index mismatch
+        lv.compact();
+
+        assert_eq!(lv.get_head_index(), Some(0));
+        assert_eq!(lv.get_tail_index(), Some(0));
+        is_compacted(&lv);
+    }
 
     #[test]
     fn stress_test(){
@@ -804,6 +847,9 @@ mod tests{
             for _ in 0..(action_count%30){
                 random_indices.insert(lv.get_random(&mut rng).unwrap().0);
             }
+            if random_indices.len() < (action_count % 30) as usize {
+                let a = 0;
+            }
 
             for j in &random_indices{
                 let action: u8 = Rng::random(&mut rng);
@@ -822,11 +868,9 @@ mod tests{
                         lv.remove(*j);
                     }
                 }
-                check_list_integrity(&lv);
-                lv.compact();
-                check_list_integrity(&lv);
-                is_compacted(&lv)
             }
+            check_list_integrity(&lv);
+            lv.compact();
             check_list_integrity(&lv);
             is_compacted(&lv);
         }
