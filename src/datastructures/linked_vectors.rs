@@ -12,6 +12,7 @@ pub trait LinkedVector<T>{
     fn push_back(&mut self, value: T) -> NodeIndex;
     fn remove(&mut self, index: NodeIndex);
 }
+#[derive(Clone)]
 pub struct Node<T>{
     pub value: T,
     pub index: NodeIndex,
