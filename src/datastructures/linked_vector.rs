@@ -2,13 +2,13 @@ use crate::datastructures::linked_vectors::{LinkedVector, Node, NodeIndex};
 use rand::{Rng};
 use rand::prelude::{IndexedRandom};
 
-pub struct LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
+pub struct CompactLinkedVector<T> {
     list: Vec<Node<T>>,
     head: Option<NodeIndex>, // the index of the head in our list
     tail: Option<NodeIndex>, // the index of the tail in our list
     empty_indices: Vec<NodeIndex>,
 }
-impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
+impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     fn get_random<R>(&self, rng: &mut R) -> Option<(NodeIndex, &T)>
     where
         R: Rng + ?Sized
@@ -127,9 +127,9 @@ impl<T> LinkedVector<T> for LinkedVectorWIthErrorValuesAsEmptyNodes<T>{
         self.empty_indices.push(node.index);
     }
 }
-impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
+impl<T> CompactLinkedVector<T> {
     fn new() -> Self{
-        LinkedVectorWIthErrorValuesAsEmptyNodes {
+        CompactLinkedVector {
             list: vec![],
             head: None,
             tail: None,
@@ -265,11 +265,11 @@ impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
 
 // made this iterator using chatgpt, I am not competent enough with lifetimes to do this myself.
 pub struct Iter<'a, T> {
-    list: &'a LinkedVectorWIthErrorValuesAsEmptyNodes<T>,
+    list: &'a CompactLinkedVector<T>,
     current: Option<NodeIndex>,
 }
 
-impl<T> LinkedVectorWIthErrorValuesAsEmptyNodes<T> {
+impl<T> CompactLinkedVector<T> {
     pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             list: self,
@@ -290,7 +290,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 }
 #[cfg(test)]
 mod tests{
-    fn is_compacted<T>(ls: &LinkedVectorWIthErrorValuesAsEmptyNodes<T>){
+    fn is_compacted<T>(ls: &CompactLinkedVector<T>){
         if ls.list.is_empty(){
             assert_eq!(ls.head, None);
             assert_eq!(ls.tail, None);
@@ -326,7 +326,7 @@ mod tests{
     use super::*;
     #[test]
     fn push_back_to_empty_list(){
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         lv.push_back(1);
         assert_eq!(lv.head.unwrap(), 0, "yay");
         assert_eq!(lv.list[lv.head.unwrap()].value, 1, "yay");
@@ -334,7 +334,7 @@ mod tests{
     }
     #[test]
     fn push_front_to_empty_list(){
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         lv.push_front(1);
         assert_eq!(lv.head.unwrap(), 0, "yay");
         assert_eq!(lv.list[lv.head.unwrap()].value, 1, "yay");
@@ -342,7 +342,7 @@ mod tests{
     }
     #[test]
     fn push_back_and_remove(){
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let node1 = lv.push_back(1);
         let node2 = lv.push_back(2);
         assert_eq!(lv.list[lv.head.unwrap()].value, 1);
@@ -361,7 +361,7 @@ mod tests{
     // From this point on, the tests are written by chatgpt
     #[test]
     fn insert_front_and_back_multiple() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(1);
         let b = lv.push_back(2);
         let c = lv.push_back(3);
@@ -376,7 +376,7 @@ mod tests{
 
     #[test]
     fn insert_before_middle() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         lv.push_back(1);
         let b = lv.push_back(3);
         lv.push_back(4);
@@ -390,7 +390,7 @@ mod tests{
 
     #[test]
     fn insert_after_middle() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(1);
         let b = lv.push_back(3);
 
@@ -405,7 +405,7 @@ mod tests{
 
     #[test]
     fn remove_head() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(1);
         let b = lv.push_back(2);
 
@@ -418,7 +418,7 @@ mod tests{
 
     #[test]
     fn remove_tail() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(1);
         let b = lv.push_back(2);
 
@@ -430,7 +430,7 @@ mod tests{
 
     #[test]
     fn remove_middle() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(1);
         let b = lv.push_back(2);
         let c = lv.push_back(3);
@@ -443,7 +443,7 @@ mod tests{
 
     #[test]
     fn reuse_empty_nodes() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(10);
         let b = lv.push_back(20);
 
@@ -459,7 +459,7 @@ mod tests{
 
     #[test]
     fn insert_after_tail() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(1);
         let b = lv.insert_after(a, 2);
 
@@ -470,7 +470,7 @@ mod tests{
 
     #[test]
     fn insert_before_head() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(2);
         let b = lv.insert_before(a, 1);
 
@@ -480,7 +480,7 @@ mod tests{
 
     #[test]
     fn random_insertions_and_removals_stay_consistent() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let mut nodes = vec![];
 
         // insert 10 nodes
@@ -514,7 +514,7 @@ mod tests{
 
     #[test]
     fn get_random_never_returns_empty_nodes() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let a = lv.push_back(10);
         lv.push_back(20);
 
@@ -530,7 +530,7 @@ mod tests{
     }
     #[test]
     fn compact() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let mut nodes = vec![];
 
         // insert 10 nodes
@@ -549,7 +549,7 @@ mod tests{
     }
     #[test]
     fn compact_empty_list() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
         let mut nodes = vec![];
         for i in 0..2{
             nodes.push(lv.push_back(i))
@@ -562,8 +562,8 @@ mod tests{
         is_compacted(&lv);
     }
 
-    fn fill_linked_vector(indices: usize) -> LinkedVectorWIthErrorValuesAsEmptyNodes<usize>{
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+    fn fill_linked_vector(indices: usize) -> CompactLinkedVector<usize>{
+        let mut lv = CompactLinkedVector::new();
         for i in 0..indices {
             lv.push_back(i);
         }
@@ -577,7 +577,7 @@ mod tests{
         use std::hint::black_box;
 
         let mut rng = StdRng::seed_from_u64(12345); // deterministic test
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
 
         // Fill with ~1000 elements
         let mut indices = vec![];
@@ -586,7 +586,7 @@ mod tests{
         }
 
         // Helper: Check consistency
-        let check_list_integrity = |lv: &LinkedVectorWIthErrorValuesAsEmptyNodes<_>| {
+        let check_list_integrity = |lv: &CompactLinkedVector<_>| {
             if lv.list.is_empty() {
                 assert!(lv.head.is_none());
                 assert!(lv.tail.is_none());
@@ -702,7 +702,7 @@ mod tests{
     }
     #[test]
     fn compact_creates_no_self_loops_bug4() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
 
         // Build a list: 0 <-> 1 <-> 2 <-> 3
         // Indices:       0    1    2    3
@@ -730,7 +730,7 @@ mod tests{
     #[test]
     #[should_panic]
     fn bug4_self_loop_insert_before_reuses_same_index() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
 
         // Step 1: Create two nodes
         lv.push_back(10); // index 0
@@ -745,7 +745,7 @@ mod tests{
     }
     #[test]
     fn compact_on_middle_removals() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
 
         let a = lv.push_back(1);
         let b = lv.push_back(2);
@@ -770,7 +770,7 @@ mod tests{
     }
     #[test]
     fn compact_when_head_tail_removed() {
-        let mut lv = LinkedVectorWIthErrorValuesAsEmptyNodes::new();
+        let mut lv = CompactLinkedVector::new();
 
         let a = lv.push_back(1);
         let b = lv.push_back(2);
@@ -801,7 +801,7 @@ mod tests{
         let mut random_indices = HashSet::new();
 
         // Helper: Check consistency
-        let check_list_integrity = |lv: &LinkedVectorWIthErrorValuesAsEmptyNodes<usize>| {
+        let check_list_integrity = |lv: &CompactLinkedVector<usize>| {
             if lv.list.is_empty() {
                 assert!(lv.head.is_none());
                 assert!(lv.tail.is_none());
