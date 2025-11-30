@@ -697,7 +697,7 @@ mod tests{
     }
 
     #[test]
-    fn stress_test(){
+    fn stress_test_with_continuous_correctness_checks(){
         use rand::{Rng, SeedableRng};
         use rand::rngs::StdRng;
         let mut rng = StdRng::seed_from_u64(12345);
@@ -739,5 +739,55 @@ mod tests{
             check_list_integrity(&lv);
             is_compacted(&lv);
         }
+    }
+    #[test]
+    fn stress_test_only_check_at_the_end(){
+        use rand::{Rng, SeedableRng};
+        use rand::rngs::StdRng;
+        let mut rng = StdRng::seed_from_u64(12345);
+        let mut lv = fill_linked_vector(100_000);
+
+
+        let mut random_var_val = 10_000;
+        let mut random_indices = HashSet::new();
+
+        #[cfg(debug_assertions)]
+        let iterations = 100_000;
+
+        #[cfg(not(debug_assertions))]
+        let iterations = 100_000_000;
+
+        for _ in 0..iterations{
+            random_indices.clear();
+
+            for _ in 0..5{
+                random_indices.insert(lv.get_random(&mut rng).unwrap().0);
+            }
+
+            for j in &random_indices{
+                let action: u8 = Rng::random(&mut rng);
+
+                assert_eq!(*j, lv.list[*j].index);
+                match action % 4 {
+                    0 => {
+                        lv.insert_after(*j, random_var_val);
+                        random_var_val += 1;
+                    }
+                    1 => {
+                        lv.insert_before(*j, random_var_val);
+                        random_var_val += 1;
+                    }
+                    _ => {
+                        lv.remove(*j);
+                    }
+                }
+            }
+            lv.compact();
+        }
+        check_list_integrity(&lv);
+        lv.compact();
+        assert_eq!(lv.iter().count(), lv.list.len());
+        check_list_integrity(&lv);
+        is_compacted(&lv);
     }
 }
