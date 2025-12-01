@@ -3,6 +3,10 @@ name = "route_finder"
 version = "0.1.0"
 edition = "2024"
 
+[profile.test]
+opt-level = 3            # For stress tests
+debug-assertions = false
+
 [dependencies]
 petgraph = { version = "0.8.3", features = ["rayon"] }
 rand = { version = "0.9.2", features = ["nightly", "simd_support"] }

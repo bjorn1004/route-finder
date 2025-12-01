@@ -1,6 +1,6 @@
 use crate::datastructures::linked_vectors::{LinkedVector, Node, NodeIndex};
-use rand::{Rng};
-use rand::prelude::{IndexedRandom};
+use rand::Rng;
+use rand::prelude::IndexedRandom;
 
 /// This is a linkedlist inside a Vector. It works with Node<t>
 /// Each Node contains its own index in the vector, and the index of the next and previous Node
@@ -28,34 +28,34 @@ pub struct CompactLinkedVector<T> {
     tail: Option<NodeIndex>, // the index of the tail in our list
     empty_indices: Vec<NodeIndex>,
 }
-impl<T> LinkedVector<T> for CompactLinkedVector<T>{
+impl<T> LinkedVector<T> for CompactLinkedVector<T> {
     fn get_random<R>(&self, rng: &mut R) -> Option<(NodeIndex, &T)>
     where
-        R: Rng + ?Sized
+        R: Rng + ?Sized,
     {
-        if self.empty_indices.len() != 0{
+        if !self.empty_indices.is_empty() {
             panic!("plz run compact before getting random values")
         }
 
-        if self.list.len() == 0{
+        if self.list.is_empty() {
             return None;
         }
 
-        if self.list.len() == 1{
-            return Some((0, &self.list[0].value))
+        if self.list.len() == 1 {
+            return Some((0, &self.list[0].value));
         }
 
-        while let Some(node) = self.list.choose(rng){
-            if node.next.is_none() && node.prev.is_none(){
-                continue
+        while let Some(node) = self.list.choose(rng) {
+            if node.next.is_none() && node.prev.is_none() {
+                continue;
             }
-            return Some((node.index, &node.value))
+            return Some((node.index, &node.value));
         }
         panic!("something went wrong in the random function");
     }
 
     fn get_value(&self, index: NodeIndex) -> Option<&T> {
-        if index < self.list.len(){
+        if index < self.list.len() {
             let node = &self.list[index];
             Some(&node.value)
         } else {
@@ -64,7 +64,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     }
 
     fn get_mut_value(&mut self, index: NodeIndex) -> Option<&mut T> {
-        if index < self.list.len(){
+        if index < self.list.len() {
             let node = &mut self.list[index];
             Some(&mut node.value)
         } else {
@@ -73,25 +73,23 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     }
 
     fn get_head_index(&self) -> Option<NodeIndex> {
-        if self.head.is_none(){
-            return None;
-        }
+        self.head?;
         let node = &self.list[self.head.unwrap()];
         Some(node.index)
     }
 
     fn get_tail_index(&self) -> Option<NodeIndex> {
-        if self.tail.is_none(){
-            return None;
-        }
+        self.tail?;
         let node = &self.list[self.tail.unwrap()];
         Some(node.index)
     }
     fn insert_after(&mut self, index: NodeIndex, value: T) -> NodeIndex {
-        if index >= self.list.len() { panic!("tried to index out of range")}
+        if index >= self.list.len() {
+            panic!("tried to index out of range")
+        }
         let node = &self.list[index];
 
-        if let Some(next_index) = node.next{
+        if let Some(next_index) = node.next {
             self.insert_(Some(next_index), value)
         } else {
             self.insert_(None, value)
@@ -99,7 +97,9 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     }
 
     fn insert_before(&mut self, index: NodeIndex, value: T) -> NodeIndex {
-        if index >= self.list.len() { panic!("tried to index out of range")}
+        if index >= self.list.len() {
+            panic!("tried to index out of range")
+        }
         let node = &self.list[index];
 
         self.insert_(Some(node.index), value)
@@ -109,7 +109,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
         self.insert_(self.head, value)
     }
 
-    fn push_back(&mut self, value: T) -> NodeIndex{
+    fn push_back(&mut self, value: T) -> NodeIndex {
         self.insert_(None, value)
     }
 
@@ -119,7 +119,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
         }
 
         let node = &self.list[index];
-        if let Some(prev) = node.prev{
+        if let Some(prev) = node.prev {
             self.list[prev].next = node.next;
         } else {
             // there is no previous index
@@ -128,7 +128,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
         }
 
         let node = &self.list[index];
-        if let Some(next) = node.next{
+        if let Some(next) = node.next {
             self.list[next].prev = node.prev;
         } else {
             // there is no next index
@@ -143,7 +143,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T>{
     }
 }
 impl<T> CompactLinkedVector<T> {
-    fn new() -> Self{
+    fn new() -> Self {
         CompactLinkedVector {
             list: vec![],
             head: None,
@@ -156,13 +156,13 @@ impl<T> CompactLinkedVector<T> {
     /// If node is Some(node) we add the value in front of the node in the linkedlist.
     /// If node is None, we add the value to the end of the linked list
     /// The new node will be placed in an empty spot or at the end of the list.
-    fn insert_(&mut self, node_index: Option<usize>, value: T) -> NodeIndex{
+    fn insert_(&mut self, node_index: Option<usize>, value: T) -> NodeIndex {
         let new_index = self.get_valid_empty_index();
         let new_node: Node<T>;
-        if self.list.is_empty(){
+        if self.list.is_empty() {
             #[cfg(debug_assertions)]
             assert!(node_index.is_none());
-            new_node = Node{
+            new_node = Node {
                 value,
                 index: new_index,
                 prev: None,
@@ -173,27 +173,30 @@ impl<T> CompactLinkedVector<T> {
         } else if let Some(node) = node_index {
             let prev = self.list[node].prev;
             self.list[node].prev = Some(new_index);
-            if let Some(prev_index) = prev{
+            if let Some(prev_index) = prev {
                 let prev = &mut self.list[prev_index];
                 prev.next = Some(new_index);
             } else {
                 // if None, we are at the front of the linkedlist
                 self.head = Some(new_index);
             }
-            new_node = Node{
+            new_node = Node {
                 value,
                 index: new_index,
                 prev,
                 next: Some(node),
             };
-        } else { // if node is None
-            if let Some(tail) = self.tail{
+        } else {
+            // if node is None
+            if let Some(tail) = self.tail {
                 let tail = &mut self.list[tail];
                 tail.next = Some(new_index);
-            } else if let None = self.tail{
-                panic!("not sure in which we would insert a value at the end of the list without a tail")
+            } else {
+                panic!(
+                    "not sure in which we would insert a value at the end of the list without a tail"
+                )
             }
-            new_node = Node{
+            new_node = Node {
                 value,
                 index: new_index,
                 prev: self.tail,
@@ -203,15 +206,15 @@ impl<T> CompactLinkedVector<T> {
             self.tail = Some(new_index);
         }
 
-        if new_index == self.list.len(){
+        if new_index == self.list.len() {
             self.list.push(new_node);
         } else {
             self.list[new_index] = new_node;
         }
         new_index
     }
-    fn get_valid_empty_index(&mut self) -> NodeIndex{
-        if let Some(index) = self.empty_indices.pop(){
+    fn get_valid_empty_index(&mut self) -> NodeIndex {
+        if let Some(index) = self.empty_indices.pop() {
             index
         } else {
             self.list.len()
@@ -220,31 +223,32 @@ impl<T> CompactLinkedVector<T> {
 
     /// Please don't use this function often,
     /// it takes O(nlogn) where n is the length of the empty indices
-    pub fn compact(&mut self){
+    pub fn compact(&mut self) {
         self.empty_indices.sort();
-        while let Some(index) = self.empty_indices.pop(){
+        while let Some(index) = self.empty_indices.pop() {
             self.move_back_to_new_index(index);
         }
     }
 
-    fn move_back_to_new_index(&mut self, new_i: NodeIndex){
+    fn move_back_to_new_index(&mut self, new_i: NodeIndex) {
         let new_node_pos = &self.list[new_i];
-        if new_node_pos.next.is_some() || new_node_pos.prev.is_some() || new_node_pos.index != new_i{
+        if new_node_pos.next.is_some() || new_node_pos.prev.is_some() || new_node_pos.index != new_i
+        {
             panic!("AAAAa")
         }
 
-
-        let last_i = self.list.len()-1;
-        if new_i == last_i{ // should only happen if last_i is empty
+        let last_i = self.list.len() - 1;
+        if new_i == last_i {
+            // should only happen if last_i is empty
             self.list.pop();
-            return
+            return;
         }
 
         let mut node = self.list.pop().unwrap();
 
         // if the node is not the tail or head
         // and the node also doesn't have a next or pev value, we don't have to move it.
-        if self.is_empty(&node){
+        if self.is_empty(&node) {
             // We can't return here, because we still need to fill the new_i with our new thing
         }
 
@@ -254,7 +258,7 @@ impl<T> CompactLinkedVector<T> {
         }
 
         // if the node is the tail, update tail to the new position
-        if self.tail == Some(node.index){
+        if self.tail == Some(node.index) {
             self.tail = Some(new_i)
         }
 
@@ -273,8 +277,11 @@ impl<T> CompactLinkedVector<T> {
         node.index = new_i;
         self.list[new_i] = node;
     }
-    fn is_empty(&self, node: &Node<T>) -> bool{
-        node.index != self.head.unwrap() && node.index != self.tail.unwrap() && node.next.is_none() && node.prev.is_none()
+    fn is_empty(&self, node: &Node<T>) -> bool {
+        node.index != self.head.unwrap()
+            && node.index != self.tail.unwrap()
+            && node.next.is_none()
+            && node.prev.is_none()
     }
 }
 
@@ -304,8 +311,8 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 #[cfg(test)]
-mod tests{
-    fn check_list_integrity(lv: &CompactLinkedVector<usize>){
+mod tests {
+    fn check_list_integrity(lv: &CompactLinkedVector<usize>) {
         if lv.list.is_empty() {
             assert!(lv.head.is_none());
             assert!(lv.tail.is_none());
@@ -344,42 +351,44 @@ mod tests{
         assert_eq!(count_forward, count_backward);
     }
 
-    fn is_compacted<T>(ls: &CompactLinkedVector<T>){
-        if ls.list.is_empty(){
+    fn is_compacted<T>(ls: &CompactLinkedVector<T>) {
+        if ls.list.is_empty() {
             assert_eq!(ls.head, None);
             assert_eq!(ls.tail, None);
-            return
+            return;
         }
 
-        if ls.list.len() == 1{
+        if ls.list.len() == 1 {
             assert_eq!(ls.head, Some(0));
             assert_eq!(ls.tail, Some(0));
             assert_eq!(ls.list[0].next, None);
             assert_eq!(ls.list[0].prev, None);
             assert!(ls.empty_indices.is_empty());
-            return
+            return;
         }
 
         let mut count = 0;
         assert_ne!(ls.head, ls.tail);
-        for node in &ls.list{
+        for node in &ls.list {
             count += 1;
-            if node.next.is_none() && node.prev.is_none(){
+            if node.next.is_none() && node.prev.is_none() {
                 panic!("empty node");
             }
         }
         let mut iter_count = 0;
-        for _ in ls.iter(){
+        for _ in ls.iter() {
             iter_count += 1;
         }
 
         assert_eq!(count, iter_count)
     }
 
-    use std::collections::HashSet;
+    use rand::rngs::SmallRng;
+
     use super::*;
+    use std::collections::HashSet;
     #[test]
-    fn push_back_to_empty_list(){
+    fn push_back_to_empty_list() {
         let mut lv = CompactLinkedVector::new();
         lv.push_back(1);
         assert_eq!(lv.head.unwrap(), 0, "yay");
@@ -387,7 +396,7 @@ mod tests{
         assert_eq!(lv.list[lv.tail.unwrap()].value, 1, "yay");
     }
     #[test]
-    fn push_front_to_empty_list(){
+    fn push_front_to_empty_list() {
         let mut lv = CompactLinkedVector::new();
         lv.push_front(1);
         assert_eq!(lv.head.unwrap(), 0, "yay");
@@ -395,7 +404,7 @@ mod tests{
         assert_eq!(lv.list[lv.tail.unwrap()].value, 1, "yay");
     }
     #[test]
-    fn push_back_and_remove(){
+    fn push_back_and_remove() {
         let mut lv = CompactLinkedVector::new();
         let node1 = lv.push_back(1);
         let node2 = lv.push_back(2);
@@ -409,8 +418,6 @@ mod tests{
         assert!(lv.tail.is_none());
         assert_eq!(lv.empty_indices.len(), 2)
     }
-
-
 
     // From this point on, the tests are written by chatgpt
     #[test]
@@ -605,7 +612,7 @@ mod tests{
     fn compact_empty_list() {
         let mut lv = CompactLinkedVector::new();
         let mut nodes = vec![];
-        for i in 0..2{
+        for i in 0..2 {
             nodes.push(lv.push_back(i))
         }
 
@@ -616,7 +623,7 @@ mod tests{
         is_compacted(&lv);
     }
 
-    fn fill_linked_vector(indices: usize) -> CompactLinkedVector<usize>{
+    fn fill_linked_vector(indices: usize) -> CompactLinkedVector<usize> {
         let mut lv = CompactLinkedVector::new();
         for i in 0..indices {
             lv.push_back(i);
@@ -642,8 +649,7 @@ mod tests{
         for node in &lv.list {
             if let Some(next) = node.next {
                 assert_ne!(
-                    next,
-                    node.index,
+                    next, node.index,
                     "BUG: compact created a self-loop at index {}",
                     node.index
                 );
@@ -697,26 +703,24 @@ mod tests{
     }
 
     #[test]
-    fn stress_test_with_continuous_correctness_checks(){
+    fn stress_test_with_continuous_correctness_checks() {
+        use rand::rngs::SmallRng;
         use rand::{Rng, SeedableRng};
-        use rand::rngs::StdRng;
-        let mut rng = StdRng::seed_from_u64(12345);
+        let mut rng = SmallRng::seed_from_u64(12345);
         let mut lv = fill_linked_vector(10_000);
-
 
         let mut random_var_val = 10_000;
         let mut random_indices = HashSet::new();
 
-
-        for _ in 0..10_000{
+        for _ in 0..10_000 {
             random_indices.clear();
             let action_count: u8 = Rng::random(&mut rng);
 
-            for _ in 0..(action_count%30){
+            for _ in 0..(action_count % 30) {
                 random_indices.insert(lv.get_random(&mut rng).unwrap().0);
             }
 
-            for j in &random_indices{
+            for j in &random_indices {
                 let action: u8 = Rng::random(&mut rng);
 
                 assert_eq!(*j, lv.list[*j].index);
@@ -741,12 +745,11 @@ mod tests{
         }
     }
     #[test]
-    fn stress_test_only_check_at_the_end(){
+    fn stress_test_only_check_at_the_end() {
+        use rand::rngs::SmallRng;
         use rand::{Rng, SeedableRng};
-        use rand::rngs::StdRng;
-        let mut rng = StdRng::seed_from_u64(12345);
+        let mut rng = SmallRng::seed_from_u64(12345);
         let mut lv = fill_linked_vector(100_000);
-
 
         let mut random_var_val = 10_000;
         let mut random_indices = HashSet::new();
@@ -757,14 +760,14 @@ mod tests{
         #[cfg(not(debug_assertions))]
         let iterations = 100_000_000;
 
-        for _ in 0..iterations{
+        for _ in 0..iterations {
             random_indices.clear();
 
-            for _ in 0..5{
+            for _ in 0..5 {
                 random_indices.insert(lv.get_random(&mut rng).unwrap().0);
             }
 
-            for j in &random_indices{
+            for j in &random_indices {
                 let action: u8 = Rng::random(&mut rng);
 
                 assert_eq!(*j, lv.list[*j].index);

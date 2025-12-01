@@ -8,21 +8,21 @@ use crate::resource::{Company, Distance, DistanceMatrix};
 fn get_next(
     cols: &mut std::str::Split<'_, char>,
     field_name: &str,
-) -> Result<String, Box<dyn Error + 'static>> {
+) -> Result<String, Box<dyn Error + 'static + Send + Sync>> {
     Ok(cols
         .next()
         .map(|s| s.to_string())
         .ok_or_else(|| format!("Error column missing {}", field_name))?)
 }
 
-pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error>> {
+pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
     let orderfile = include_str!("../data/Orderbestand.txt");
 
     // Split in lines, skip headers
     orderfile
         .lines()
         .skip(1)
-        .map(|line| -> Result<Company, Box<dyn Error>> {
+        .map(|line| -> Result<Company, Box<dyn Error + Send + Sync>> {
             let mut columns = line.split(';');
 
             Ok(Company {
@@ -37,15 +37,15 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error>> {
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
             })
         })
-        .collect::<Result<Vec<Company>, Box<dyn Error>>>()
+        .collect::<Result<Vec<Company>, Box<dyn Error + Send + Sync>>>()
 }
 
-pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error>> {
+pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error + Send + Sync>> {
     let distance_matrix_file = include_str!("../data/AfstandenMatrix.txt");
 
     distance_matrix_file.lines().skip(1).try_fold(
         MatrixGraph::new(),
-        |mut graph, line| -> Result<DistanceMatrix, Box<dyn Error>> {
+        |mut graph, line| -> Result<DistanceMatrix, Box<dyn Error + Send + Sync>> {
             let mut colunms = line.split(';');
 
             let node_a: u16 = get_next(&mut colunms, "MatrixID1")?.parse()?;
