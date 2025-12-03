@@ -1,2 +1,2 @@
 pub mod compact_linked_vector;
-mod linked_vectors;
+pub mod linked_vectors;

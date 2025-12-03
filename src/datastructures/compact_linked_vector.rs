@@ -142,6 +142,10 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         node.prev = None;
         self.empty_indices.push(node.index);
     }
+
+    fn set_value_at_index(&mut self, index: NodeIndex,value: T) {
+        self.list[index].value = value;
+    }
 }
 impl<T> CompactLinkedVector<T> {
     pub fn new() -> Self {

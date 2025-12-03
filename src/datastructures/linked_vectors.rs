@@ -11,6 +11,7 @@ pub trait LinkedVector<T>{
     fn push_front(&mut self, value: T) -> NodeIndex;
     fn push_back(&mut self, value: T) -> NodeIndex;
     fn remove(&mut self, index: NodeIndex);
+    fn set_value_at_index(&mut self, index: NodeIndex, value: T);
 }
 #[derive(Debug, Clone)]
 pub struct Node<T>{

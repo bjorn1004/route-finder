@@ -11,20 +11,20 @@ impl SimulatedAnnealing{
         // intializationthings
     }
 
-
     pub fn biiiiiig_loop(&mut self){
-
         // this ic currently an infinite loop.
         // We will need some predicate to exit this loop
         loop {
             self.do_step();
         }
     }
+
     fn do_step(&mut self){
-        
-    }
+        // not really sure if this is correct
+        loop {
+            // get a neighbor(hood)
+            // calculate the difference in time spent, weight,
 
-    fn get_neighborhood(&mut self){
-
+        }
     }
 }

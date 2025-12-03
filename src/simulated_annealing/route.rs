@@ -3,7 +3,7 @@ use crate::resource::MatrixID;
 
 #[derive(Debug, Clone)]
 pub struct Route{
-    pub route: CompactLinkedVector<MatrixID>,
+    pub linked_vector: CompactLinkedVector<MatrixID>,
     // there are a few variables missing here.
     // If we add new variables here, we also need to add them to the "constructor"
 }
@@ -15,7 +15,7 @@ impl Route{
     /// Construct an empty route
     pub fn new() -> Self{
         Route{
-            route: CompactLinkedVector::<MatrixID>::new(),
+            linked_vector: CompactLinkedVector::<MatrixID>::new(),
         }
     }
 }

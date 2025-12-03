@@ -4,7 +4,7 @@ use super::route::Route;
 
 pub struct PlaceholderTruckNameThing{
     // A list of 5 lists, where each list contains 2 CompactLinkedVectors for the 2 routes.
-    routes: Vec<Vec<Route>>,
+    pub routes: Vec<Vec<Route>>,
 }
 
 
