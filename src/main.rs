@@ -7,7 +7,6 @@ use std::{
 };
 
 use petgraph::dot::Dot;
-
 use crate::{
     parser::{parse_distance_matrix, parse_orderfile},
     resource::{Company, DistanceMatrix},
@@ -16,6 +15,9 @@ use crate::{
 mod datastructures;
 mod parser;
 mod resource;
+mod simulated_annealing;
+mod placeholder_truck_name_thing;
+mod route;
 
 pub static ORDERS: OnceLock<Vec<Company>> = const { OnceLock::new() };
 

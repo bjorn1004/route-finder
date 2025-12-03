@@ -22,6 +22,7 @@ use rand::prelude::IndexedRandom;
 ///     // Do not try to use any indexes you have gotten before the last time you have compacted.
 /// }
 /// ```
+#[derive(Clone, Debug)]
 pub struct CompactLinkedVector<T> {
     list: Vec<Node<T>>,
     head: Option<NodeIndex>, // the index of the head in our list
@@ -143,7 +144,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
     }
 }
 impl<T> CompactLinkedVector<T> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         CompactLinkedVector {
             list: vec![],
             head: None,

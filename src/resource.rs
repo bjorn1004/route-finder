@@ -10,10 +10,11 @@ pub struct Company {
     pub container_count: u8,
     pub container_volume: u16,
     pub emptying_time: f32,
-    pub matrix_id: u16,
+    pub matrix_id: MatrixID,
     pub x_coordinate: u32,
     pub y_coordinate: u32, // maybe turn this into a nalgebra vector if we need it
 }
+pub type MatrixID = u16;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Frequency {
