@@ -1,6 +1,6 @@
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::resource::MatrixID;
-use crate::route::Route;
+use super::route::Route;
 
 pub struct PlaceholderTruckNameThing{
     // A list of 5 lists, where each list contains 2 CompactLinkedVectors for the 2 routes.

@@ -1,12 +1,10 @@
 use std::{
-    cell::OnceCell,
-    error::Error,
-    fs::File,
+    error::Error
+    ,
     io::Write,
-    sync::{LazyLock, OnceLock, RwLock},
+    sync::OnceLock,
 };
 
-use petgraph::dot::Dot;
 use crate::{
     parser::{parse_distance_matrix, parse_orderfile},
     resource::{Company, DistanceMatrix},
@@ -16,8 +14,6 @@ mod datastructures;
 mod parser;
 mod resource;
 mod simulated_annealing;
-mod placeholder_truck_name_thing;
-mod route;
 
 pub static ORDERS: OnceLock<Vec<Company>> = const { OnceLock::new() };
 

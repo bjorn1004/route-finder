@@ -1,4 +1,4 @@
-use crate::placeholder_truck_name_thing::PlaceholderTruckNameThing;
+use super::placeholder_truck_name_thing::PlaceholderTruckNameThing;
 struct SimulatedAnnealing{
     thing1: PlaceholderTruckNameThing,
     thing2: PlaceholderTruckNameThing
@@ -17,14 +17,14 @@ impl SimulatedAnnealing{
         // this ic currently an infinite loop.
         // We will need some predicate to exit this loop
         loop {
-            self.do_step();;
+            self.do_step();
         }
     }
     fn do_step(&mut self){
         
     }
-    
+
     fn get_neighborhood(&mut self){
-        
+
     }
 }
