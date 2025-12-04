@@ -10,8 +10,6 @@ pub struct Route{
 
 
 impl Route{
-    
-    // This is the constructor, the new function.
     /// Construct an empty route
     pub fn new() -> Self{
         Route{

@@ -1,9 +1,11 @@
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
-use super::placeholder_truck_name_thing::PlaceholderTruckNameThing;
-use super::transactionoperationnneighborthingidk::transactionnneighborthing::{Swap2RandomValuesInSameRoute, Swap2RandomValuesInSameRouteYAAY, TransactionNeighborThing};
+use super::transactionoperationnneighborthingidk::transactionnneighborthing::{Swap2RandomValuesInSameRoute, TransactionNeighborThing};
+use super::week::Week;
 struct SimulatedAnnealing{
-    thing1: Vec<PlaceholderTruckNameThing>,
+    truck1: Week,
+    truck2: Week,
+    
     // We could store variables here which are needed for simulated annealing.
 }
 
@@ -28,15 +30,19 @@ impl SimulatedAnnealing{
             let a = rng.random_range(1..3);
             // something to decide which thing to choose
             let transactionthingy:Box<dyn TransactionNeighborThing> = match a {
-                1 => { Box::new(Swap2RandomValuesInSameRoute::new(&self.thing1, &mut rng))}
-                _ => { Box::new(Swap2RandomValuesInSameRouteYAAY::new(&self.thing1, &mut rng))}
+                1 => { Box::new(Swap2RandomValuesInSameRoute::new())}
+                _ => { Box::new(Swap2RandomValuesInSameRoute::new())}
             };
 
             // get the change in capacity/time
-            let _ = transactionthingy.evaluate();
+            let _ = transactionthingy.evaluate(&self.truck1, &self.truck2);
 
-            // change the route
-            transactionthingy.execute(&mut self.thing1);
+            // if we want to go through with this thing
+            if true{
+                // change the route
+                transactionthingy.execute(&mut self.truck1, &mut self.truck2);
+                break;
+            }
         }
     }
 }
