@@ -1,9 +1,15 @@
-use egui::{Color32, Pos2, Sense, Vec2, emath::TSTransform, epaint::CircleShape};
+use std::collections::HashMap;
 
-use crate::get_orders;
+use egui::{Color32, Pos2, Sense, Stroke, Vec2, emath::TSTransform};
+
+use crate::{
+    datastructures::linked_vectors::LinkedVector, get_orders, resource::MatrixID,
+    simulated_annealing::route::Route,
+};
 
 pub struct GuiApp {
     pub camera: TSTransform,
+    pub matrix_coordinate_map: HashMap<MatrixID, Pos2>,
 }
 
 impl GuiApp {
@@ -20,13 +26,23 @@ impl GuiApp {
                 scaling: 0.0001,
                 translation: -Vec2::new(min_x as f32, min_y as f32) * 0.0001,
             },
+            // pre-fill a matrix to coordinate system so we don't have to search the list for every point
+            matrix_coordinate_map: get_orders().iter().fold(HashMap::new(), |mut acc, o| {
+                acc.insert(
+                    o.matrix_id,
+                    Pos2::new(o.x_coordinate as f32, o.y_coordinate as f32),
+                );
+                acc
+            }),
         }
     }
 }
 
 impl eframe::App for GuiApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        egui::SidePanel::left("overview").show(ctx, |ui| {});
+        egui::SidePanel::left("controls").show(ctx, |ui| {
+            ui.label("Here will be controls for starting searches, tweaking params, etc...")
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
             let (mut response, painter) =
                 ui.allocate_painter(ui.available_size_before_wrap(), Sense::drag());
@@ -86,13 +102,42 @@ impl eframe::App for GuiApp {
                 }
             }
 
+            // TODO: Get the routes from the simulated annealing (with minimum overhead).
+            // Furthermore, if we draw all routes, from both trucks, for all days, at once,
+            // you would get a massive unintelligable spider web
+            // so we need a way to select specific routes
+            let mut temp_route = Route::new();
+            for o in get_orders().iter() {
+                temp_route.linked_vector.push_front(o.matrix_id);
+            }
+            temp_route.linked_vector.compact();
+
+            let route_line = egui::Shape::line(
+                temp_route
+                    .linked_vector
+                    .iter()
+                    .map(|(_, m_id)| self.camera * *self.matrix_coordinate_map.get(&m_id).unwrap())
+                    .collect(),
+                // FUTURE: we could colour code days, trucks, morning/afternoon, etc.
+                Stroke::new(1.0, Color32::LIGHT_BLUE),
+            );
+
+            painter.add(route_line);
             let shapes = get_orders().iter().map(|o| {
                 let screen_pos =
                     self.camera * Pos2::new(o.x_coordinate as f32, o.y_coordinate as f32);
-                egui::Shape::Circle(CircleShape::filled(screen_pos, 2.0, Color32::BLUE))
+                let (colour, radius) = match o.matrix_id {
+                    287 => (Color32::GREEN, 3.5), // Maarheeze, the dump site
+                    // Future: we can also highlight selected companies here, colour code things, whatever else
+                    _ => (Color32::BLUE, 2.0),
+                };
+                egui::Shape::circle_filled(screen_pos, radius, colour)
             });
 
             painter.extend(shapes);
+        });
+        egui::SidePanel::right("inspector").show(ctx, |ui| {
+            ui.label("Here will be details on the routes, nodes, distances, etc...")
         });
     }
 }

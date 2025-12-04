@@ -1,3 +1,5 @@
+#![feature(iter_map_windows)]
+
 use std::{error::Error, sync::OnceLock};
 
 use eframe::UserEvent;

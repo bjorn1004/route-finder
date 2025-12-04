@@ -54,4 +54,4 @@ impl Display for Distance {
     }
 }
 
-pub type DistanceMatrix = DiMatrix<u16, Distance>;
+pub type DistanceMatrix = DiMatrix<MatrixID, Distance>;
