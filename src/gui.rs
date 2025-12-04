@@ -44,7 +44,7 @@ impl eframe::App for GuiApp {
             ui.label("Here will be controls for starting searches, tweaking params, etc...")
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            let (mut response, painter) =
+            let (response, painter) =
                 ui.allocate_painter(ui.available_size_before_wrap(), Sense::drag());
 
             // Doesn't work for now, so the dots spawn in a little off screen
@@ -62,17 +62,11 @@ impl eframe::App for GuiApp {
                 // Start with neutral scale factor
                 let mut scale_factor: f32 = 1.0;
 
-                // Pinch/zoom gesture (multitouch). Many egui versions expose
-                // `ctx.input().zoom_delta` as a multiplicative factor (1.0 == no change).
-                // If your egui version provides this as a method instead, adjust accordingly.
-                // Using field access is broadly compatible with common egui releases.
                 let pinch = ctx.input(|i| i.zoom_delta());
                 if (pinch - 1.0).abs() > f32::EPSILON {
                     scale_factor *= pinch;
                 }
 
-                // Scroll wheel: typically ctx.input().scroll_delta.y is the vertical scroll.
-                // We convert this into a multiplicative zoom factor. Tweak sensitivity as needed.
                 let scroll = ctx.input(|i| i.smooth_scroll_delta.y);
                 if scroll.abs() > f32::EPSILON {
                     // smaller multiplier = less sensitive. Negative scroll (wheel up) usually zooms in.

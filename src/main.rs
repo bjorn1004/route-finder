@@ -3,11 +3,6 @@
 use std::{error::Error, sync::OnceLock};
 
 use eframe::UserEvent;
-use egui::{
-    Align2, Color32, FontId, Pos2, Rect, Sense, Vec2,
-    emath::{self, TSTransform},
-    epaint::CircleShape,
-};
 use winit::event_loop::{ControlFlow, EventLoop};
 
 use crate::{
