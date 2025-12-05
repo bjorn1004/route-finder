@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use egui::{Color32, Pos2, Sense, Stroke, Vec2, emath::TSTransform};
 
 use crate::{
@@ -9,7 +7,6 @@ use crate::{
 
 pub struct GuiApp {
     pub camera: TSTransform,
-    pub matrix_coordinate_map: HashMap<MatrixID, Pos2>,
 }
 
 impl GuiApp {
@@ -26,14 +23,6 @@ impl GuiApp {
                 scaling: 0.0001,
                 translation: -Vec2::new(min_x as f32, min_y as f32) * 0.0001,
             },
-            // pre-fill a matrix to coordinate system so we don't have to search the list for every point
-            matrix_coordinate_map: get_orders().iter().fold(HashMap::new(), |mut acc, o| {
-                acc.insert(
-                    o.matrix_id,
-                    Pos2::new(o.x_coordinate as f32, o.y_coordinate as f32),
-                );
-                acc
-            }),
         }
     }
 }
@@ -111,7 +100,10 @@ impl eframe::App for GuiApp {
                 temp_route
                     .linked_vector
                     .iter()
-                    .map(|(_, order_index)| self.camera * *self.matrix_coordinate_map.get(&orders[*order_index].matrix_id).unwrap())
+                    .map(|(_, order_index)| {
+                        let order = &orders[*order_index];
+                        self.camera * Pos2::new(order.x_coordinate as f32, order.y_coordinate as f32)
+                    })
                     .collect(),
                 // FUTURE: we could colour code days, trucks, morning/afternoon, etc.
                 Stroke::new(1.0, Color32::LIGHT_BLUE),
