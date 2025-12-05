@@ -1,2 +1,2 @@
 // I DO NOT KNOW WHAT THIS THING SHOULD BE NAMED YET
-pub mod transactionnneighborthing;
+pub mod nieghbor_move_trait;

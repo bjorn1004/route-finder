@@ -1,6 +1,6 @@
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
-use super::transactionoperationnneighborthingidk::transactionnneighborthing::{Swap2RandomValuesInSameRoute, TransactionNeighborThing};
+use super::transactionoperationnneighborthingidk::nieghbor_move_trait::{Swap2RandomValuesInSameRoute, NeighborMove};
 use super::week::Week;
 struct SimulatedAnnealing{
     truck1: Week,
@@ -24,25 +24,29 @@ impl SimulatedAnnealing{
         }
     }
 
-    fn do_step(&mut self, mut rng: &mut SmallRng){
+    fn do_step(&mut self, rng: &mut SmallRng){
         // not really sure if this is correct
         loop {
             let a = rng.random_range(1..3);
             // something to decide which thing to choose
-            let transactionthingy:Box<dyn TransactionNeighborThing> = match a {
+            let transactionthingy:Box<dyn NeighborMove> = match a {
                 1 => { Box::new(Swap2RandomValuesInSameRoute::new())}
-                _ => { Box::new(Swap2RandomValuesInSameRoute::new())}
+                _ => unreachable!(),
             };
 
             // get the change in capacity/time
             let _ = transactionthingy.evaluate(&self.truck1, &self.truck2);
 
             // if we want to go through with this thing
-            if true{
+            if self.accept(){
                 // change the route
-                transactionthingy.execute(&mut self.truck1, &mut self.truck2);
+                transactionthingy.apply(&mut self.truck1, &mut self.truck2);
                 break;
             }
         }
+    }
+
+    fn accept(&self) -> bool{
+        todo!()
     }
 }
