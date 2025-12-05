@@ -1,5 +1,7 @@
+
+use std::fmt::Display;
+
 use super::route::Route;
-use crate::simulated_annealing::week::DayEnum;
 use rand::Rng;
 use rand::distr::{Distribution, StandardUniform};
 pub struct Day {
@@ -7,9 +9,20 @@ pub struct Day {
     afternoon: Route,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 pub enum TimeOfDay{
     Morning,
     Afternoon
+}
+
+impl Display for TimeOfDay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let show = match self {
+           Self::Morning => "Morning",
+           Self::Afternoon => "Afternoon"
+        };
+        write!(f, "{show}")
+    }
 }
 
 // This makes it easier to get a random day

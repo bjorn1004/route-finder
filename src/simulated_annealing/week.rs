@@ -8,7 +8,7 @@ pub struct Week {
     friday: Day,
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub enum DayEnum {
     Monday,
     Tuesday,

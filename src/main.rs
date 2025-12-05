@@ -15,7 +15,7 @@ mod datastructures;
 mod gui;
 mod parser;
 mod resource;
-mod simulated_annealing;
+pub mod simulated_annealing;
 
 pub static ORDERS: OnceLock<Vec<Company>> = const { OnceLock::new() };
 

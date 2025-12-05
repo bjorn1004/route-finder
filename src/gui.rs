@@ -1,12 +1,26 @@
-use egui::{Color32, Pos2, Sense, Stroke, Vec2, emath::TSTransform};
+use std::collections::{BTreeSet, HashSet};
+
+use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2, emath::TSTransform};
 
 use crate::{
-    datastructures::linked_vectors::LinkedVector, get_orders, resource::MatrixID,
-    simulated_annealing::route::Route,
+    datastructures::linked_vectors::LinkedVector,
+    get_orders,
+    simulated_annealing::{
+        day::TimeOfDay, route::Route, simulated_annealing::TruckEnum, week::DayEnum,
+    },
 };
+
+#[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
+struct RouteSelection {
+    truck: TruckEnum,
+    day: DayEnum,
+    shift: TimeOfDay,
+}
 
 pub struct GuiApp {
     pub camera: TSTransform,
+    // A BTree lets us keep the order of routes consistent in GUI
+    route_selection: BTreeSet<RouteSelection>,
 }
 
 impl GuiApp {
@@ -23,6 +37,7 @@ impl GuiApp {
                 scaling: 0.0001,
                 translation: -Vec2::new(min_x as f32, min_y as f32) * 0.0001,
             },
+            route_selection: BTreeSet::new(),
         }
     }
 }
@@ -30,7 +45,44 @@ impl GuiApp {
 impl eframe::App for GuiApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::SidePanel::left("controls").show(ctx, |ui| {
-            ui.label("Here will be controls for starting searches, tweaking params, etc...")
+            ui.vertical_centered(|ui| ui.heading("Controls"));
+            ui.separator();
+            ui.horizontal(|ui|{
+                 if ui.button("Start search").clicked() {
+                    // TODO
+                 }
+                 if ui.button("Pause search").clicked() {
+                    // TODO
+                 }
+            });
+            ui.label("Searching overview");
+            egui::Grid::new("sim_anneal_overview")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label("Temperature:");
+                    ui.label("todo");
+                    ui.end_row();
+                    ui.label("Q:");
+                    ui.label("todo");
+                    ui.end_row();
+                });
+            ui.separator();
+            ui.label("Searching parameters");
+            ui.collapsing("Simulated annealing", |ui| {
+                egui::Grid::new("sim_anneal_params")
+                    .num_columns(2)
+                    .show(ui, |ui| {
+                        ui.label("Temperature:");
+                        ui.add(egui::DragValue::new(&mut 0.0).range(0.0..=f32::INFINITY));
+                        ui.end_row();
+                        ui.label("Q:");
+                        ui.add(egui::DragValue::new(&mut 0).range(0..=u16::MAX));
+                        ui.end_row();
+                        ui.label("α:");
+                        ui.add(egui::DragValue::new(&mut 0.0).range(0.0..=1.0));
+                        ui.end_row();
+                    });
+            });
         });
         egui::CentralPanel::default().show(ctx, |ui| {
             let (response, painter) =
@@ -90,7 +142,7 @@ impl eframe::App for GuiApp {
             // you would get a massive unintelligable spider web
             // so we need a way to select specific routes
             let mut temp_route = Route::new();
-            for (i,_) in get_orders().iter().enumerate() {
+            for (i, _) in get_orders().iter().enumerate() {
                 temp_route.linked_vector.push_front(i);
             }
             temp_route.linked_vector.compact();
@@ -102,7 +154,8 @@ impl eframe::App for GuiApp {
                     .iter()
                     .map(|(_, order_index)| {
                         let order = &orders[*order_index];
-                        self.camera * Pos2::new(order.x_coordinate as f32, order.y_coordinate as f32)
+                        self.camera
+                            * Pos2::new(order.x_coordinate as f32, order.y_coordinate as f32)
                     })
                     .collect(),
                 // FUTURE: we could colour code days, trucks, morning/afternoon, etc.
@@ -124,7 +177,66 @@ impl eframe::App for GuiApp {
             painter.extend(shapes);
         });
         egui::SidePanel::right("inspector").show(ctx, |ui| {
-            ui.label("Here will be details on the routes, nodes, distances, etc...")
+            ui.vertical_centered(|ui| ui.heading("Inspector"));
+            ui.separator();
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.collapsing("Routes", |ui| {
+                    // Future: select all, more difficult than it might seem...
+                    if ui.button("Deselect all").clicked() {
+                        self.route_selection.clear();
+                    }
+                    let mut shift_ui =
+                        |ui: &mut Ui, shift: TimeOfDay, day: DayEnum, truck: TruckEnum| {
+                            let selection = RouteSelection { truck, day, shift };
+                            let selected = &mut self.route_selection.contains(&selection);
+                            ui.checkbox(selected, shift.to_string());
+                            if *selected {
+                                self.route_selection.insert(selection);
+                            } else {
+                                self.route_selection.remove(&selection);
+                            }
+                        };
+                    let mut weekday_ui = |ui: &mut Ui, day: DayEnum, truck: TruckEnum| {
+                        shift_ui(ui, TimeOfDay::Morning, day, truck);
+                        shift_ui(ui, TimeOfDay::Afternoon, day, truck);
+                    };
+                    let mut truck_ui = |ui: &mut Ui, truck: TruckEnum| {
+                        ui.collapsing("Monday", |ui| {
+                            weekday_ui(ui, DayEnum::Monday, truck);
+                        });
+                        ui.collapsing("Tuesday", |ui| {
+                            weekday_ui(ui, DayEnum::Tuesday, truck);
+                        });
+                        ui.collapsing("Wednesday", |ui| {
+                            weekday_ui(ui, DayEnum::Wednesday, truck);
+                        });
+                        ui.collapsing("Thursday", |ui| {
+                            weekday_ui(ui, DayEnum::Thursday, truck);
+                        });
+                        ui.collapsing("Friday", |ui| {
+                            weekday_ui(ui, DayEnum::Friday, truck);
+                        });
+                    };
+                    ui.collapsing("Truck 1", |ui| {
+                        truck_ui(ui, TruckEnum::Truck1);
+                    });
+                    ui.collapsing("Truck 2", |ui| {
+                        truck_ui(ui, TruckEnum::Truck2);
+                    });
+                });
+                ui.separator();
+                ui.collapsing("Selected routes", |ui| {
+                    for route in self.route_selection.iter() {
+                        ui.label(format!(
+                            "{:?}, {:?}, {:?}",
+                            route.truck, route.day, route.shift
+                        ));
+                        // Future: summary of route statistics
+                    }
+                });
+                // ui.separator();
+                // ui.collapsing("Selected orders", |ui| {});
+            });
         });
     }
 }

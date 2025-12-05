@@ -2,11 +2,18 @@ use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
 use super::transactionoperationnneighborthingidk::nieghbor_move_trait::{Swap2RandomValuesInSameRoute, NeighborMove};
 use super::week::Week;
+
 struct SimulatedAnnealing{
     truck1: Week,
     truck2: Week,
     
     // We could store variables here which are needed for simulated annealing.
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
+pub enum TruckEnum{
+    Truck1,
+    Truck2
 }
 
 

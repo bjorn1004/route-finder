@@ -1,5 +1,5 @@
 pub mod route;
-mod simulated_annealing;
+pub mod simulated_annealing;
 mod transactionoperationnneighborthingidk;
-mod day;
-mod week;
+pub mod day;
+pub mod week;
