@@ -101,16 +101,17 @@ impl eframe::App for GuiApp {
             // you would get a massive unintelligable spider web
             // so we need a way to select specific routes
             let mut temp_route = Route::new();
-            for o in get_orders().iter() {
-                temp_route.linked_vector.push_front(o.matrix_id);
+            for (i,_) in get_orders().iter().enumerate() {
+                temp_route.linked_vector.push_front(i);
             }
             temp_route.linked_vector.compact();
 
+            let orders = get_orders();
             let route_line = egui::Shape::line(
                 temp_route
                     .linked_vector
                     .iter()
-                    .map(|(_, m_id)| self.camera * *self.matrix_coordinate_map.get(&m_id).unwrap())
+                    .map(|(_, order_index)| self.camera * *self.matrix_coordinate_map.get(&orders[*order_index].matrix_id).unwrap())
                     .collect(),
                 // FUTURE: we could colour code days, trucks, morning/afternoon, etc.
                 Stroke::new(1.0, Color32::LIGHT_BLUE),
