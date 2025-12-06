@@ -150,10 +150,20 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
     fn get_next(&self, index: NodeIndex) -> Option<NodeIndex> {
         self.list[index].next
     }
+    fn get_prev(&self, index: NodeIndex) -> Option<NodeIndex> {
+        self.list[index].prev
+    }
 
     fn get_next_value(&self, index: NodeIndex) -> Option<&T> {
         if let Some(next_index) = self.list[index].next{
             self.get_value(next_index)
+        } else {
+            None
+        }
+    }
+    fn get_prev_value(&self, index: NodeIndex) -> Option<&T> {
+        if let Some(prev_index) = self.list[index].prev{
+            self.get_value(prev_index)
         } else {
             None
         }
