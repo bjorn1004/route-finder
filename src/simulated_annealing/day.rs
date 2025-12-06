@@ -44,7 +44,7 @@ impl Day {
     pub fn get_random<R: Rng + ?Sized>(&self, rng: &mut R) -> (&Route, TimeOfDay) {
         match rng.random() {
             TimeOfDay::Morning => (&self.morning, TimeOfDay::Morning),
-            TimeOfDay::Afternoon => (&self.afternoon, TimeOfDay::Morning)
+            TimeOfDay::Afternoon => (&self.afternoon, TimeOfDay::Afternoon)
         }
     }
     pub fn get_mut(&mut self, time_of_day: TimeOfDay) -> &mut Route{
