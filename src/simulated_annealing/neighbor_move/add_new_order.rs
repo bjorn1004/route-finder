@@ -64,12 +64,12 @@ impl AddNewOrder {
 
         let order_index1 = dist.from_index(orders[order1].matrix_id as usize);
         let order_index2 = dist.from_index(orders[order2].matrix_id as usize);
-        let new_order_index = dist.from_index(self.order);
+        let new_order_index = dist.from_index(orders[self.order].matrix_id as usize);
 
-        let old_time = dist.get_edge_weight(order_index1, order_index2).unwrap().travel_time;
+        let old_time = if order_index1 == order_index2 {0} else {dist.get_edge_weight(order_index1, order_index2).unwrap().travel_time};
 
-        let new_time = dist.get_edge_weight(order_index1, new_order_index).unwrap().travel_time +
-            dist.get_edge_weight(new_order_index, order_index2).unwrap().travel_time;
+        let new_time = if order_index1 == new_order_index {0} else {dist.get_edge_weight(order_index1, new_order_index).unwrap().travel_time}+
+            if new_order_index == order_index2 {0} else {dist.get_edge_weight(new_order_index, order_index2).unwrap().travel_time};
 
         // als totale reistijd > toegestane reistijd
 
