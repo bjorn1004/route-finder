@@ -48,8 +48,8 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
             container_volume: 0,
             emptying_time: 0.0,
             matrix_id: 287,
-            x_coordinate: 0,// somewhere logical for this thing to be, idk rn
-            y_coordinate: 0,
+            x_coordinate: 56343016,// somewhere logical for this thing to be, idk rn
+            y_coordinate: 513026712,
         })
     }
     list
