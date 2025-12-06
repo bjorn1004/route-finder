@@ -1,11 +1,14 @@
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
+use crate::resource::Company;
 use super::transactionoperationnneighborthingidk::nieghbor_move_trait::{Swap2RandomValuesInSameRoute, NeighborMove};
 use super::week::Week;
+use super::order_day_flags::OrderFlags;
 
 struct SimulatedAnnealing{
     truck1: Week,
     truck2: Week,
+    order_flags: OrderFlags
     
     // We could store variables here which are needed for simulated annealing.
 }
@@ -18,7 +21,12 @@ pub enum TruckEnum{
 
 
 impl SimulatedAnnealing{
-    pub fn new(){
+    pub fn new(orders: Vec<Company>) -> Self {
+        SimulatedAnnealing{
+            truck1: Week::new(),
+            truck2: Week::new(),
+            order_flags: OrderFlags::new(orders.len()),
+        }
         // intializationthings
     }
 
@@ -37,7 +45,7 @@ impl SimulatedAnnealing{
             let a = rng.random_range(1..3);
             // something to decide which thing to choose
             let transactionthingy:Box<dyn NeighborMove> = match a {
-                1 => { Box::new(Swap2RandomValuesInSameRoute::new())}
+                1 => { Box::new(Swap2RandomValuesInSameRoute::new(&self.truck1, &self.truck2, &self.order_flags))}
                 _ => unreachable!(),
             };
 
@@ -47,7 +55,7 @@ impl SimulatedAnnealing{
             // if we want to go through with this thing
             if self.accept(){
                 // change the route
-                transactionthingy.apply(&mut self.truck1, &mut self.truck2);
+                transactionthingy.apply(&mut self.truck1, &mut self.truck2, &self.order_flags);
                 break;
             }
         }
