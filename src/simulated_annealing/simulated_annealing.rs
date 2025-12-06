@@ -55,8 +55,15 @@ impl SimulatedAnnealing{
             let transactionthingy:Box<dyn NeighborMove> = match a {
                 1 => { Box::new(Swap2RandomValuesInSameRoute::new(&self.truck1, &self.truck2, &self.order_flags, &mut rng))}
                 2 => {
-                    let random_order = self.unfilled_orders.front().copied();
-                    Box::new(AddNewOrder::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags, random_order))}
+                    if let Some(random_order) = self.unfilled_orders.pop_front() {
+                        Box::new(AddNewOrder::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags, random_order))
+                    } else {
+                        continue // queue is empty, try something else
+                    }
+                }
+                // remove function, try to remove all days from a single order.
+                // for example, if freq==2, remove the order on both the monday and thursday,
+                // this will cost O(n) in the length of the routes with our current strurcture
                 _ => unreachable!(),
             };
 
