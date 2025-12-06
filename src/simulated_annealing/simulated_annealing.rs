@@ -101,7 +101,7 @@ impl SimulatedAnnealing {
                             random_order,
                         ))
                     } else {
-                        continue; // queue is empty, try something else
+                        return; // queue is empty, try something else
                     }
                 }
                 // remove function, try to remove all days from a single order.
