@@ -5,10 +5,9 @@ use std::thread::JoinHandle;
 use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 use crate::simulated_annealing::week::Week;
 use crate::{
-    datastructures::linked_vectors::LinkedVector,
     get_orders,
     simulated_annealing::{
-        day::TimeOfDay, route::Route, simulated_annealing::TruckEnum, week::DayEnum,
+        day::TimeOfDay, simulated_annealing::TruckEnum, week::DayEnum,
     },
 };
 use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2, emath::TSTransform};
@@ -32,8 +31,8 @@ pub struct GuiApp {
     search_handle: Option<JoinHandle<()>>,
     pause_channel: (Sender<()>, Receiver<()>),
     stop_channel: (Sender<()>, Receiver<()>),
-    q_rec: Option<Receiver<f32>>,
-    cur_q: f32,
+    q_rec: Option<Receiver<u16>>,
+    cur_q: u16,
     temp_rec: Option<Receiver<f32>>,
     cur_temp: f32,
     route_rec: Option<Receiver<(Arc<Week>, Arc<Week>)>>,
@@ -59,7 +58,7 @@ impl GuiApp {
             pause_channel: bounded(1),
             stop_channel: bounded(1),
             q_rec: None,
-            cur_q: 0.0,
+            cur_q: 0,
             temp_rec: None,
             cur_temp: 0.0,
             route_rec: None,
@@ -77,13 +76,14 @@ impl eframe::App for GuiApp {
                 if self.search_handle.is_some() {
                     if ui.button("Stop search").clicked() {
                         let _ = self.stop_channel.0.send(());
-                        self.search_handle.take().unwrap().join().ok();
+                        println!("Search thread result: {:?}", self.search_handle.take().unwrap().join());
                     }
                 } else {
                     if ui.button("Start search").clicked() {
                         let mut rng = SmallRng::seed_from_u64(0);
                         let mut the_thing = SimulatedAnnealing::new(
                             &mut rng,
+                            ctx.clone(),
                             self.pause_channel.1.clone(),
                             self.stop_channel.1.clone(),
                         );
@@ -92,7 +92,7 @@ impl eframe::App for GuiApp {
                         self.temp_rec = Some(temp);
                         self.route_rec = Some(route);
                         self.search_handle = Some(std::thread::spawn(move || {
-                            the_thing.biiiiiig_loop();
+                            the_thing.biiiiiig_loop()
                         }));
                     }
                 }
@@ -115,6 +115,9 @@ impl eframe::App for GuiApp {
             egui::Grid::new("sim_anneal_overview")
                 .num_columns(2)
                 .show(ui, |ui| {
+                    ui.label("Current score:");
+                    ui.label("todo");
+                    ui.end_row();
                     ui.label("Temperature:");
                     ui.label(self.cur_temp.to_string());
                     ui.end_row();
@@ -128,7 +131,7 @@ impl eframe::App for GuiApp {
                 egui::Grid::new("sim_anneal_params")
                     .num_columns(2)
                     .show(ui, |ui| {
-                        ui.label("Temperature:");
+                        ui.label("Start temp.:");
                         ui.add(egui::DragValue::new(&mut 0.0).range(0.0..=f32::INFINITY));
                         ui.end_row();
                         ui.label("Q:");

@@ -1,10 +1,7 @@
 use super::neighbor_move::add_new_order::AddNewOrder;
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
-use crate::datastructures::compact_linked_vector::CompactLinkedVector;
-use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
-use crate::resource::Company;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
 use crate::simulated_annealing::route::OrderIndex;
 use flume::{Receiver, Sender, bounded};
@@ -21,9 +18,10 @@ pub struct SimulatedAnnealing {
     // We could store variables here which are needed for simulated annealing.
 
     // Channels for communicating with the draw thread
+    egui_ctx: egui::Context,
     pause_rec: Receiver<()>,
     stop_rec: Receiver<()>,
-    q_channel: (Sender<f32>, Receiver<f32>),
+    q_channel: (Sender<u16>, Receiver<u16>),
     temp_channel: (Sender<f32>, Receiver<f32>),
     route_channel: (
         Sender<(Arc<Week>, Arc<Week>)>,
@@ -40,6 +38,7 @@ pub enum TruckEnum {
 impl SimulatedAnnealing {
     pub fn new<R: Rng + ?Sized>(
         rng: &mut R,
+        egui_ctx: egui::Context,
         pause_rec: Receiver<()>,
         stop_rec: Receiver<()>,
     ) -> Self {
@@ -50,6 +49,7 @@ impl SimulatedAnnealing {
             truck2: Week::new(),
             order_flags: OrderFlags::new(orders.len()),
             unfilled_orders: Self::fill_unfilled_orders_list(rng),
+            egui_ctx,
             pause_rec,
             stop_rec,
             q_channel: bounded(1),
@@ -61,7 +61,7 @@ impl SimulatedAnnealing {
     pub fn get_channels(
         &self,
     ) -> (
-        Receiver<f32>,
+        Receiver<u16>,
         Receiver<f32>,
         Receiver<(Arc<Week>, Arc<Week>)>,
     ) {
@@ -73,7 +73,8 @@ impl SimulatedAnnealing {
     }
 
     pub fn biiiiiig_loop(&mut self) {
-        let mut rng = SmallRng::seed_from_u64(0);
+        let mut rng = SmallRng::from_os_rng();
+        // let mut rng = SmallRng::seed_from_u64(0);
         // this ic currently an infinite loop.
         // We will need some predicate to exit this loop
         loop {
@@ -132,6 +133,7 @@ impl SimulatedAnnealing {
                         .0
                         .try_send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
                         .ok();
+                    self.egui_ctx.request_repaint();
                 }
                 break;
             }
