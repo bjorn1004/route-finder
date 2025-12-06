@@ -34,7 +34,7 @@ impl OrderFlags {
         }
     }
 
-    pub fn get_random_allowed_day<R: Rng+?Sized>(&mut self, order_index: OrderIndex, rng: &mut R) -> Option<DayEnum> {
+    pub fn get_random_allowed_day<R: Rng+?Sized>(&self, order_index: OrderIndex, rng: &mut R) -> Option<DayEnum> {
         let order = &get_orders()[order_index];
         let flags = self.orders[order_index];
         match order.frequency{

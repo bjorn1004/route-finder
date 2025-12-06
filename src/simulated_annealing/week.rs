@@ -1,4 +1,6 @@
 use rand::{Rng, distr::{Distribution, StandardUniform}};
+use crate::simulated_annealing::order_day_flags::OrderFlags;
+use crate::simulated_annealing::route::OrderIndex;
 use super::day::Day;
 pub struct Week {
     monday: Day,
@@ -10,11 +12,11 @@ pub struct Week {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub enum DayEnum {
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday
+    Monday      = 0b10000,
+    Tuesday     = 0b01000,
+    Wednesday   = 0b00100,
+    Thursday    = 0b00010,
+    Friday      = 0b00001
 }
 // This makes it easier to get a random day
 impl Distribution<DayEnum> for StandardUniform {
@@ -40,10 +42,10 @@ impl Week{
     }
     pub fn get_random<R>(&self, rng: &mut R) -> (&Day, DayEnum) where R: Rng + ?Sized, {
         let random_day:DayEnum = rng.random();
-        (self.get_day(&random_day), random_day)
+        (self.get(&random_day), random_day)
     }
 
-    pub fn get_mut_day(&mut self, day: &DayEnum) -> &mut Day {
+    pub fn get_mut(&mut self, day: &DayEnum) -> &mut Day {
         match day {
             DayEnum::Monday     => {&mut self.monday}
             DayEnum::Tuesday    => {&mut self.tuesday}
@@ -52,7 +54,7 @@ impl Week{
             DayEnum::Friday     => {&mut self.friday}
         }
     }
-    pub fn get_day(&self, day: &DayEnum) -> &Day {
+    pub fn get(&self, day: &DayEnum) -> &Day {
         match day {
             DayEnum::Monday     => {&self.monday}
             DayEnum::Tuesday    => {&self.tuesday}

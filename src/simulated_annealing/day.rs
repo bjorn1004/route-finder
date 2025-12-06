@@ -47,4 +47,17 @@ impl Day {
             TimeOfDay::Afternoon => (&self.afternoon, TimeOfDay::Morning)
         }
     }
+    pub fn get_mut(&mut self, time_of_day: TimeOfDay) -> &mut Route{
+        match time_of_day {
+            TimeOfDay::Morning => {&mut self.morning}
+            TimeOfDay::Afternoon => {&mut self.afternoon}
+        }
+    }
+
+    pub fn get(&self, time_of_day: TimeOfDay) -> &Route{
+        match time_of_day {
+            TimeOfDay::Morning => {&self.morning}
+            TimeOfDay::Afternoon => {&self.afternoon}
+        }
+    }
 }

@@ -18,10 +18,10 @@ pub type MatrixID = u16;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Frequency {
-    Once,
-    Twice,
-    Thrice,
-    FourTimes,
+    Once = 1,
+    Twice = 2,
+    Thrice = 3,
+    FourTimes = 4,
 }
 
 impl FromStr for Frequency {

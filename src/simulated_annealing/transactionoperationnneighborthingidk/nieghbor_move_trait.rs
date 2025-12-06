@@ -1,3 +1,4 @@
+use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, NodeIndex};
 use crate::resource::MatrixID;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
@@ -8,7 +9,7 @@ pub trait NeighborMove {
     // (not sure how to implement this yet)
     fn evaluate(&self, truck1: &Week, truck2: &Week);
     // this would perform the thing on the schedules.
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &OrderFlags);
+    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags);
 }
 
 pub struct Swap2RandomValuesInSameRoute {
@@ -20,13 +21,13 @@ impl NeighborMove for Swap2RandomValuesInSameRoute {
         todo!()
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &OrderFlags) {
+    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
         todo!()
     }
 }
 
 impl Swap2RandomValuesInSameRoute{
-    pub fn new(truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Self{
+    pub fn new<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, order_flags: &OrderFlags, rng: &mut R) -> Self{
         todo!()
     }
 }
