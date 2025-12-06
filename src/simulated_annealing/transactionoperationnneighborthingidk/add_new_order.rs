@@ -34,13 +34,11 @@ impl AddNewOrder{
                 let day = truck.get(&day_enum);
                 let (route, time_of_day_enum) = day.get_random(rng);
                 let lv = &route.linked_vector;
-                if let Some((index, orderIndex)) = lv.get_random(rng) {
+                while let Some((index, orderIndex)) = lv.get_random(rng) {
                     if lv.get_tail_index() == Some(index) {
                         // we don't want to add behind the tail.
                         // we could try to instead insert in front of the tail but don't want to try that rn.
-                        return AddNewOrder {
-                            operation: NoOrderToAdd()
-                        }
+                        continue
                     }
 
                     return AddNewOrder {
