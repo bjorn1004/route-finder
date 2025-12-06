@@ -78,8 +78,8 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         instant.elapsed().as_secs_f64()
     );
 
-    let mut rng = SmallRng::seed_from_u64(0);
-    let mut the_thing = SimulatedAnnealing::new(&mut rng);
-    the_thing.biiiiiig_loop();
+    // let mut rng = SmallRng::seed_from_u64(0);
+    // let mut the_thing = SimulatedAnnealing::new(&mut rng);
+    // the_thing.biiiiiig_loop();
     Ok(())
 }
