@@ -6,12 +6,12 @@ use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::get_orders;
 use crate::resource::Company;
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::transactionoperationnneighborthingidk::nieghbor_move_trait::{NeighborMove, Swap2RandomValuesInSameRoute};
-use super::transactionoperationnneighborthingidk::add_new_order::AddNewOrder;
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
+use super::neighbor_move::add_new_order::AddNewOrder;
 use super::week::Week;
 use super::order_day_flags::OrderFlags;
 
-struct SimulatedAnnealing{
+pub struct SimulatedAnnealing{
     truck1: Week,
     truck2: Week,
     order_flags: OrderFlags,
@@ -27,8 +27,9 @@ pub enum TruckEnum{
 
 
 impl SimulatedAnnealing{
-    pub fn new<R: Rng + ?Sized>(orders: Vec<Company>, rng: &mut R) -> Self {
+    pub fn new<R: Rng + ?Sized>(rng: &mut R) -> Self {
         // intializationthings
+        let orders = get_orders();
         SimulatedAnnealing{
             truck1: Week::new(),
             truck2: Week::new(),
@@ -53,8 +54,7 @@ impl SimulatedAnnealing{
             let a = rng.random_range(1..3);
             // something to decide which thing to choose
             let transactionthingy:Box<dyn NeighborMove> = match a {
-                1 => { Box::new(Swap2RandomValuesInSameRoute::new(&self.truck1, &self.truck2, &self.order_flags, &mut rng))}
-                2 => {
+                1 => {
                     if let Some(random_order) = self.unfilled_orders.pop_front() {
                         Box::new(AddNewOrder::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags, random_order))
                     } else {
@@ -68,7 +68,14 @@ impl SimulatedAnnealing{
             };
 
             // get the change in capacity/time
-            let _ = transactionthingy.evaluate(&self.truck1, &self.truck2);
+
+            let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
+
+            // I'm going to use is_none for bad things for now, will later probably be replaced by penalty costs.
+            if cost.is_none(){
+                continue;
+            }
+            let cost = cost.unwrap();
 
             // if we want to go through with this thing
             if self.accept(&transactionthingy){
@@ -80,7 +87,7 @@ impl SimulatedAnnealing{
     }
 
     fn accept(&self, neighbor_move: &Box<dyn NeighborMove>) -> bool{
-        todo!()
+        true
     }
     
     fn fill_unfilled_orders_list<R: Rng+?Sized>(rng: &mut R) -> VecDeque<OrderIndex>{

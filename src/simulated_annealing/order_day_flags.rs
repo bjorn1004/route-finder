@@ -8,6 +8,7 @@ pub struct OrderFlags {
 }
 
 
+/// Maybe use the left 3 bits to store the frequency of each order
 impl OrderFlags {
     pub fn new(size: usize) -> Self{
         OrderFlags {
@@ -146,5 +147,8 @@ impl OrderFlags {
                 unreachable!()
             }
         }
+    }
+    pub fn get_filled_count(&self, order_index: OrderIndex) -> u32 {
+        self.orders[order_index].count_ones()
     }
 }

@@ -146,6 +146,18 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
     fn set_value_at_index(&mut self, index: NodeIndex,value: T) {
         self.list[index].value = value;
     }
+
+    fn get_next(&self, index: NodeIndex) -> Option<NodeIndex> {
+        self.list[index].next
+    }
+
+    fn get_next_value(&self, index: NodeIndex) -> Option<&T> {
+        if let Some(next_index) = self.list[index].next{
+            self.get_value(next_index)
+        } else {
+            None
+        }
+    }
 }
 impl<T> CompactLinkedVector<T> {
     pub fn new() -> Self {

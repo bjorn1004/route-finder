@@ -3,6 +3,8 @@
 use std::{error::Error, sync::OnceLock};
 
 use eframe::UserEvent;
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
 use winit::event_loop::{ControlFlow, EventLoop};
 
 use crate::{
@@ -10,6 +12,7 @@ use crate::{
     parser::{parse_distance_matrix, parse_orderfile},
     resource::{Company, DistanceMatrix},
 };
+use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 
 mod datastructures;
 mod gui;
@@ -74,5 +77,9 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         "Total program runtime: {}s",
         instant.elapsed().as_secs_f64()
     );
+
+    let mut rng = SmallRng::seed_from_u64(0);
+    let mut the_thing = SimulatedAnnealing::new(&mut rng);
+    the_thing.biiiiiig_loop();
     Ok(())
 }

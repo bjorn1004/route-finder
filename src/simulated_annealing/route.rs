@@ -4,8 +4,8 @@ use crate::resource::MatrixID;
 #[derive(Debug, Clone)]
 pub struct Route{
     pub linked_vector: CompactLinkedVector<OrderIndex>,
-    // there are a few variables missing here.
-    // If we add new variables here, we also need to add them to the "constructor"
+    pub capacity: u64,
+    pub time: f32,
 }
 pub type OrderIndex = usize;
 
@@ -15,6 +15,8 @@ impl Route{
     pub fn new() -> Self{
         Route{
             linked_vector: CompactLinkedVector::<OrderIndex>::new(),
+            capacity: 0,
+            time: 0f32,
         }
     }
 
@@ -27,4 +29,6 @@ impl Route{
                    0u64, "The currently stored trash volume is incorrect")
 
     }
+
+
 }
