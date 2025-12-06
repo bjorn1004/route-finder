@@ -39,12 +39,11 @@ impl SimulatedAnnealing{
     }
 
 
-    pub fn biiiiiig_loop(&mut self){
-        let mut rng = SmallRng::seed_from_u64(0);
+    pub fn biiiiiig_loop<R: Rng + ?Sized>(&mut self, rng: &mut R){
         // this ic currently an infinite loop.
         // We will need some predicate to exit this loop
         loop {
-            self.do_step(&mut rng);
+            self.do_step(rng);
         }
     }
 

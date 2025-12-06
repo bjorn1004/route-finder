@@ -53,7 +53,7 @@ impl eframe::App for GuiApp {
                  if ui.button("Start search").clicked() {
                      let mut rng = SmallRng::seed_from_u64(0);
                      let mut the_thing = SimulatedAnnealing::new(&mut rng);
-                     the_thing.biiiiiig_loop();
+                     the_thing.biiiiiig_loop(&mut rng);
                  }
                  if ui.button("Pause search").clicked() {
                     // TODO
