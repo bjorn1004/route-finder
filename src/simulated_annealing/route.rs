@@ -16,8 +16,8 @@ impl Route{
     /// We should maybe add the dropoff location as the first and last element of this list?
     pub fn new() -> Self{
         let mut route: CompactLinkedVector<OrderIndex>= CompactLinkedVector::new();
-        route.push_back(get_orders().len());
-        route.push_back(get_orders().len());
+        route.push_back(get_orders().len()-1);
+        route.push_back(get_orders().len()-1);
         Route{
             linked_vector: route,
             capacity: 0,
