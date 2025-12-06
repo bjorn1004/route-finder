@@ -1,64 +1,107 @@
-use std::collections::VecDeque;
-use crate::datastructures::linked_vectors::LinkedVector;
-use rand::prelude::{SliceRandom, SmallRng};
-use rand::{Rng, SeedableRng};
+use super::neighbor_move::add_new_order::AddNewOrder;
+use super::order_day_flags::OrderFlags;
+use super::week::Week;
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
+use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::resource::Company;
-use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
-use super::neighbor_move::add_new_order::AddNewOrder;
-use super::week::Week;
-use super::order_day_flags::OrderFlags;
+use crate::simulated_annealing::route::OrderIndex;
+use flume::{Receiver, Sender, bounded};
+use rand::prelude::{SliceRandom, SmallRng};
+use rand::{Rng, SeedableRng};
+use std::collections::VecDeque;
+use std::sync::Arc;
 
-pub struct SimulatedAnnealing{
+pub struct SimulatedAnnealing {
     truck1: Week,
     truck2: Week,
     order_flags: OrderFlags,
     unfilled_orders: VecDeque<OrderIndex>,
     // We could store variables here which are needed for simulated annealing.
+
+    // Channels for communicating with the draw thread
+    pause_rec: Receiver<()>,
+    stop_rec: Receiver<()>,
+    q_channel: (Sender<f32>, Receiver<f32>),
+    temp_channel: (Sender<f32>, Receiver<f32>),
+    route_channel: (
+        Sender<(Arc<Week>, Arc<Week>)>,
+        Receiver<(Arc<Week>, Arc<Week>)>,
+    ),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
-pub enum TruckEnum{
+pub enum TruckEnum {
     Truck1,
-    Truck2
+    Truck2,
 }
 
-
-impl SimulatedAnnealing{
-    pub fn new<R: Rng + ?Sized>(rng: &mut R) -> Self {
+impl SimulatedAnnealing {
+    pub fn new<R: Rng + ?Sized>(
+        rng: &mut R,
+        pause_rec: Receiver<()>,
+        stop_rec: Receiver<()>,
+    ) -> Self {
         // intializationthings
         let orders = get_orders();
-        SimulatedAnnealing{
+        SimulatedAnnealing {
             truck1: Week::new(),
             truck2: Week::new(),
             order_flags: OrderFlags::new(orders.len()),
             unfilled_orders: Self::fill_unfilled_orders_list(rng),
+            pause_rec,
+            stop_rec,
+            q_channel: bounded(1),
+            temp_channel: bounded(1),
+            route_channel: bounded(1),
         }
     }
 
+    pub fn get_channels(
+        &self,
+    ) -> (
+        Receiver<f32>,
+        Receiver<f32>,
+        Receiver<(Arc<Week>, Arc<Week>)>,
+    ) {
+        (
+            self.q_channel.1.clone(),
+            self.temp_channel.1.clone(),
+            self.route_channel.1.clone(),
+        )
+    }
 
-    pub fn biiiiiig_loop(&mut self){
+    pub fn biiiiiig_loop(&mut self) {
         let mut rng = SmallRng::seed_from_u64(0);
         // this ic currently an infinite loop.
         // We will need some predicate to exit this loop
         loop {
+            if self.stop_rec.try_recv().is_ok() {
+                break;
+            }
+            // FUTURE: pausing and resuming (if we want)
             self.do_step(&mut rng);
         }
     }
 
-    fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R){
+    fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
         // not really sure if this is correct
         loop {
             let a = rng.random_range(1..2);
             // something to decide which thing to choose
-            let transactionthingy:Box<dyn NeighborMove> = match a {
+            let transactionthingy: Box<dyn NeighborMove> = match a {
                 1 => {
                     if let Some(random_order) = self.unfilled_orders.pop_front() {
-                        Box::new(AddNewOrder::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags, random_order))
+                        Box::new(AddNewOrder::new(
+                            &self.truck1,
+                            &self.truck2,
+                            &mut rng,
+                            &self.order_flags,
+                            random_order,
+                        ))
                     } else {
-                        continue // queue is empty, try something else
+                        continue; // queue is empty, try something else
                     }
                 }
                 // remove function, try to remove all days from a single order.
@@ -72,29 +115,38 @@ impl SimulatedAnnealing{
             let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
 
             // I'm going to use is_none for bad things for now, will later probably be replaced by penalty costs.
-            if cost.is_none(){
+            if cost.is_none() {
                 continue;
             }
             let cost = cost.unwrap();
 
             // if we want to go through with this thing
-            if self.accept(&transactionthingy){
+            if self.accept(&transactionthingy) {
                 // change the route
                 transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
+
+                // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
+                // Future: It should only send a new route when it's faster, not just accepted
+                if !self.route_channel.0.is_full() {
+                    self.route_channel
+                        .0
+                        .try_send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+                        .ok();
+                }
                 break;
             }
         }
     }
 
-    fn accept(&self, neighbor_move: &Box<dyn NeighborMove>) -> bool{
+    fn accept(&self, neighbor_move: &Box<dyn NeighborMove>) -> bool {
         true
     }
-    
-    fn fill_unfilled_orders_list<R: Rng+?Sized>(rng: &mut R) -> VecDeque<OrderIndex>{
+
+    fn fill_unfilled_orders_list<R: Rng + ?Sized>(rng: &mut R) -> VecDeque<OrderIndex> {
         let mut list = Vec::new();
         let orders = get_orders();
-        for (index, order) in orders.iter().enumerate(){
-            for _ in 0..order.frequency as u8{
+        for (index, order) in orders.iter().enumerate() {
+            for _ in 0..order.frequency as u8 {
                 list.push(index);
             }
         }

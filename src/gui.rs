@@ -1,8 +1,9 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
+use std::sync::Arc;
+use std::thread::JoinHandle;
 
-use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2, emath::TSTransform};
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
+use crate::simulated_annealing::week::Week;
 use crate::{
     datastructures::linked_vectors::LinkedVector,
     get_orders,
@@ -10,7 +11,10 @@ use crate::{
         day::TimeOfDay, route::Route, simulated_annealing::TruckEnum, week::DayEnum,
     },
 };
-use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
+use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2, emath::TSTransform};
+use flume::{Receiver, Sender, bounded};
+use rand::SeedableRng;
+use rand::rngs::SmallRng;
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct RouteSelection {
@@ -23,6 +27,17 @@ pub struct GuiApp {
     pub camera: TSTransform,
     // A BTree lets us keep the order of routes consistent in GUI
     route_selection: BTreeSet<RouteSelection>,
+
+    // Search thread communication
+    search_handle: Option<JoinHandle<()>>,
+    pause_channel: (Sender<()>, Receiver<()>),
+    stop_channel: (Sender<()>, Receiver<()>),
+    q_rec: Option<Receiver<f32>>,
+    cur_q: f32,
+    temp_rec: Option<Receiver<f32>>,
+    cur_temp: f32,
+    route_rec: Option<Receiver<(Arc<Week>, Arc<Week>)>>,
+    cur_route: Option<(Arc<Week>, Arc<Week>)>,
 }
 
 impl GuiApp {
@@ -40,6 +55,15 @@ impl GuiApp {
                 translation: -Vec2::new(min_x as f32, min_y as f32) * 0.0001,
             },
             route_selection: BTreeSet::new(),
+            search_handle: None,
+            pause_channel: bounded(1),
+            stop_channel: bounded(1),
+            q_rec: None,
+            cur_q: 0.0,
+            temp_rec: None,
+            cur_temp: 0.0,
+            route_rec: None,
+            cur_route: None,
         }
     }
 }
@@ -49,25 +73,53 @@ impl eframe::App for GuiApp {
         egui::SidePanel::left("controls").show(ctx, |ui| {
             ui.vertical_centered(|ui| ui.heading("Controls"));
             ui.separator();
-            ui.horizontal(|ui|{
-                 if ui.button("Start search").clicked() {
-                     let mut rng = SmallRng::seed_from_u64(0);
-                     let mut the_thing = SimulatedAnnealing::new(&mut rng);
-                     the_thing.biiiiiig_loop();
-                 }
-                 if ui.button("Pause search").clicked() {
+            ui.horizontal(|ui| {
+                if self.search_handle.is_some() {
+                    if ui.button("Stop search").clicked() {
+                        let _ = self.stop_channel.0.send(());
+                        self.search_handle.take().unwrap().join().ok();
+                    }
+                } else {
+                    if ui.button("Start search").clicked() {
+                        let mut rng = SmallRng::seed_from_u64(0);
+                        let mut the_thing = SimulatedAnnealing::new(
+                            &mut rng,
+                            self.pause_channel.1.clone(),
+                            self.stop_channel.1.clone(),
+                        );
+                        let (q, temp, route) = the_thing.get_channels();
+                        self.q_rec = Some(q);
+                        self.temp_rec = Some(temp);
+                        self.route_rec = Some(route);
+                        self.search_handle = Some(std::thread::spawn(move || {
+                            the_thing.biiiiiig_loop();
+                        }));
+                    }
+                }
+                if ui.button("Pause search").clicked() {
                     // TODO
-                 }
+                }
             });
             ui.label("Searching overview");
+            if let Some(temp_rec) = &self.temp_rec {
+                if let Ok(cur_temp) = temp_rec.try_recv() {
+                    self.cur_temp = cur_temp;
+                }
+            }
+            if let Some(q_rec) = &self.q_rec {
+                if let Ok(cur_q) = q_rec.try_recv() {
+                    self.cur_q = cur_q;
+                }
+            }
+
             egui::Grid::new("sim_anneal_overview")
                 .num_columns(2)
                 .show(ui, |ui| {
                     ui.label("Temperature:");
-                    ui.label("todo");
+                    ui.label(self.cur_temp.to_string());
                     ui.end_row();
                     ui.label("Q:");
-                    ui.label("todo");
+                    ui.label(self.cur_q.to_string());
                     ui.end_row();
                 });
             ui.separator();
@@ -141,32 +193,42 @@ impl eframe::App for GuiApp {
                 }
             }
 
-            // TODO: Get the routes from the simulated annealing (with minimum overhead).
-            // Furthermore, if we draw all routes, from both trucks, for all days, at once,
-            // you would get a massive unintelligable spider web
-            // so we need a way to select specific routes
-            let mut temp_route = Route::new();
-            for (i, _) in get_orders().iter().enumerate() {
-                temp_route.linked_vector.push_front(i);
+            if let Some(route_rec) = &self.route_rec {
+                if let Ok(cur_route) = route_rec.try_recv() {
+                    self.cur_route = Some(cur_route);
+                }
             }
-            temp_route.linked_vector.compact();
+
+            let mut routes = vec![];
+            if let Some((truck1, truck2)) = &self.cur_route {
+                for selection in self.route_selection.iter() {
+                    let week = if selection.truck == TruckEnum::Truck1 {
+                        truck1
+                    } else {
+                        truck2
+                    };
+                    routes.push(week.get(selection.day).get(selection.shift));
+                }
+            }
 
             let orders = get_orders();
-            let route_line = egui::Shape::line(
-                temp_route
-                    .linked_vector
-                    .iter()
-                    .map(|(_, order_index)| {
-                        let order = &orders[*order_index];
-                        self.camera
-                            * Pos2::new(order.x_coordinate as f32, order.y_coordinate as f32)
-                    })
-                    .collect(),
-                // FUTURE: we could colour code days, trucks, morning/afternoon, etc.
-                Stroke::new(1.0, Color32::LIGHT_BLUE),
-            );
+            let route_lines = routes.iter().map(|route| {
+                egui::Shape::line(
+                    route
+                        .linked_vector
+                        .iter()
+                        .map(|(_, order_index)| {
+                            let order = &orders[*order_index];
+                            self.camera
+                                * Pos2::new(order.x_coordinate as f32, order.y_coordinate as f32)
+                        })
+                        .collect(),
+                    // FUTURE: we could colour code days, trucks, morning/afternoon, etc.
+                    Stroke::new(1.0, Color32::LIGHT_BLUE),
+                )
+            });
 
-            painter.add(route_line);
+            painter.extend(route_lines);
             let shapes = get_orders().iter().map(|o| {
                 let screen_pos =
                     self.camera * Pos2::new(o.x_coordinate as f32, o.y_coordinate as f32);
