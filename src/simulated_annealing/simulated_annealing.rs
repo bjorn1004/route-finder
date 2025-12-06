@@ -1,5 +1,6 @@
+use std::collections::VecDeque;
 use crate::datastructures::linked_vectors::LinkedVector;
-use rand::prelude::SmallRng;
+use rand::prelude::{SliceRandom, SmallRng};
 use rand::{Rng, SeedableRng};
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::get_orders;
@@ -14,7 +15,7 @@ struct SimulatedAnnealing{
     truck1: Week,
     truck2: Week,
     order_flags: OrderFlags,
-    unfilled_orders: CompactLinkedVector<OrderIndex>,
+    unfilled_orders: VecDeque<OrderIndex>,
     // We could store variables here which are needed for simulated annealing.
 }
 
@@ -26,13 +27,13 @@ pub enum TruckEnum{
 
 
 impl SimulatedAnnealing{
-    pub fn new(orders: Vec<Company>) -> Self {
+    pub fn new<R: Rng + ?Sized>(orders: Vec<Company>, rng: &mut R) -> Self {
         // intializationthings
         SimulatedAnnealing{
             truck1: Week::new(),
             truck2: Week::new(),
             order_flags: OrderFlags::new(orders.len()),
-            unfilled_orders: Self::fill_unfilled_orders_list(),
+            unfilled_orders: Self::fill_unfilled_orders_list(rng),
         }
     }
 
@@ -53,12 +54,8 @@ impl SimulatedAnnealing{
             // something to decide which thing to choose
             let transactionthingy:Box<dyn NeighborMove> = match a {
                 1 => { Box::new(Swap2RandomValuesInSameRoute::new(&self.truck1, &self.truck2, &self.order_flags, &mut rng))}
-
                 2 => {
-                    let random_order:Option<OrderIndex> =
-                        self.unfilled_orders
-                            .get_random(&mut rng)
-                            .map(|(_,v)| v.clone());
+                    let random_order = self.unfilled_orders.front().copied();
                     Box::new(AddNewOrder::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags, random_order))}
                 _ => unreachable!(),
             };
@@ -79,14 +76,16 @@ impl SimulatedAnnealing{
         todo!()
     }
     
-    fn fill_unfilled_orders_list() -> CompactLinkedVector<OrderIndex>{
-        let mut list = CompactLinkedVector::new();
+    fn fill_unfilled_orders_list<R: Rng+?Sized>(rng: &mut R) -> VecDeque<OrderIndex>{
+        let mut list = Vec::new();
         let orders = get_orders();
         for (index, order) in orders.iter().enumerate(){
             for _ in 0..order.frequency as u8{
-                list.push_back(index);
+                list.push(index);
             }
         }
-        list
+        list.shuffle(rng);
+
+        VecDeque::from(list)
     }
 }
