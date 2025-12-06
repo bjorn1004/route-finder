@@ -1,4 +1,6 @@
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
+use crate::datastructures::linked_vectors::LinkedVector;
+use crate::get_orders;
 use crate::resource::MatrixID;
 
 #[derive(Debug, Clone)]
@@ -13,8 +15,11 @@ impl Route{
     /// Construct an empty route
     /// We should maybe add the dropoff location as the first and last element of this list?
     pub fn new() -> Self{
+        let mut route: CompactLinkedVector<OrderIndex>= CompactLinkedVector::new();
+        route.push_back(get_orders().len());
+        route.push_back(get_orders().len());
         Route{
-            linked_vector: CompactLinkedVector::<OrderIndex>::new(),
+            linked_vector: route,
             capacity: 0,
             time: 0f32,
         }

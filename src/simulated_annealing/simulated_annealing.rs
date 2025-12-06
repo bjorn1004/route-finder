@@ -51,7 +51,7 @@ impl SimulatedAnnealing{
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R){
         // not really sure if this is correct
         loop {
-            let a = rng.random_range(1..3);
+            let a = rng.random_range(1..2);
             // something to decide which thing to choose
             let transactionthingy:Box<dyn NeighborMove> = match a {
                 1 => {

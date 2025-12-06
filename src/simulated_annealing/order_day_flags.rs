@@ -39,6 +39,8 @@ impl OrderFlags {
         let order = &get_orders()[order_index];
         let flags = self.orders[order_index];
         match order.frequency{
+            Frequency::None => panic!("Tried to add something with frequency 0 to a route. \
+            Frequency 0 is preserved for the dropoff locations"),
             Frequency::Once => {
                 if self.orders[order_index] == 0{
                     Some(rng.random())
@@ -145,7 +147,7 @@ impl OrderFlags {
                 }
 
                 unreachable!()
-            }
+            },
         }
     }
     pub fn get_filled_count(&self, order_index: OrderIndex) -> u32 {

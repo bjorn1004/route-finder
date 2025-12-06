@@ -2,7 +2,7 @@ use std::error::Error;
 
 use petgraph::matrix_graph::MatrixGraph;
 
-use crate::resource::{Company, Distance, DistanceMatrix};
+use crate::resource::{Company, Distance, DistanceMatrix, Frequency};
 
 // Small helper function for getting columns
 fn get_next(
@@ -19,7 +19,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
     let orderfile = include_str!("../data/Orderbestand.txt");
 
     // Split in lines, skip headers
-    orderfile
+    let mut list = orderfile
         .lines()
         .skip(1)
         .map(|line| -> Result<Company, Box<dyn Error + Send + Sync>> {
@@ -37,7 +37,22 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
             })
         })
-        .collect::<Result<Vec<Company>, Box<dyn Error + Send + Sync>>>()
+        .collect::<Result<Vec<Company>, Box<dyn Error + Send + Sync>>>();
+
+    if let Ok(list) = &mut list{
+        list.push(Company{
+            order: 999,
+            place: "Dropoff".to_string(),
+            frequency: Frequency::None,
+            container_count: 0,
+            container_volume: 0,
+            emptying_time: 0.0,
+            matrix_id: 287,
+            x_coordinate: 0,// somewhere logical for this thing to be, idk rn
+            y_coordinate: 0,
+        })
+    }
+    list
 }
 
 pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error + Send + Sync>> {

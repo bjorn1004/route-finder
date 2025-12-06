@@ -1,7 +1,8 @@
 use std::collections::{BTreeSet, HashSet};
 
 use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2, emath::TSTransform};
-
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
 use crate::{
     datastructures::linked_vectors::LinkedVector,
     get_orders,
@@ -9,6 +10,7 @@ use crate::{
         day::TimeOfDay, route::Route, simulated_annealing::TruckEnum, week::DayEnum,
     },
 };
+use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct RouteSelection {
@@ -49,7 +51,9 @@ impl eframe::App for GuiApp {
             ui.separator();
             ui.horizontal(|ui|{
                  if ui.button("Start search").clicked() {
-                    // TODO
+                     let mut rng = SmallRng::seed_from_u64(0);
+                     let mut the_thing = SimulatedAnnealing::new(&mut rng);
+                     the_thing.biiiiiig_loop();
                  }
                  if ui.button("Pause search").clicked() {
                     // TODO

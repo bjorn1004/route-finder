@@ -23,6 +23,7 @@ impl Company {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Frequency {
+    None = 0, // This is only for the dropoff location
     Once = 1,
     Twice = 2,
     Thrice = 3,

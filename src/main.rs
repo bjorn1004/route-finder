@@ -53,6 +53,11 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     // .as_bytes(),
     // )?;
 
+    for order in get_orders(){
+        if order.matrix_id == 287{
+            println!("{}", order.place);
+        }
+    }
     // GUI stuff
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([1024.0, 768.0]),
@@ -78,8 +83,5 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         instant.elapsed().as_secs_f64()
     );
 
-    // let mut rng = SmallRng::seed_from_u64(0);
-    // let mut the_thing = SimulatedAnnealing::new(&mut rng);
-    // the_thing.biiiiiig_loop();
     Ok(())
 }
