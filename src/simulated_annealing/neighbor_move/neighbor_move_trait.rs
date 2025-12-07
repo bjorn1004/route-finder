@@ -1,5 +1,5 @@
 use rand::Rng;
-use crate::datastructures::linked_vectors::{LinkedVector, NodeIndex};
+use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::resource::MatrixID;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use super::super::week::Week;

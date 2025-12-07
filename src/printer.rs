@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Write;
-use crate::datastructures::linked_vectors::{LinkedVector, NodeIndex};
+use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
@@ -48,7 +48,7 @@ fn print_day_schedule(buffer: &mut File, day: &Day, day_enum: &DayEnum, truck_id
 }
 
 fn print_route(buffer: &mut File, route: &Route, truck_id:&str, day_id:&str, start_index:usize)
-    -> std::io::Result<NodeIndex> {
+    -> std::io::Result<LVNodeIndex> {
     let lv = &route.linked_vector;
     let iter = lv.iter();
     for (node_index,order_index) in iter.skip(1) {

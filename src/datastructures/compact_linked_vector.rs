@@ -1,4 +1,4 @@
-use crate::datastructures::linked_vectors::{LinkedVector, Node, NodeIndex};
+use crate::datastructures::linked_vectors::{LinkedVector, Node, LVNodeIndex};
 use rand::Rng;
 use rand::prelude::IndexedRandom;
 
@@ -25,12 +25,12 @@ use rand::prelude::IndexedRandom;
 #[derive(Clone, Debug)]
 pub struct CompactLinkedVector<T> {
     list: Vec<Node<T>>,
-    head: Option<NodeIndex>, // the index of the head in our list
-    tail: Option<NodeIndex>, // the index of the tail in our list
-    empty_indices: Vec<NodeIndex>,
+    head: Option<LVNodeIndex>, // the index of the head in our list
+    tail: Option<LVNodeIndex>, // the index of the tail in our list
+    empty_indices: Vec<LVNodeIndex>,
 }
 impl<T> LinkedVector<T> for CompactLinkedVector<T> {
-    fn get_random<R>(&self, rng: &mut R) -> Option<(NodeIndex, &T)>
+    fn get_random<R>(&self, rng: &mut R) -> Option<(LVNodeIndex, &T)>
     where
         R: Rng + ?Sized,
     {
@@ -55,7 +55,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         panic!("something went wrong in the random function");
     }
 
-    fn get_value(&self, index: NodeIndex) -> Option<&T> {
+    fn get_value(&self, index: LVNodeIndex) -> Option<&T> {
         if index < self.list.len() {
             let node = &self.list[index];
             Some(&node.value)
@@ -64,7 +64,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         }
     }
 
-    fn get_mut_value(&mut self, index: NodeIndex) -> Option<&mut T> {
+    fn get_mut_value(&mut self, index: LVNodeIndex) -> Option<&mut T> {
         if index < self.list.len() {
             let node = &mut self.list[index];
             Some(&mut node.value)
@@ -73,18 +73,18 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         }
     }
 
-    fn get_head_index(&self) -> Option<NodeIndex> {
+    fn get_head_index(&self) -> Option<LVNodeIndex> {
         self.head?;
         let node = &self.list[self.head.unwrap()];
         Some(node.index)
     }
 
-    fn get_tail_index(&self) -> Option<NodeIndex> {
+    fn get_tail_index(&self) -> Option<LVNodeIndex> {
         self.tail?;
         let node = &self.list[self.tail.unwrap()];
         Some(node.index)
     }
-    fn insert_after(&mut self, index: NodeIndex, value: T) -> NodeIndex {
+    fn insert_after(&mut self, index: LVNodeIndex, value: T) -> LVNodeIndex {
         if index >= self.list.len() {
             panic!("tried to index out of range")
         }
@@ -97,7 +97,7 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         }
     }
 
-    fn insert_before(&mut self, index: NodeIndex, value: T) -> NodeIndex {
+    fn insert_before(&mut self, index: LVNodeIndex, value: T) -> LVNodeIndex {
         if index >= self.list.len() {
             panic!("tried to index out of range")
         }
@@ -106,15 +106,15 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         self.insert_(Some(node.index), value)
     }
 
-    fn push_front(&mut self, value: T) -> NodeIndex {
+    fn push_front(&mut self, value: T) -> LVNodeIndex {
         self.insert_(self.head, value)
     }
 
-    fn push_back(&mut self, value: T) -> NodeIndex {
+    fn push_back(&mut self, value: T) -> LVNodeIndex {
         self.insert_(None, value)
     }
 
-    fn remove(&mut self, index: NodeIndex) {
+    fn remove(&mut self, index: LVNodeIndex) {
         if index >= self.list.len() {
             panic!("index out of range")
         }
@@ -143,25 +143,25 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         self.empty_indices.push(node.index);
     }
 
-    fn set_value_at_index(&mut self, index: NodeIndex,value: T) {
+    fn set_value_at_index(&mut self, index: LVNodeIndex, value: T) {
         self.list[index].value = value;
     }
 
-    fn get_next(&self, index: NodeIndex) -> Option<NodeIndex> {
+    fn get_next(&self, index: LVNodeIndex) -> Option<LVNodeIndex> {
         self.list[index].next
     }
-    fn get_prev(&self, index: NodeIndex) -> Option<NodeIndex> {
+    fn get_prev(&self, index: LVNodeIndex) -> Option<LVNodeIndex> {
         self.list[index].prev
     }
 
-    fn get_next_value(&self, index: NodeIndex) -> Option<&T> {
+    fn get_next_value(&self, index: LVNodeIndex) -> Option<&T> {
         if let Some(next_index) = self.list[index].next{
             self.get_value(next_index)
         } else {
             None
         }
     }
-    fn get_prev_value(&self, index: NodeIndex) -> Option<&T> {
+    fn get_prev_value(&self, index: LVNodeIndex) -> Option<&T> {
         if let Some(prev_index) = self.list[index].prev{
             self.get_value(prev_index)
         } else {
@@ -183,7 +183,7 @@ impl<T> CompactLinkedVector<T> {
     /// If node is Some(node) we add the value in front of the node in the linkedlist.
     /// If node is None, we add the value to the end of the linked list
     /// The new node will be placed in an empty spot or at the end of the list.
-    fn insert_(&mut self, node_index: Option<usize>, value: T) -> NodeIndex {
+    fn insert_(&mut self, node_index: Option<usize>, value: T) -> LVNodeIndex {
         let new_index = self.get_valid_empty_index();
         let new_node: Node<T>;
         if self.list.is_empty() {
@@ -238,7 +238,7 @@ impl<T> CompactLinkedVector<T> {
         }
         new_index
     }
-    fn get_valid_empty_index(&mut self) -> NodeIndex {
+    fn get_valid_empty_index(&mut self) -> LVNodeIndex {
         if let Some(index) = self.empty_indices.pop() {
             index
         } else {
@@ -255,7 +255,7 @@ impl<T> CompactLinkedVector<T> {
         }
     }
 
-    fn move_back_to_new_index(&mut self, new_i: NodeIndex) {
+    fn move_back_to_new_index(&mut self, new_i: LVNodeIndex) {
         let new_node_pos = &self.list[new_i];
         if new_node_pos.next.is_some() || new_node_pos.prev.is_some() || new_node_pos.index != new_i
         {
@@ -317,7 +317,7 @@ impl<T> CompactLinkedVector<T> {
 // made this iterator using chatgpt, I am not competent enough with lifetimes to do this myself.
 pub struct Iter<'a, T> {
     list: &'a CompactLinkedVector<T>,
-    current: Option<NodeIndex>,
+    current: Option<LVNodeIndex>,
 }
 
 impl<T> CompactLinkedVector<T> {
@@ -330,7 +330,7 @@ impl<T> CompactLinkedVector<T> {
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = (NodeIndex, &'a T);
+    type Item = (LVNodeIndex, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.current?;
