@@ -398,7 +398,7 @@ impl eframe::App for GuiApp {
                                                 };
                                                 let route =
                                                     route_selection_to_route(routes, &selection);
-                                                route.linked_vector.len()
+                                                route.linked_vector.len() - 2 // exclude depot nodes
                                             })
                                             .sum::<usize>()
                                         })
