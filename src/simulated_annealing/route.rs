@@ -47,11 +47,7 @@ impl Route{
             let node_mi = dist.from_index(orders[*order_i].matrix_id as usize);
             let prev_node_mi = dist.from_index(orders[*prev_order_i].matrix_id as usize);
 
-            time_travel += time_between_two_nodes(node_mi, prev_node_mi);
-
-            if node_i == lv.get_tail_index().unwrap(){
-                continue;
-            }
+            time_travel += time_between_two_nodes(prev_node_mi, node_mi);
             time_travel += orders[*order_i].emptying_time;
 
         }
@@ -59,7 +55,7 @@ impl Route{
         time_travel += 30f32 * 60f32; // add the 30 minutes of trash dumping
         let difference = self.time - time_travel;
         if difference > 1f32{
-            panic!();
+            println!("{}", self.linked_vector.len());
             return false
         }
         true

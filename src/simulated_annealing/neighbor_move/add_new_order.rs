@@ -3,6 +3,7 @@ use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_distance_matrix, get_orders};
 use crate::simulated_annealing::day::TimeOfDay;
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
@@ -62,23 +63,22 @@ impl AddNewOrder {
         let order = &orders[self.order];
         let route = (if self.is_truck_1 { truck1 } else {truck2}).get(self.day).get(self.time_of_day);
 
-        let before = *route.linked_vector.get_value(self.insert_after_index).unwrap();
-        let after = *route.linked_vector.get_next_value(self.insert_after_index).unwrap();
+        let before_order_i = *route.linked_vector.get_value(self.insert_after_index).unwrap();
+        let after_order_i = *route.linked_vector.get_next_value(self.insert_after_index).unwrap();
 
         let dist = get_distance_matrix();
 
-        let order_index1 = dist.from_index(orders[before].matrix_id as usize);
-        let order_index2 = dist.from_index(orders[after].matrix_id as usize);
-        let new_order_index = dist.from_index(orders[self.order].matrix_id as usize);
+        let before = dist.from_index(orders[before_order_i].matrix_id as usize);
+        let after = dist.from_index(orders[after_order_i].matrix_id as usize);
+        let middle = dist.from_index(orders[self.order].matrix_id as usize);
 
-        let old_time = if order_index1 == order_index2 {0} else {dist.get_edge_weight(order_index1, order_index2).unwrap().travel_time};
+        let old_time = time_between_two_nodes(before, after);
 
-        let new_time = if order_index1 == new_order_index {0} else {dist.get_edge_weight(order_index1, new_order_index).unwrap().travel_time}+
-            if new_order_index == order_index2 {0} else {dist.get_edge_weight(new_order_index, order_index2).unwrap().travel_time};
+        let new_time = time_between_three_nodes(before, middle, after);
 
         // als totale reistijd > toegestane reistijd
 
-        new_time as f32 - old_time as f32 + order.emptying_time
+        new_time - old_time + order.emptying_time
     }
 }
 
