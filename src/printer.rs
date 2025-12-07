@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use time::OffsetDateTime;
 use crate::datastructures::linked_vectors::{LinkedVector, NodeIndex};
 use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
@@ -8,6 +9,8 @@ use crate::simulated_annealing::week::{DayEnum, Week};
 
 pub fn print_solution(truck1: &Week, truck2: &Week) -> std::io::Result<()>
 {
+    let now = OffsetDateTime::now_local().unwrap();
+    let now = format!("{now}.txt");
     let mut buffer = File::create("output.txt")?;
 
     print_truck_schedule(&mut buffer, truck1, TruckEnum::Truck1)?;
