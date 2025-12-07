@@ -28,12 +28,18 @@ pub struct GuiApp {
     // A BTree lets us keep the order of routes consistent in GUI
     route_selection: BTreeSet<RouteSelection>,
 
+    // Simulated annealing parameters
+    temp: f32,
+    end_temp: f32,
+    q: u32,
+    alpha: f32,
+
     // Search thread communication
     search_handle: Option<JoinHandle<()>>,
     pause_channel: (Sender<()>, Receiver<()>),
     stop_channel: (Sender<()>, Receiver<()>),
-    q_rec: Option<Receiver<u16>>,
-    cur_q: u16,
+    q_rec: Option<Receiver<u32>>,
+    cur_q: u32,
     temp_rec: Option<Receiver<f32>>,
     cur_temp: f32,
     route_rec: Option<Receiver<(Arc<Week>, Arc<Week>)>>,
@@ -55,6 +61,10 @@ impl GuiApp {
                 translation: -Vec2::new(min_x as f32, min_y as f32) * 0.0001,
             },
             route_selection: BTreeSet::new(),
+            temp: 10000f32,
+            end_temp: 0.1,
+            q: 10_000,
+            alpha: 0.95,
             search_handle: None,
             pause_channel: bounded(1),
             stop_channel: bounded(1),
@@ -74,7 +84,13 @@ impl eframe::App for GuiApp {
             ui.vertical_centered(|ui| ui.heading("Controls"));
             ui.separator();
             ui.horizontal(|ui| {
-                if self.search_handle.is_some() {
+                if let Some(search_handle) = self.search_handle.as_ref() {
+                    if search_handle.is_finished() {
+                        println!(
+                            "Search thread result: {:?}",
+                            self.search_handle.take().unwrap().join()
+                        );
+                    }
                     if ui.button("Stop search").clicked() {
                         let _ = self.stop_channel.0.send(());
                         println!(
@@ -86,6 +102,10 @@ impl eframe::App for GuiApp {
                     let mut rng = SmallRng::seed_from_u64(0);
                     let mut the_thing = SimulatedAnnealing::new(
                         &mut rng,
+                        self.temp,
+                        self.end_temp,
+                        self.q,
+                        self.alpha,
                         ctx.clone(),
                         self.pause_channel.1.clone(),
                         self.stop_channel.1.clone(),
@@ -133,13 +153,20 @@ impl eframe::App for GuiApp {
                     .num_columns(2)
                     .show(ui, |ui| {
                         ui.label("Start temp.:");
-                        ui.add(egui::DragValue::new(&mut 0.0).range(0.0..=f32::INFINITY));
+                        ui.add(egui::DragValue::new(&mut self.temp).range(0.0..=f32::INFINITY));
+                        ui.end_row();
+                        ui.label("End temp.:");
+                        ui.add(egui::DragValue::new(&mut self.end_temp).range(0.0..=f32::INFINITY));
                         ui.end_row();
                         ui.label("Q:");
-                        ui.add(egui::DragValue::new(&mut 0).range(0..=u16::MAX));
+                        ui.add(egui::DragValue::new(&mut self.q).range(0..=u32::MAX));
                         ui.end_row();
                         ui.label("α:");
-                        ui.add(egui::DragValue::new(&mut 0.0).range(0.0..=1.0));
+                        ui.add(
+                            egui::DragValue::new(&mut self.alpha)
+                                .range(0.0..=(1.0 - f32::EPSILON))
+                                .speed(0.01),
+                        );
                         ui.end_row();
                     });
             });
@@ -424,16 +451,25 @@ impl eframe::App for GuiApp {
                                                     hours.try_into().unwrap(),
                                                     minutes.try_into().unwrap(),
                                                     0,
-                                                ).unwrap_or(Time::from_hms(23, 59, 59).unwrap())
+                                                )
+                                                .unwrap_or(Time::from_hms(23, 59, 59).unwrap())
                                             };
                                             // if finish time is after 18:00, colour red
                                             if finish_time >= Time::from_hms(18, 0, 0).unwrap() {
                                                 ui.colored_label(
                                                     Color32::RED,
-                                                    format!("{:02}:{:02} (LATE)", finish_time.hour(), finish_time.minute()),
+                                                    format!(
+                                                        "{:02}:{:02} (LATE)",
+                                                        finish_time.hour(),
+                                                        finish_time.minute()
+                                                    ),
                                                 );
                                             } else {
-                                                ui.label(format!("{:02}:{:02}", finish_time.hour(), finish_time.minute()));
+                                                ui.label(format!(
+                                                    "{:02}:{:02}",
+                                                    finish_time.hour(),
+                                                    finish_time.minute()
+                                                ));
                                             }
                                             ui.end_row();
                                             ui.label("Orders fulfilled:");

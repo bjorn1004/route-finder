@@ -1,6 +1,6 @@
 #![feature(iter_map_windows)]
 
-use std::{error::Error, sync::OnceLock};
+use std::{error::Error, sync::{Arc, OnceLock}};
 
 use eframe::UserEvent;
 use rand::rngs::SmallRng;
@@ -21,11 +21,11 @@ mod resource;
 pub mod simulated_annealing;
 mod printer;
 
-pub static ORDERS: OnceLock<Vec<Company>> = const { OnceLock::new() };
+pub static ORDERS: OnceLock<Arc<[Company]>> = const { OnceLock::new() };
 
 #[inline(always)]
 /// If you call this function before orders are parsed I will call you silly and make you wear a dunce hat.
-pub fn get_orders() -> &'static Vec<Company> {
+pub fn get_orders() -> &'static Arc<[Company]> {
     // this is naughty (and faster) but unless you're *really* silly and try
     // getting the orders before parsing them, this should be fine.
     unsafe { ORDERS.get().unwrap_unchecked() }
@@ -42,7 +42,7 @@ pub fn get_distance_matrix() -> &'static DistanceMatrix {
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let instant = std::time::Instant::now();
     let order_vec = parse_orderfile()?;
-    ORDERS.set(order_vec).ok();
+    ORDERS.set(order_vec.into()).ok();
     let distance_matrix = parse_distance_matrix()?;
     DISTANCE_MATRIX.set(distance_matrix).ok();
 
