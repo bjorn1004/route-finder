@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
+use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 use crate::simulated_annealing::week::Week;
 use crate::{
@@ -201,14 +202,10 @@ impl eframe::App for GuiApp {
             }
 
             let mut routes = vec![];
-            if let Some((truck1, truck2)) = &self.cur_route {
+            if let Some(route) = &self.cur_route {
                 for selection in self.route_selection.iter() {
-                    let week = if selection.truck == TruckEnum::Truck1 {
-                        truck1
-                    } else {
-                        truck2
-                    };
-                    routes.push(week.get(selection.day).get(selection.shift));
+                    let sel_route = route_selection_to_route(route, selection);
+                    routes.push(sel_route);
                 }
             }
 
@@ -293,12 +290,52 @@ impl eframe::App for GuiApp {
                 });
                 ui.separator();
                 ui.collapsing("Selected routes", |ui| {
-                    for route in self.route_selection.iter() {
-                        ui.label(format!(
-                            "{:?}, {:?}, {:?}",
-                            route.truck, route.day, route.shift
-                        ));
-                        // Future: summary of route statistics
+                    if let Some(routes) = &self.cur_route {
+                        for selection in self.route_selection.iter() {
+                            ui.collapsing(
+                                format!(
+                                    "{:?}, {:?}, {:?}",
+                                    selection.truck, selection.day, selection.shift
+                                ),
+                                |ui| {
+                                    egui::Grid::new(format!(
+                                        "{:?}_{:?}_{:?}",
+                                        selection.truck, selection.day, selection.shift
+                                    ))
+                                    .num_columns(2)
+                                    .show(ui, |ui| {
+                                        let route = route_selection_to_route(routes, selection);
+                                        ui.label("Trash collected:");
+                                        if route.capacity > 100_000 {
+                                            ui.colored_label(
+                                                Color32::RED,
+                                                format!(
+                                                    "{}L, (OVERFLOW)",
+                                                    route.capacity.to_string()
+                                                ),
+                                            );
+                                        } else {
+                                            ui.label(format!("{}L", route.capacity.to_string()));
+                                        };
+                                        ui.end_row();
+                                        ui.label("Time (h:m:s):");
+                                        let total_seconds = route.time as u32;
+                                        let hours = total_seconds / 3600;
+                                        let minutes = (total_seconds % 3600) / 60;
+                                        let seconds = total_seconds % 60;
+                                        ui.label(format!(
+                                            "{:02}:{:02}:{:02}",
+                                            hours, minutes, seconds
+                                        ));
+                                        ui.end_row();
+                                        ui.label("Orders fulfilled:");
+                                        ui.label(route.linked_vector.len().to_string());
+                                        ui.end_row();
+                                    });
+                                },
+                            );
+                            // Future: summary of route statistics
+                        }
                     }
                 });
                 // ui.separator();
@@ -306,4 +343,16 @@ impl eframe::App for GuiApp {
             });
         });
     }
+}
+
+fn route_selection_to_route<'a>(
+    cur_route: &'a (Arc<Week>, Arc<Week>),
+    selection: &'a RouteSelection,
+) -> &'a Route {
+    let week = if selection.truck == TruckEnum::Truck1 {
+        &cur_route.0
+    } else {
+        &cur_route.1
+    };
+    week.get(selection.day).get(selection.shift)
 }
