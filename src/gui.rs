@@ -405,7 +405,13 @@ impl eframe::App for GuiApp {
                                         .sum::<usize>()
                                     })
                                     .sum();
-                                ui.label(total_orders.to_string());
+                                let order_sum = get_orders().iter().fold(0, |a, o| o.frequency as usize + a);
+                                ui.label(format!(
+                                    "{} / {} ({:.2}%)",
+                                    total_orders,
+                                    order_sum,
+                                    total_orders as f32 / order_sum as f32 * 100f32
+                                ));
                                 ui.end_row();
                             });
                     }
