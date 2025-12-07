@@ -2,9 +2,7 @@ use std::collections::HashMap;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
-use crate::simulated_annealing::day::TimeOfDay::Morning;
 use crate::simulated_annealing::route::{OrderIndex, Route};
-use crate::simulated_annealing::week::DayEnum::Monday;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week){

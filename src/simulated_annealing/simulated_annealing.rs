@@ -148,6 +148,7 @@ impl SimulatedAnnealing {
             .ok();
         self.egui_ctx.request_repaint();
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
+        println!("{}", self.iterations_done);
         print_solution(&self.truck1, &self.truck2).expect("TODO: panic message");
     }
 

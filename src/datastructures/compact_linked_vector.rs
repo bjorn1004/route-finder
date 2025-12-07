@@ -24,7 +24,7 @@ use rand::prelude::IndexedRandom;
 /// ```
 #[derive(Clone, Debug)]
 pub struct CompactLinkedVector<T> {
-    pub list: Vec<Node<T>>, /// DO NOT USE THIS SHIT EVER UNLESS YOU KNOW WHAT YOU'RE DOING
+    list: Vec<Node<T>>,
     head: Option<LVNodeIndex>, // the index of the head in our list
     tail: Option<LVNodeIndex>, // the index of the tail in our list
     empty_indices: Vec<LVNodeIndex>,

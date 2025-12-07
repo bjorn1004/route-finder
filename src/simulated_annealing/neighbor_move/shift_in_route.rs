@@ -29,7 +29,7 @@ impl ShiftInRoute{
         let route = day.get(time_of_day);
 
         let lv = &route.linked_vector;
-        let mut shifting_node: LVNodeIndex;
+        let shifting_node: LVNodeIndex;
         if lv.len() < 5{
             return None;
         }
@@ -45,7 +45,7 @@ impl ShiftInRoute{
 
         let before_shifting_node = lv.get_prev(shifting_node).unwrap();
 
-        let mut target_neighbor1: LVNodeIndex;
+        let target_neighbor1: LVNodeIndex;
         loop {
             let (node_index, _) = lv.get_random(rng).unwrap();
             if node_index == shifting_node ||
