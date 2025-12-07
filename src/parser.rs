@@ -41,7 +41,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
 
     if let Ok(list) = &mut list{
         list.push(Company{
-            order: 999,
+            order: 0,
             place: "Dropoff".to_string(),
             frequency: Frequency::None,
             container_count: 0,
