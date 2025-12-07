@@ -3,13 +3,14 @@ use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
 use flume::{Receiver, Sender, bounded};
 use rand::prelude::{SliceRandom, SmallRng};
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
 use std::sync::Arc;
+use crate::printer::print_solution;
 
 pub struct SimulatedAnnealing {
     truck1: Week,
@@ -106,6 +107,7 @@ impl SimulatedAnnealing {
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
+        print_solution(&self.truck1, &self.truck2).expect("TODO: panic message");
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
@@ -151,7 +153,7 @@ impl SimulatedAnnealing {
             let cost = cost.unwrap();
 
             // if we want to go through with this thing
-            if self.accept(&transactionthingy) {
+            if self.accept(cost) {
                 // change the route
                 transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
 
@@ -169,7 +171,13 @@ impl SimulatedAnnealing {
         }
     }
 
-    fn accept(&self, neighbor_move: &Box<dyn NeighborMove>) -> bool {
+    fn accept(&self, cost: Evaluation) -> bool {
+        if self.unfilled_orders.len() == 0{
+            if cost.cost < 0f32{
+                return true;
+            }
+            return false;
+        }
         true
     }
 

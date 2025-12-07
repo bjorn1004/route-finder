@@ -1,6 +1,6 @@
 use petgraph::visit::NodeIndexable;
 use rand::Rng;
-use crate::datastructures::linked_vectors::{LinkedVector, NodeIndex};
+use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_distance_matrix, get_orders};
 use crate::resource::Frequency;
 use crate::simulated_annealing::day::TimeOfDay;
@@ -15,7 +15,7 @@ pub struct AddNewOrder {
     is_truck_1: bool,
     day: DayEnum,
     time_of_day: TimeOfDay,
-    insert_after_index: NodeIndex,
+    insert_after_index: LVNodeIndex,
     order: OrderIndex,
 }
 impl AddNewOrder {

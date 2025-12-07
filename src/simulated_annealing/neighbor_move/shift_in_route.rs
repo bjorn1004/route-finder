@@ -1,18 +1,22 @@
+use petgraph::visit::NodeIndexable;
 use rand::Rng;
-use crate::datastructures::linked_vectors::{LinkedVector, NodeIndex};
+use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
+use crate::{get_distance_matrix, get_orders};
 use crate::simulated_annealing::day::TimeOfDay;
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 pub struct ShiftInRoute{
+    success: bool,
     is_truck1: bool,
     day: DayEnum,
     time_of_day: TimeOfDay,
-    shifting_node: NodeIndex,
-    target_neighbor1: NodeIndex,
-    target_neighbor2: NodeIndex,
+    shifting_node: LVNodeIndex,
+    target_neighbor1: LVNodeIndex,
+    target_neighbor2: LVNodeIndex,
 }
 
 impl ShiftInRoute{
@@ -27,7 +31,18 @@ impl ShiftInRoute{
         let route = day.get(time_of_day);
 
         let lv = &route.linked_vector;
-        let mut shifting_node:NodeIndex;
+        let mut shifting_node: LVNodeIndex;
+        if lv.len() < 5{
+            return ShiftInRoute{
+                success: false,
+                is_truck1,
+                day: DayEnum::Monday,
+                time_of_day,
+                shifting_node: 0,
+                target_neighbor1: 0,
+                target_neighbor2: 0,
+            }
+        }
         loop {
             let (node_index, value) = lv.get_random(rng).unwrap();
             if node_index == lv.get_head_index().unwrap() ||
@@ -40,7 +55,7 @@ impl ShiftInRoute{
 
         let before_shifting_node = lv.get_prev(shifting_node).unwrap();
 
-        let mut target_neighbor1: NodeIndex;
+        let mut target_neighbor1: LVNodeIndex;
         loop {
             let (node_index, value) = lv.get_random(rng).unwrap();
             if node_index == shifting_node ||
@@ -53,9 +68,10 @@ impl ShiftInRoute{
             break;
         };
 
-        let target_neighbor2: NodeIndex = lv.get_next(target_neighbor1).unwrap();
+        let target_neighbor2: LVNodeIndex = lv.get_next(target_neighbor1).unwrap();
 
         ShiftInRoute{
+            success: true,
             is_truck1,
             day: day_enum,
             time_of_day,
@@ -67,16 +83,72 @@ impl ShiftInRoute{
 }
 impl NeighborMove for ShiftInRoute{
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<Evaluation> {
+        if !self.success {
+            return None;
+        }
+
+
+        let truck = if self.is_truck1 {truck1} else {truck2};
+        let route = truck.get(self.day).get(self.time_of_day);
+        let lv = &route.linked_vector;
+
+        let orders = get_orders();
+        let dist = get_distance_matrix();
+
+        let before_shift = dist.from_index(orders[*lv.get_prev_value(self.shifting_node).unwrap()].matrix_id as usize);
+        let after_shift = dist.from_index(orders[*lv.get_next_value(self.shifting_node).unwrap()].matrix_id as usize);
+
+        let t1 = dist.from_index(orders[*lv.get_value(self.target_neighbor1).unwrap()].matrix_id as usize);
+        let shift = dist.from_index(orders[*lv.get_value(self.shifting_node).unwrap()].matrix_id as usize);
+        let t2 = dist.from_index(orders[*lv.get_value(self.target_neighbor2).unwrap()].matrix_id as usize);
+
+        // add the difference between the shifting_node and the two nodes where it fill be put between
+        let mut time_difference = time_between_three_nodes(t1, shift, t2);
+        // remove the time between these two nodes
+        time_difference -= time_between_two_nodes(t1, t2);
+
+
+        // add the time between the two neighbors of the node that will be shifted
+        time_difference += time_between_two_nodes(before_shift, after_shift);
+        // remove the time between the node that will be shifted and it's current neighbors
+        time_difference -= time_between_three_nodes(before_shift, shift, after_shift);
+
+
         Some(Evaluation{
-            cost: 0.0,
+            cost: time_difference,
         })
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
         let truck = if self.is_truck1 {truck1} else {truck2};
         let route = truck.get_mut(self.day).get_mut(self.time_of_day);
-        let lv = &mut route.linked_vector;
+        let lv = &route.linked_vector;
 
+        let orders = get_orders();
+        let dist = get_distance_matrix();
+
+        let before_shift = dist.from_index(orders[*lv.get_prev_value(self.shifting_node).unwrap()].matrix_id as usize);
+        let after_shift = dist.from_index(orders[*lv.get_next_value(self.shifting_node).unwrap()].matrix_id as usize);
+
+        let t1 = dist.from_index(orders[*lv.get_value(self.target_neighbor1).unwrap()].matrix_id as usize);
+        let shift = dist.from_index(orders[*lv.get_value(self.shifting_node).unwrap()].matrix_id as usize);
+        let t2 = dist.from_index(orders[*lv.get_value(self.target_neighbor2).unwrap()].matrix_id as usize);
+
+        // add the difference between the shifting_node and the two nodes where it fill be put between
+        let mut time_difference = time_between_three_nodes(t1, shift, t2);
+        // remove the time between these two nodes
+        time_difference -= time_between_two_nodes(t1, t2);
+
+
+        // add the time between the two neighbors of the node that will be shifted
+        time_difference += time_between_two_nodes(before_shift, after_shift);
+        // remove the time between the node that will be shifted and it's current neighbors
+        time_difference -= time_between_three_nodes(before_shift, shift, after_shift);
+
+        route.time += time_difference;
+
+        // change the values in the linkedvector
+        let lv = &mut route.linked_vector;
         let shifting_value = lv.get_value(self.shifting_node).unwrap().clone();
         lv.remove(self.shifting_node);
         lv.insert_after(self.target_neighbor1, shifting_value);
