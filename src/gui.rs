@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
+use crate::datastructures::linked_vectors::LinkedVector;
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 use crate::simulated_annealing::week::Week;
@@ -13,6 +14,7 @@ use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2, emath::TSTransform};
 use flume::{Receiver, Sender, bounded};
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
+use time::Time;
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct RouteSelection {
@@ -288,7 +290,6 @@ impl eframe::App for GuiApp {
                         truck_ui(ui, TruckEnum::Truck2);
                     });
                 });
-                ui.separator();
                 ui.collapsing("Selected routes", |ui| {
                     if let Some(routes) = &self.cur_route {
                         for selection in self.route_selection.iter() {
@@ -338,8 +339,122 @@ impl eframe::App for GuiApp {
                         }
                     }
                 });
-                // ui.separator();
-                // ui.collapsing("Selected orders", |ui| {});
+                ui.separator();
+                ui.collapsing("Days", |ui| {
+                    if let Some(routes) = &self.cur_route {
+                        let day_overview = |ui: &mut Ui, day: DayEnum| {
+                            ui.collapsing(format!("{:?}", day), |ui| {
+                                for &truck in &[TruckEnum::Truck1, TruckEnum::Truck2] {
+                                    ui.collapsing(format!("{:?}", truck), |ui| {
+                                        let summary_route = {
+                                            let selection_morning = RouteSelection {
+                                                truck,
+                                                day,
+                                                shift: TimeOfDay::Morning,
+                                            };
+                                            let morning_route = route_selection_to_route(
+                                                routes,
+                                                &selection_morning,
+                                            );
+                                            let selection_afternoon = RouteSelection {
+                                                truck,
+                                                day,
+                                                shift: TimeOfDay::Afternoon,
+                                            };
+                                            let afternoon_route = route_selection_to_route(
+                                                routes,
+                                                &selection_afternoon,
+                                            );
+                                            let mut combined_route = morning_route.clone();
+                                            for (_, order_index) in
+                                                afternoon_route.linked_vector.iter().skip(1)
+                                            {
+                                                combined_route.linked_vector.insert_before(
+                                                    combined_route
+                                                        .linked_vector
+                                                        .get_tail_index()
+                                                        .unwrap(),
+                                                    *order_index,
+                                                );
+                                            }
+                                            combined_route.capacity =
+                                                morning_route.capacity + afternoon_route.capacity;
+                                            combined_route.time =
+                                                morning_route.time + afternoon_route.time;
+                                            combined_route
+                                        };
+                                        egui::Grid::new(format!(
+                                            "day_overview_{:?}_{:?}",
+                                            truck, day
+                                        ))
+                                        .num_columns(2)
+                                        .show(ui, |ui| {
+                                            ui.label("Trash collected:");
+                                            if summary_route.capacity > 200_000 {
+                                                ui.colored_label(
+                                                    Color32::RED,
+                                                    format!(
+                                                        "{}L, (OVERFLOW)",
+                                                        summary_route.capacity.to_string()
+                                                    ),
+                                                );
+                                            } else {
+                                                ui.label(format!(
+                                                    "{}L",
+                                                    summary_route.capacity.to_string()
+                                                ));
+                                            };
+                                            ui.end_row();
+                                            ui.label("Time (h:m:s):");
+                                            let total_seconds = summary_route.time as u32;
+                                            let hours = total_seconds / 3600;
+                                            let minutes = (total_seconds % 3600) / 60;
+                                            let seconds = total_seconds % 60;
+                                            ui.label(format!(
+                                                "{:02}:{:02}:{:02}",
+                                                hours, minutes, seconds
+                                            ));
+                                            ui.end_row();
+                                            ui.label("Finish time:");
+                                            let finish_time = {
+                                                let total_minutes = summary_route.time as u32 / 60;
+                                                let hours = 6 + (total_minutes / 60);
+                                                let minutes = total_minutes % 60;
+                                                Time::from_hms(
+                                                    hours.try_into().unwrap(),
+                                                    minutes.try_into().unwrap(),
+                                                    0,
+                                                ).unwrap_or(Time::from_hms(23, 59, 59).unwrap())
+                                            };
+                                            // if finish time is after 18:00, colour red
+                                            if finish_time >= Time::from_hms(18, 0, 0).unwrap() {
+                                                ui.colored_label(
+                                                    Color32::RED,
+                                                    format!("{:02}:{:02} (LATE)", finish_time.hour(), finish_time.minute()),
+                                                );
+                                            } else {
+                                                ui.label(format!("{:02}:{:02}", finish_time.hour(), finish_time.minute()));
+                                            }
+                                            ui.end_row();
+                                            ui.label("Orders fulfilled:");
+                                            ui.label(summary_route.linked_vector.len().to_string());
+                                            ui.end_row();
+                                        });
+                                    });
+                                }
+                            });
+                        };
+                        for day in [
+                            DayEnum::Monday,
+                            DayEnum::Tuesday,
+                            DayEnum::Wednesday,
+                            DayEnum::Thursday,
+                            DayEnum::Friday,
+                        ] {
+                            day_overview(ui, day);
+                        }
+                    }
+                });
             });
         });
     }
