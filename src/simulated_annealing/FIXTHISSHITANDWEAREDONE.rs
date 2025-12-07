@@ -58,7 +58,7 @@ fn delete_bad_route(route: &mut Route, bad_list: &Vec<usize>){
     let lv = &mut route.linked_vector;
     let mut bad_indexes = Vec::new();
     for (node_i, order_i) in lv.iter(){
-        if bad_list.contains(order_i){
+        if bad_list.contains(&order_i){
             bad_indexes.push(node_i);
         }
     }
