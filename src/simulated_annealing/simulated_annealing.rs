@@ -13,7 +13,6 @@ use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::sync::Arc;
 use rand::distr::{Distribution, StandardUniform};
-use crate::printer::print_solution;
 use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 
 pub struct SimulatedAnnealing {
