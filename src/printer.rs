@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 use time::OffsetDateTime;
+use crate::get_orders;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
@@ -51,11 +52,12 @@ fn print_day_schedule(buffer: &mut File, day: &Day, day_enum: &DayEnum, truck_id
 
 fn print_route(buffer: &mut File, route: &Route, truck_id:&str, day_id:&str, start_index:usize)
     -> std::io::Result<usize> {
+    let orders = get_orders();
     let mut last_i=0;
     let lv = &route.linked_vector;
     let iter = lv.iter().enumerate();
     for (i, (_, order_index)) in iter.skip(1) {
-        write!(buffer,"{}; {}; {}; {}\n", truck_id, day_id, start_index+i,order_index)?;
+        write!(buffer,"{}; {}; {}; {}\n", truck_id, day_id, start_index+i,orders[*order_index].order)?;
         last_i = i;
     }
     Ok(last_i)
