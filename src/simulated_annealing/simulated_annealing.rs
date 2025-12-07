@@ -97,7 +97,6 @@ impl SimulatedAnnealing {
                 self.egui_ctx.request_repaint();
                 continue;
             }
-            // FUTURE: pausing and resuming (if we want)
             self.do_step(&mut rng);
         }
         // send final state before closing
