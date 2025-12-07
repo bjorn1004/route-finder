@@ -165,7 +165,7 @@ impl SimulatedAnnealing {
                             random_order,
                         );
                         if new_order.is_none() {
-                            self.unfilled_orders.push_back(random_order);
+                            self.unfilled_orders.push_front(random_order);
                             continue;
                         }
                         Box::new(new_order.unwrap())
