@@ -4,7 +4,7 @@ use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_distance_matrix, get_orders};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Cost, NeighborMove};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
@@ -71,7 +71,7 @@ impl ShiftInRoute{
     }
 }
 impl NeighborMove for ShiftInRoute{
-    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> Option<Cost> {
+    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> Option<CostChange> {
         let truck = if self.is_truck1 {truck1} else {truck2};
         let route = truck.get(self.day).get(self.time_of_day);
         let lv = &route.linked_vector;

@@ -5,7 +5,7 @@ use crate::{get_distance_matrix, get_orders};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Cost, NeighborMove};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 /// This will add an order to a random route where it is allowed to add it to.
@@ -83,7 +83,7 @@ impl AddNewOrder {
 
 
 impl NeighborMove for AddNewOrder {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<Cost>{
+    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange>{
         let orders = get_orders();
         let order = &orders[self.order];
         let mut cost: f32 = 0f32;

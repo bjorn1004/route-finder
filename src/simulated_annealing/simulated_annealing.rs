@@ -3,7 +3,7 @@ use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Cost, NeighborMove};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
 use flume::{Receiver, Sender, bounded};
 use rand::prelude::{SliceRandom, SmallRng};
@@ -127,23 +127,23 @@ impl SimulatedAnnealing {
                         );
                         if new_order.is_none(){
                             self.unfilled_orders.push_back(random_order);
-                            return;
+                            continue;
                         }
                         Box::new(new_order.unwrap())
 
                     } else {
-                        return; // queue is empty, try something else
+                        continue; // queue is empty, try something else
                     }
                 }
                 2 => {
                     if self.unfilled_orders.len() < 1000 {
                         let shift = ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng);
                         if shift.is_none(){
-                            return;
+                            continue;
                         }
                         Box::new(shift.unwrap())
                     } else {
-                        return;
+                        continue;
                     }
                 }
                 // remove function, try to remove all days from a single order.
@@ -181,13 +181,7 @@ impl SimulatedAnnealing {
         }
     }
 
-    fn accept(&self, cost: Cost) -> bool {
-        if self.unfilled_orders.len() == 0{
-            if cost < 0f32{
-                return true;
-            }
-            return false;
-        }
+    fn accept(&self, cost: CostChange) -> bool {
         true
     }
 
