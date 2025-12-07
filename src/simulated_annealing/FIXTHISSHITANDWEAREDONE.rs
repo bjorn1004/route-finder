@@ -49,9 +49,10 @@ fn delete_bad_day(day: &mut Day, bad_list: &Vec<usize>){
 }
 fn delete_bad_route(route: &mut Route, bad_list: &Vec<usize>){
     let lv = &mut route.linked_vector;
-    for node in lv.list.iter(){
-        if bad_list.contains(&node.value){
-            lv.remove(node.index);
+    let mut bad_indexes = Vec::new();
+    for (node_i, order_i) in lv.iter(){
+        if bad_list.contains(&order_i){
+            bad_indexes.push(node_i);
         }
 
     }
