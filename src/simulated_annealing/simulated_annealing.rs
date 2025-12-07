@@ -14,6 +14,7 @@ use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::sync::Arc;
 use rand::distr::{Distribution, StandardUniform};
+use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 
 pub struct SimulatedAnnealing {
@@ -146,6 +147,7 @@ impl SimulatedAnnealing {
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
+        fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
         print_solution(&self.truck1, &self.truck2).expect("TODO: panic message");
     }
 
