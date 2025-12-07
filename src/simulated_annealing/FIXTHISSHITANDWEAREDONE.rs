@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
@@ -12,24 +13,45 @@ pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week){
     count_per_week(truck1, &mut order_count);
     count_per_week(truck2, &mut order_count);
 
+    let a: Vec<(&usize, &usize)> = order_count.iter().filter(|(order_i, freq)| orders[**order_i].frequency as usize != **freq).collect();
+
 
 }
 
 
-pub fn count_per_week(truck: &Week, order_count: &mut HashMap<usize,usize>){
+fn count_per_week(truck: &Week, order_count: &mut HashMap<usize,usize>){
     count_per_day(truck.get(DayEnum::Monday), order_count);
     count_per_day(truck.get(DayEnum::Tuesday), order_count);
     count_per_day(truck.get(DayEnum::Wednesday), order_count);
     count_per_day(truck.get(DayEnum::Thursday), order_count);
     count_per_day(truck.get(DayEnum::Friday), order_count);
 }
-pub fn count_per_day(day: &Day, order_count: &mut HashMap<usize,usize>){
+fn count_per_day(day: &Day, order_count: &mut HashMap<usize,usize>){
     count_per_route(day.get(TimeOfDay::Morning), order_count);
     count_per_route(day.get(TimeOfDay::Afternoon), order_count);
 
 }
-pub fn count_per_route(day: &Route, order_count: &mut HashMap<usize, usize>){
-    for (_, order_i) in day.linked_vector.iter(){
+fn count_per_route(route: &Route, order_count: &mut HashMap<usize, usize>){
+    for (_, order_i) in route.linked_vector.iter(){
         *order_count.entry(*order_i).or_insert(0) += 1;
+    }
+}
+
+fn delete_bad_week(truck: &mut Week, bad_list: &Vec<usize>){
+    delete_bad_day(truck.get_mut(DayEnum::Monday), bad_list);
+    delete_bad_day(truck.get_mut(DayEnum::Tuesday), bad_list);
+    delete_bad_day(truck.get_mut(DayEnum::Wednesday), bad_list);
+    delete_bad_day(truck.get_mut(DayEnum::Thursday), bad_list);
+    delete_bad_day(truck.get_mut(DayEnum::Friday), bad_list);
+}
+fn delete_bad_day(day: &mut Day, bad_list: &Vec<usize>){
+
+}
+fn delete_bad_route(route: &mut Route, bad_list: &Vec<usize>){
+    let lv = &route.linked_vector;
+    for (node_i, order_i) in lv.iter(){
+        if bad_list.contains(order_i){
+            route.linked_vector.remove(node_i);
+        }
     }
 }
