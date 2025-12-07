@@ -10,7 +10,7 @@ use crate::simulated_annealing::week::{DayEnum, Week};
 pub fn print_solution(truck1: &Week, truck2: &Week) -> std::io::Result<()>
 {
     let now = OffsetDateTime::now_local().unwrap();
-    let now = format!("output/{now}.txt");
+    let now = format!("output/{now}.txt").replace(":","_");
     let mut buffer = File::create(now)?;
 
     print_truck_schedule(&mut buffer, truck1, TruckEnum::Truck1)?;
