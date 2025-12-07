@@ -151,7 +151,7 @@ impl SimulatedAnnealing {
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
         // not really sure if this is correct
         loop {
-            let a = rng.random_range(1..2);
+            let a = rng.random_range(1..3);
             // something to decide which thing to choose
             let transactionthingy: Box<dyn NeighborMove> = match a {
                 1 => {
@@ -173,15 +173,11 @@ impl SimulatedAnnealing {
                     }
                 }
                 2 => {
-                    if self.unfilled_orders.len() < 1000 {
-                        let shift = ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng);
-                        if shift.is_none() {
-                            continue;
-                        }
-                        Box::new(shift.unwrap())
-                    } else {
+                    let shift = ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng);
+                    if shift.is_none() {
                         continue;
                     }
+                    Box::new(shift.unwrap())
                 }
                 3 => {
                     let shift = ShiftBetweenDays::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags);
