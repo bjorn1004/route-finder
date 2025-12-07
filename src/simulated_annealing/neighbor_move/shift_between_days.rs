@@ -134,6 +134,13 @@ impl ShiftBetweenDays {
         shift_diff -= time_between_three_nodes(before_shift, shift, after_shift);
 
 
+
+        let target_day = (if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
+            .get(self.target.day);
+        if target_day.get_time() + target_diff > 12f32*60f32*60f32{
+            return None;
+        }
+
         Some((shift_diff, target_diff))
     }
 

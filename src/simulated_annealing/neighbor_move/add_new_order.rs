@@ -31,6 +31,7 @@ impl AddNewOrder {
             if route.capacity + capacity > 100_000{
                 return None;
             }
+
             let lv = &route.linked_vector;
             while let Some((index, _)) = lv.get_random(rng) {
                 if lv.get_tail_index() == Some(index) {
@@ -93,10 +94,16 @@ impl NeighborMove for AddNewOrder {
             cost -= 3f32 * order.emptying_time * order.frequency as u32 as f32;
         }
 
-        cost += self.calculate_time_difference(truck1, truck2);
+        let time = self.calculate_time_difference(truck1, truck2);
 
 
-        Some(cost)
+
+        let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
+        if a.get_time() + time > 12f32*60f32*60f32{
+            return None;
+        }
+
+        Some(cost + time)
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {

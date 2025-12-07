@@ -62,4 +62,8 @@ impl Day {
             TimeOfDay::Afternoon => {&self.afternoon}
         }
     }
+
+    pub fn get_time(&self) -> f32 {
+        self.morning.time + self.afternoon.time
+    }
 }
