@@ -16,7 +16,7 @@ use crate::printer::print_solution;
 pub struct SimulatedAnnealing {
     temp: f32,
     end_temp: f32,
-    Q: u32,
+    q: u32,
     iterations_done: u32,
     a: f32,
 
@@ -57,7 +57,7 @@ impl SimulatedAnnealing {
         SimulatedAnnealing {
             temp: 10000f32, // initialized as starting temperature, decreases to end_temp
             end_temp: 0.1,
-            Q: 10_000,
+            q: 10_000,
             iterations_done: 0,
             a: 0.95, // keep around 0.95 or 0.99. It's better to change Q or temp
             truck1: Week::new(),
@@ -112,7 +112,7 @@ impl SimulatedAnnealing {
             self.do_step(&mut rng);
 
             self.iterations_done += 1;
-            if self.iterations_done % self.Q == 0 {
+            if self.iterations_done % self.q == 0 {
                 self.temp *= self.a;
             }
             if self.temp <= self.end_temp {
