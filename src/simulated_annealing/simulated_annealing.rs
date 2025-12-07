@@ -101,7 +101,7 @@ impl SimulatedAnnealing {
             self.do_step(&mut rng);
         }
         // send final state before closing
-        self.route_channel.1.drain();
+        let _ = self.route_channel.1.drain().map(drop);
         self.route_channel
             .0
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
