@@ -35,21 +35,34 @@ impl OrderFlags {
         }
     }
 
-    pub fn get_random_allowed_day<R: Rng+?Sized>(&self, order_index: OrderIndex, rng: &mut R) -> Option<DayEnum> {
+
+    pub fn get_random_allowed_day<R: Rng + ?Sized>(&self, order_index: OrderIndex, rng: &mut R) -> Option<DayEnum>{
         let order = &get_orders()[order_index];
-        let flags = self.orders[order_index];
+        let flags = self.orders[order_index] & 0b1_1111;
+        self._get_random_allowed_day(flags, order, rng)
+    }
+
+    pub fn get_random_day_to_shift_to<R: Rng + ?Sized>(&self, order_index: OrderIndex, shift_from: DayEnum, rng: &mut R) -> Option<DayEnum>{
+        let order = &get_orders()[order_index];
+        let flags = (self.orders[order_index] & 0b1_1111) ^ Self::day_to_flags(shift_from);
+
+        assert!(self.orders[order_index] & 0b1_1111 > flags); // assert that a one has been flipped to 0
+
+        self._get_random_allowed_day(flags, order, rng)
+    }
+
+    fn _get_random_allowed_day<R: Rng+?Sized>(&self, flags:u8, order: &Company, rng: &mut R) -> Option<DayEnum> {
         match order.frequency{
             Frequency::None => panic!("Tried to add something with frequency 0 to a route. \
             Frequency 0 is preserved for the dropoff locations"),
             Frequency::Once => {
-                if self.orders[order_index] == 0{
+                if flags == 0{
                     Some(rng.random())
                 } else {
                     None
                 }
             }
             Frequency::Twice => {
-                let flags = self.orders[order_index] & 0b1_1111;
                 match flags {
                     0b10000 => Some(DayEnum::Thursday),
                     0b01000 => Some(DayEnum::Friday),
@@ -150,7 +163,18 @@ impl OrderFlags {
             },
         }
     }
+    fn day_to_flags(day: DayEnum) -> u8{
+        match day {
+            DayEnum::Monday => {0b1_0000}
+            DayEnum::Tuesday => {0b0_1000}
+            DayEnum::Wednesday => {0b0_0100}
+            DayEnum::Thursday => {0b0_0010}
+            DayEnum::Friday => {0b0_0001}
+        }
+    }
     pub fn get_filled_count(&self, order_index: OrderIndex) -> u32 {
         self.orders[order_index].count_ones()
     }
+
+
 }

@@ -50,8 +50,7 @@ impl ShiftInRoute{
             let (node_index, _) = lv.get_random(rng).unwrap();
             if node_index == shifting_node ||
                 node_index == before_shifting_node ||
-                node_index == lv.get_tail_index().unwrap() ||
-                node_index == shifting_node{
+                node_index == lv.get_tail_index().unwrap() {
                 continue;
             }
             target_neighbor1 = node_index;

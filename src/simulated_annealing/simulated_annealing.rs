@@ -1,7 +1,7 @@
 use super::neighbor_move::add_new_order::AddNewOrder;
 use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
-use super::week::Week;
+use super::week::{DayEnum, Week};
 use crate::get_orders;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
@@ -10,7 +10,9 @@ use rand::prelude::{SliceRandom, SmallRng};
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
 use std::sync::Arc;
+use rand::distr::{Distribution, StandardUniform};
 use crate::printer::print_solution;
+use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 
 pub struct SimulatedAnnealing {
     truck1: Week,
@@ -36,6 +38,14 @@ pub struct SimulatedAnnealing {
 pub enum TruckEnum {
     Truck1,
     Truck2,
+}
+impl Distribution<TruckEnum> for StandardUniform {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> TruckEnum {
+        match rng.random_range(0..2) {
+            0 => TruckEnum::Truck1,
+            _ => TruckEnum::Truck2,
+        }
+    }
 }
 
 impl SimulatedAnnealing {
@@ -112,7 +122,7 @@ impl SimulatedAnnealing {
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
         // not really sure if this is correct
         loop {
-            let a = rng.random_range(1..3);
+            let a = rng.random_range(1..4);
             // something to decide which thing to choose
             let transactionthingy: Box<dyn NeighborMove> = match a {
                 1 => {
@@ -144,6 +154,13 @@ impl SimulatedAnnealing {
                     } else {
                         continue;
                     }
+                }
+                3 => {
+                    let shift = ShiftBetweenDays::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags);
+                    if shift.is_none(){
+                        continue;
+                    }
+                    Box::new(shift.unwrap())
                 }
                 // remove function, try to remove all days from a single order.
                 // for example, if freq==2, remove the order on both the monday and thursday,
