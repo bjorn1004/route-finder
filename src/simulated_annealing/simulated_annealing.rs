@@ -4,6 +4,7 @@ use super::order_day_flags::OrderFlags;
 use super::week::{DayEnum, Week};
 use crate::get_orders;
 use crate::printer::print_solution;
+use crate::resource::Company;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
 use flume::{Receiver, Sender, bounded};
@@ -234,15 +235,16 @@ impl SimulatedAnnealing {
     }
 
     fn fill_unfilled_orders_list<R: Rng + ?Sized>(rng: &mut R) -> VecDeque<OrderIndex> {
-        let mut list = Vec::new();
+        let mut deliveries = Vec::new();
         let orders = get_orders();
-        for (index, order) in orders.iter().enumerate() {
+        let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
+        list.sort_by_key(|(_, order)| order.frequency as u8);
+        for (index, order) in list.iter() {
             for _ in 0..order.frequency as u8 {
-                list.push(index);
+                deliveries.push(*index);
             }
         }
-        list.shuffle(rng);
 
-        VecDeque::from(list)
+        VecDeque::from(deliveries)
     }
 }
