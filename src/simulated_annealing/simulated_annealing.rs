@@ -17,6 +17,7 @@ pub struct SimulatedAnnealing {
     order_flags: OrderFlags,
     unfilled_orders: VecDeque<OrderIndex>,
     // We could store variables here which are needed for simulated annealing.
+    paused: bool,
 
     // Channels for communicating with the draw thread
     egui_ctx: egui::Context,
@@ -50,6 +51,7 @@ impl SimulatedAnnealing {
             truck2: Week::new(),
             order_flags: OrderFlags::new(orders.len()),
             unfilled_orders: Self::fill_unfilled_orders_list(rng),
+            paused: false,
             egui_ctx,
             pause_rec,
             stop_rec,
@@ -82,9 +84,28 @@ impl SimulatedAnnealing {
             if self.stop_rec.try_recv().is_ok() {
                 break;
             }
+            if self.pause_rec.try_recv().is_ok() {
+                self.paused = !self.paused;
+            }
+            if self.paused {
+                // if paused, just send the latest state untill unpaused
+                self.route_channel
+                    .0
+                    .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+                    .ok();
+                self.egui_ctx.request_repaint();
+                continue;
+            }
             // FUTURE: pausing and resuming (if we want)
             self.do_step(&mut rng);
         }
+        // send final state before closing
+        self.route_channel.1.drain();
+        self.route_channel
+            .0
+            .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+            .ok();
+        self.egui_ctx.request_repaint();
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
@@ -108,11 +129,7 @@ impl SimulatedAnnealing {
                 }
                 2 => {
                     if self.unfilled_orders.len() < 1000 {
-                        Box::new(ShiftInRoute::new(
-                            &self.truck1,
-                            &self.truck2,
-                            &mut rng,
-                        ))
+                        Box::new(ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng))
                     } else {
                         return;
                     }
