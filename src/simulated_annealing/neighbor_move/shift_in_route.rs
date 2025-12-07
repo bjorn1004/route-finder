@@ -4,9 +4,8 @@ use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_distance_matrix, get_orders};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Cost, NeighborMove};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
-use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 pub struct ShiftInRoute{
@@ -35,7 +34,7 @@ impl ShiftInRoute{
             return None;
         }
         loop {
-            let (node_index, value) = lv.get_random(rng).unwrap();
+            let (node_index, _) = lv.get_random(rng).unwrap();
             if node_index == lv.get_head_index().unwrap() ||
                 node_index == lv.get_tail_index().unwrap(){
                 continue;
@@ -48,7 +47,7 @@ impl ShiftInRoute{
 
         let mut target_neighbor1: LVNodeIndex;
         loop {
-            let (node_index, value) = lv.get_random(rng).unwrap();
+            let (node_index, _) = lv.get_random(rng).unwrap();
             if node_index == shifting_node ||
                 node_index == before_shifting_node ||
                 node_index == lv.get_tail_index().unwrap() ||
@@ -72,7 +71,7 @@ impl ShiftInRoute{
     }
 }
 impl NeighborMove for ShiftInRoute{
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<Evaluation> {
+    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> Option<Cost> {
         let truck = if self.is_truck1 {truck1} else {truck2};
         let route = truck.get(self.day).get(self.time_of_day);
         let lv = &route.linked_vector;
@@ -99,12 +98,10 @@ impl NeighborMove for ShiftInRoute{
         time_difference -= time_between_three_nodes(before_shift, shift, after_shift);
 
 
-        Some(Evaluation{
-            cost: time_difference,
-        })
+        Some(time_difference)
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
+    fn apply(&self, truck1: &mut Week, truck2: &mut Week, _: &mut OrderFlags) {
         let truck = if self.is_truck1 {truck1} else {truck2};
         let route = truck.get_mut(self.day).get_mut(self.time_of_day);
         let lv = &route.linked_vector;
