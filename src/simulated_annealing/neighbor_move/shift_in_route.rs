@@ -29,7 +29,7 @@ impl ShiftInRoute{
         let route = day.get(time_of_day);
 
         let lv = &route.linked_vector;
-        let mut shifting_node: LVNodeIndex;
+        let shifting_node: LVNodeIndex;
         if lv.len() < 5{
             return None;
         }
@@ -45,7 +45,7 @@ impl ShiftInRoute{
 
         let before_shifting_node = lv.get_prev(shifting_node).unwrap();
 
-        let mut target_neighbor1: LVNodeIndex;
+        let target_neighbor1: LVNodeIndex;
         loop {
             let (node_index, _) = lv.get_random(rng).unwrap();
             if node_index == shifting_node ||
@@ -130,7 +130,7 @@ impl NeighborMove for ShiftInRoute{
 
         // change the values in the linkedvector
         let lv = &mut route.linked_vector;
-        let shifting_value = lv.get_value(self.shifting_node).unwrap().clone();
+        let shifting_value = *lv.get_value(self.shifting_node).unwrap();
         lv.remove(self.shifting_node);
         lv.insert_after(self.target_neighbor1, shifting_value);
         route.check_correctness_time();

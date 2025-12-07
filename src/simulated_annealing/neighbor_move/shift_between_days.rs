@@ -1,9 +1,8 @@
-use std::io::empty;
 use petgraph::visit::NodeIndexable;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_distance_matrix, get_orders};
-use crate::simulated_annealing::day::{Day, TimeOfDay};
+use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::order_day_flags::OrderFlags;

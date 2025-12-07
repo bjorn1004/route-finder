@@ -2,7 +2,6 @@ use petgraph::visit::NodeIndexable;
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::{get_distance_matrix, get_orders};
-use crate::resource::MatrixID;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::time_between_two_nodes;
 
 #[derive(Debug, Clone)]
@@ -31,7 +30,7 @@ impl Route{
         let orders = get_orders();
         assert_eq!(self.linked_vector
                        .iter()
-                       .map(|(_, matrix_id)| orders[*matrix_id as usize].container_volume as u64)
+                       .map(|(_, matrix_id)| orders[*matrix_id].container_volume as u64)
                        .sum::<u64>(),
                    0u64, "The currently stored trash volume is incorrect")
 

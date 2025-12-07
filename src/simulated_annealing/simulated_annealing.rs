@@ -1,14 +1,14 @@
 use super::neighbor_move::add_new_order::AddNewOrder;
 use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
-use super::week::{DayEnum, Week};
+use super::week::{Week};
 use crate::get_orders;
 use crate::printer::print_solution;
 use crate::resource::Company;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
 use flume::{Receiver, Sender, bounded};
-use rand::prelude::{SliceRandom, SmallRng};
+use rand::prelude::{SmallRng};
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
 use std::f32::consts::E;
@@ -148,6 +148,7 @@ impl SimulatedAnnealing {
             .ok();
         self.egui_ctx.request_repaint();
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
+        println!("{}", self.iterations_done);
         print_solution(&self.truck1, &self.truck2).expect("TODO: panic message");
     }
 
@@ -233,7 +234,7 @@ impl SimulatedAnnealing {
         if rand_float < prob {
             return true;
         }
-        return false;
+        false
     }
 
     fn fill_unfilled_orders_list<R: Rng + ?Sized>(rng: &mut R) -> VecDeque<OrderIndex> {

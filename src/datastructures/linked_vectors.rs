@@ -1,5 +1,4 @@
 use std::fmt;
-use std::fmt::Formatter;
 use rand::{Rng};
 
 pub trait LinkedVector<T>{

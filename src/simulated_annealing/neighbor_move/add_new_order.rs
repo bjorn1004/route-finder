@@ -1,5 +1,4 @@
 use petgraph::matrix_graph::NodeIndex;
-use petgraph::visit::NodeIndexable;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_distance_matrix, get_orders};
@@ -67,15 +66,9 @@ impl AddNewOrder {
         let before_order_i = *route.linked_vector.get_value(self.insert_after_index).unwrap();
         let after_order_i = *route.linked_vector.get_next_value(self.insert_after_index).unwrap();
 
-        let dist = get_distance_matrix();
-
         let before: NodeIndex<u16> = orders[before_order_i].matrix_id.into();
         let after: NodeIndex<u16> = orders[after_order_i].matrix_id.into();
         let middle: NodeIndex<u16> = orders[self.order].matrix_id.into();
-
-        // let before = dist.from_index(orders[before_order_i].matrix_id as usize);
-        // let after = dist.from_index(orders[after_order_i].matrix_id as usize);
-        // let middle = dist.from_index(orders[self.order].matrix_id as usize);
 
         let old_time = time_between_two_nodes(before, after);
 
@@ -101,8 +94,6 @@ impl NeighborMove for AddNewOrder {
 
         let time = self.calculate_time_difference(truck1, truck2);
 
-
-
         let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
         if a.get_time() + time > 12f32*60f32*60f32{
             // return None;
@@ -114,7 +105,7 @@ impl NeighborMove for AddNewOrder {
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
         order_flags.add_order(self.order, self.day);
 
-        let time_difference = self.calculate_time_difference(&truck1, &truck2);
+        let time_difference = self.calculate_time_difference(truck1, truck2);
         let truck = if self.is_truck_1 {truck1} else {truck2};
         let day = truck.get_mut(self.day);
         let route = day.get_mut(self.time_of_day);
