@@ -133,14 +133,6 @@ impl ShiftBetweenDays {
         // remove the time between the node that will be shifted and it's current neighbors
         shift_diff -= time_between_three_nodes(before_shift, shift, after_shift);
 
-
-
-        let target_day = (if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
-            .get(self.target.day);
-        if target_day.get_time() + target_diff > 12f32*60f32*60f32{
-            return None;
-        }
-
         Some((shift_diff, target_diff))
     }
 
@@ -172,6 +164,14 @@ impl NeighborMove for ShiftBetweenDays {
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange> {
         // this is the time difference
         let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2)?;
+
+        let target_day = (if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
+            .get(self.target.day);
+        if target_day.get_time() + target_diff > 12f32 * 60f32 * 60f32{
+            let overtime = (target_day.get_time() + target_diff - 12f32 * 60f32 * 60f32) * 1f32;
+            return Some(shift_diff + target_diff + overtime)
+        }
+
         Some(shift_diff+target_diff)
     }
 
@@ -216,5 +216,7 @@ impl NeighborMove for ShiftBetweenDays {
 
         assert_eq!(old_shift_len-1, new_shift_len);
         assert_eq!(old_target_len+1, new_target_len);
+        target_route.check_correctness_time();
+        shift_route.check_correctness_time();
     }
 }

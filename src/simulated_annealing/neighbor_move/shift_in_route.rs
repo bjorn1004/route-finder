@@ -133,5 +133,6 @@ impl NeighborMove for ShiftInRoute{
         let shifting_value = lv.get_value(self.shifting_node).unwrap().clone();
         lv.remove(self.shifting_node);
         lv.insert_after(self.target_neighbor1, shifting_value);
+        route.check_correctness_time();
     }
 }

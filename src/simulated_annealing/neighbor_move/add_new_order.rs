@@ -62,13 +62,13 @@ impl AddNewOrder {
         let order = &orders[self.order];
         let route = (if self.is_truck_1 { truck1 } else {truck2}).get(self.day).get(self.time_of_day);
 
-        let order1 = *route.linked_vector.get_value(self.insert_after_index).unwrap();
-        let order2 = *route.linked_vector.get_next_value(self.insert_after_index).unwrap();
+        let before = *route.linked_vector.get_value(self.insert_after_index).unwrap();
+        let after = *route.linked_vector.get_next_value(self.insert_after_index).unwrap();
 
         let dist = get_distance_matrix();
 
-        let order_index1 = dist.from_index(orders[order1].matrix_id as usize);
-        let order_index2 = dist.from_index(orders[order2].matrix_id as usize);
+        let order_index1 = dist.from_index(orders[before].matrix_id as usize);
+        let order_index2 = dist.from_index(orders[after].matrix_id as usize);
         let new_order_index = dist.from_index(orders[self.order].matrix_id as usize);
 
         let old_time = if order_index1 == order_index2 {0} else {dist.get_edge_weight(order_index1, order_index2).unwrap().travel_time};
@@ -116,5 +116,6 @@ impl NeighborMove for AddNewOrder {
         route.linked_vector.insert_after(self.insert_after_index, self.order);
         route.capacity += get_orders()[self.order].trash();
         route.time += time_difference;
+        route.check_correctness_time();
     }
 }
