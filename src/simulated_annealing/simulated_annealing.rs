@@ -118,20 +118,29 @@ impl SimulatedAnnealing {
             let transactionthingy: Box<dyn NeighborMove> = match a {
                 1 => {
                     if let Some(random_order) = self.unfilled_orders.pop_front() {
-                        Box::new(AddNewOrder::new(
+                        let new_order = AddNewOrder::new(
                             &self.truck1,
                             &self.truck2,
                             &mut rng,
                             &self.order_flags,
                             random_order,
-                        ))
+                        );
+                        if new_order.is_none(){
+                            return;
+                        }
+                        Box::new(new_order.unwrap())
+
                     } else {
                         return; // queue is empty, try something else
                     }
                 }
                 2 => {
                     if self.unfilled_orders.len() < 1000 {
-                        Box::new(ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng))
+                        let shift = ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng);
+                        if shift.is_none(){
+                            return;
+                        }
+                        Box::new(shift.unwrap())
                     } else {
                         return;
                     }

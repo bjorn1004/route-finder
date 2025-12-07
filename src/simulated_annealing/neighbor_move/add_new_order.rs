@@ -19,15 +19,19 @@ pub struct AddNewOrder {
     order: OrderIndex,
 }
 impl AddNewOrder {
-    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags, order: OrderIndex) ->  Self{
+    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags, order: OrderIndex) ->  Option<Self>{
 
         let is_truck_1:bool = rng.random();
         let truck = if is_truck_1 {truck1} else {truck2};
 
+        let capacity = get_orders()[order].trash();
         // check if there is still an allowed day open
         if let Some(day_enum) = order_flags.get_random_allowed_day(order, rng){
             let day = truck.get(day_enum);
             let (route, time_of_day_enum) = day.get_random(rng);
+            if route.capacity + capacity > 100_000{
+                return None;
+            }
             let lv = &route.linked_vector;
             while let Some((index, _)) = lv.get_random(rng) {
                 if lv.get_tail_index() == Some(index) {
@@ -37,13 +41,14 @@ impl AddNewOrder {
                     continue
                 }
 
-                return AddNewOrder {
+
+                return Some(AddNewOrder {
                     is_truck_1,
                     day: day_enum,
                     time_of_day: time_of_day_enum,
                     insert_after_index: index,
                     order,
-                }
+                })
             }
             panic!("how did we get here?")
         } else {

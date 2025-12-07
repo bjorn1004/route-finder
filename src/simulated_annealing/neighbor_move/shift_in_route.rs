@@ -10,7 +10,6 @@ use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 pub struct ShiftInRoute{
-    success: bool,
     is_truck1: bool,
     day: DayEnum,
     time_of_day: TimeOfDay,
@@ -20,7 +19,7 @@ pub struct ShiftInRoute{
 }
 
 impl ShiftInRoute{
-    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R) ->  Self {
+    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R) ->  Option<Self> {
         let is_truck1:bool = rng.random();
         let truck = if is_truck1 {truck1} else {truck2};
 
@@ -33,15 +32,7 @@ impl ShiftInRoute{
         let lv = &route.linked_vector;
         let mut shifting_node: LVNodeIndex;
         if lv.len() < 5{
-            return ShiftInRoute{
-                success: false,
-                is_truck1,
-                day: DayEnum::Monday,
-                time_of_day,
-                shifting_node: 0,
-                target_neighbor1: 0,
-                target_neighbor2: 0,
-            }
+            return None;
         }
         loop {
             let (node_index, value) = lv.get_random(rng).unwrap();
@@ -70,24 +61,18 @@ impl ShiftInRoute{
 
         let target_neighbor2: LVNodeIndex = lv.get_next(target_neighbor1).unwrap();
 
-        ShiftInRoute{
-            success: true,
+        Some(ShiftInRoute{
             is_truck1,
             day: day_enum,
             time_of_day,
             shifting_node,
             target_neighbor1,
             target_neighbor2,
-        }
+        })
     }
 }
 impl NeighborMove for ShiftInRoute{
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<Evaluation> {
-        if !self.success {
-            return None;
-        }
-
-
         let truck = if self.is_truck1 {truck1} else {truck2};
         let route = truck.get(self.day).get(self.time_of_day);
         let lv = &route.linked_vector;
