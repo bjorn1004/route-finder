@@ -14,11 +14,17 @@ pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week){
     count_per_week(truck1, &mut order_count);
     count_per_week(truck2, &mut order_count);
 
-    let a: Vec<(&usize, &usize)> = order_count.iter().filter(|(order_i, freq)| orders[**order_i].frequency as usize != **freq).collect();
-    let bad: Vec<usize> = a.iter().map(|(a, b)| **a).collect();
 
-    delete_bad_week(truck1, &bad);
-    delete_bad_week(truck2, &bad);
+    let a: Vec<(&usize, &usize)> = order_count.iter().filter(|(order_i, freq)| orders[**order_i].frequency as usize != **freq).collect();
+
+    let dropoff_index = get_orders().len() -1;
+    let bad: Vec<usize> = a.iter().map(|(a, b)| **a).collect();
+    let filtered_bad: Vec<&usize> = bad.iter().filter(|i| **i != dropoff_index).collect();
+
+    let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
+
+    delete_bad_week(truck1, &good_bad);
+    delete_bad_week(truck2, &good_bad);
 }
 
 
