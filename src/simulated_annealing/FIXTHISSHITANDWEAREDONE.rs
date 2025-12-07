@@ -20,7 +20,6 @@ pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week){
     let dropoff_index = get_orders().len() -1;
     let bad: Vec<usize> = a.iter().map(|(a, b)| **a).collect();
     let filtered_bad: Vec<&usize> = bad.iter().filter(|i| **i != dropoff_index).collect();
-
     let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
 
     delete_bad_week(truck1, &good_bad);
