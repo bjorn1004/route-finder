@@ -9,10 +9,17 @@ use flume::{Receiver, Sender, bounded};
 use rand::prelude::{SliceRandom, SmallRng};
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
+use std::f32::consts::E;
 use std::sync::Arc;
 use crate::printer::print_solution;
 
 pub struct SimulatedAnnealing {
+    temp: f32,
+    end_temp: f32,
+    Q: u32,
+    iterations_done: u32,
+    a: f32,
+
     truck1: Week,
     truck2: Week,
     order_flags: OrderFlags,
@@ -48,6 +55,11 @@ impl SimulatedAnnealing {
         // intializationthings
         let orders = get_orders();
         SimulatedAnnealing {
+            temp: 10000f32, // initialized as starting temperature, decreases to end_temp
+            end_temp: 0.1,
+            Q: 10_000,
+            iterations_done: 0,
+            a: 0.95, // keep around 0.95 or 0.99. It's better to change Q or temp
             truck1: Week::new(),
             truck2: Week::new(),
             order_flags: OrderFlags::new(orders.len()),
@@ -98,6 +110,14 @@ impl SimulatedAnnealing {
                 continue;
             }
             self.do_step(&mut rng);
+
+            self.iterations_done += 1;
+            if self.iterations_done % self.Q == 0 {
+                self.temp *= self.a;
+            }
+            if self.temp <= self.end_temp {
+                break;
+            }
         }
         // send final state before closing
         let _ = self.route_channel.1.drain().map(drop);
@@ -162,7 +182,7 @@ impl SimulatedAnnealing {
             let cost = cost.unwrap();
 
             // if we want to go through with this thing
-            if self.accept(cost) {
+            if self.accept(cost, rng) {
                 // change the route
                 transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
 
@@ -180,8 +200,16 @@ impl SimulatedAnnealing {
         }
     }
 
-    fn accept(&self, cost: CostChange) -> bool {
-        true
+    fn accept<R: Rng + ?Sized>(&self, cost_change: CostChange, rng: &mut R) -> bool {
+        if cost_change <= 0f32 {
+            return true;
+        }
+        let prob = E.powf(-cost_change/self.temp);
+        let rand_float: f32 = rng.random();
+        if rand_float < prob {
+            return true
+        }
+        return false
     }
 
     fn fill_unfilled_orders_list<R: Rng + ?Sized>(rng: &mut R) -> VecDeque<OrderIndex> {
