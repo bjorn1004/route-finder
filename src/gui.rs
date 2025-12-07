@@ -6,9 +6,7 @@ use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 use crate::simulated_annealing::week::Week;
 use crate::{
     get_orders,
-    simulated_annealing::{
-        day::TimeOfDay, simulated_annealing::TruckEnum, week::DayEnum,
-    },
+    simulated_annealing::{day::TimeOfDay, simulated_annealing::TruckEnum, week::DayEnum},
 };
 use egui::{Color32, Pos2, Sense, Stroke, Ui, Vec2, emath::TSTransform};
 use flume::{Receiver, Sender, bounded};
@@ -76,40 +74,40 @@ impl eframe::App for GuiApp {
                 if self.search_handle.is_some() {
                     if ui.button("Stop search").clicked() {
                         let _ = self.stop_channel.0.send(());
-                        println!("Search thread result: {:?}", self.search_handle.take().unwrap().join());
-                    }
-                } else {
-                    if ui.button("Start search").clicked() {
-                        let mut rng = SmallRng::seed_from_u64(0);
-                        let mut the_thing = SimulatedAnnealing::new(
-                            &mut rng,
-                            ctx.clone(),
-                            self.pause_channel.1.clone(),
-                            self.stop_channel.1.clone(),
+                        println!(
+                            "Search thread result: {:?}",
+                            self.search_handle.take().unwrap().join()
                         );
-                        let (q, temp, route) = the_thing.get_channels();
-                        self.q_rec = Some(q);
-                        self.temp_rec = Some(temp);
-                        self.route_rec = Some(route);
-                        self.search_handle = Some(std::thread::spawn(move || {
-                            the_thing.biiiiiig_loop()
-                        }));
                     }
+                } else if ui.button("Start search").clicked() {
+                    let mut rng = SmallRng::seed_from_u64(0);
+                    let mut the_thing = SimulatedAnnealing::new(
+                        &mut rng,
+                        ctx.clone(),
+                        self.pause_channel.1.clone(),
+                        self.stop_channel.1.clone(),
+                    );
+                    let (q, temp, route) = the_thing.get_channels();
+                    self.q_rec = Some(q);
+                    self.temp_rec = Some(temp);
+                    self.route_rec = Some(route);
+                    self.search_handle =
+                        Some(std::thread::spawn(move || the_thing.biiiiiig_loop()));
                 }
                 if ui.button("Pause search").clicked() {
-                    // TODO
+                    let _ = self.pause_channel.0.try_send(());
                 }
             });
             ui.label("Searching overview");
-            if let Some(temp_rec) = &self.temp_rec {
-                if let Ok(cur_temp) = temp_rec.try_recv() {
-                    self.cur_temp = cur_temp;
-                }
+            if let Some(temp_rec) = &self.temp_rec
+                && let Ok(cur_temp) = temp_rec.try_recv()
+            {
+                self.cur_temp = cur_temp;
             }
-            if let Some(q_rec) = &self.q_rec {
-                if let Ok(cur_q) = q_rec.try_recv() {
-                    self.cur_q = cur_q;
-                }
+            if let Some(q_rec) = &self.q_rec
+                && let Ok(cur_q) = q_rec.try_recv()
+            {
+                self.cur_q = cur_q;
             }
 
             egui::Grid::new("sim_anneal_overview")
@@ -196,10 +194,10 @@ impl eframe::App for GuiApp {
                 }
             }
 
-            if let Some(route_rec) = &self.route_rec {
-                if let Ok(cur_route) = route_rec.try_recv() {
-                    self.cur_route = Some(cur_route);
-                }
+            if let Some(route_rec) = &self.route_rec
+                && let Ok(cur_route) = route_rec.try_recv()
+            {
+                self.cur_route = Some(cur_route);
             }
 
             let mut routes = vec![];
