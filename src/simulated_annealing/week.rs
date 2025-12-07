@@ -14,11 +14,11 @@ pub struct Week {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub enum DayEnum {
-    Monday      = 0b10000,
-    Tuesday     = 0b01000,
-    Wednesday   = 0b00100,
-    Thursday    = 0b00010,
-    Friday      = 0b00001
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday
 }
 // This makes it easier to get a random day
 impl Distribution<DayEnum> for StandardUniform {
