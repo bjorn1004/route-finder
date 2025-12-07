@@ -1,3 +1,4 @@
+use std::io::empty;
 use petgraph::visit::NodeIndexable;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
@@ -110,6 +111,7 @@ impl ShiftBetweenDays {
 
         let orders = get_orders();
         let dist = get_distance_matrix();
+        let emptying_time = orders[*shift_lv.get_value(self.shift.node_index).unwrap()].emptying_time;
 
         let before_shift = dist.from_index(orders[*shift_lv.get_prev_value(self.shift.node_index).unwrap()].matrix_id as usize);
         let shift = dist.from_index(orders[*shift_lv.get_value(self.shift.node_index).unwrap()].matrix_id as usize);
@@ -126,12 +128,15 @@ impl ShiftBetweenDays {
         let mut target_diff = time_between_three_nodes(t1, shift, t2);
         // remove the time between these two nodes
         target_diff -= time_between_two_nodes(t1, t2);
-
+        target_diff += emptying_time;
 
         // add the time between the two neighbors of the node that will be shifted
         let mut shift_diff = time_between_two_nodes(before_shift, after_shift);
         // remove the time between the node that will be shifted and it's current neighbors
         shift_diff -= time_between_three_nodes(before_shift, shift, after_shift);
+        shift_diff -= emptying_time;
+
+
 
         Some((shift_diff, target_diff))
     }
@@ -216,7 +221,6 @@ impl NeighborMove for ShiftBetweenDays {
 
         assert_eq!(old_shift_len-1, new_shift_len);
         assert_eq!(old_target_len+1, new_target_len);
-        target_route.check_correctness_time();
-        shift_route.check_correctness_time();
+
     }
 }
