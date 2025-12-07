@@ -1,3 +1,4 @@
+use petgraph::matrix_graph::NodeIndex;
 use petgraph::visit::NodeIndexable;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
@@ -68,9 +69,13 @@ impl AddNewOrder {
 
         let dist = get_distance_matrix();
 
-        let before = dist.from_index(orders[before_order_i].matrix_id as usize);
-        let after = dist.from_index(orders[after_order_i].matrix_id as usize);
-        let middle = dist.from_index(orders[self.order].matrix_id as usize);
+        let before: NodeIndex<u16> = orders[before_order_i].matrix_id.into();
+        let after: NodeIndex<u16> = orders[after_order_i].matrix_id.into();
+        let middle: NodeIndex<u16> = orders[self.order].matrix_id.into();
+
+        // let before = dist.from_index(orders[before_order_i].matrix_id as usize);
+        // let after = dist.from_index(orders[after_order_i].matrix_id as usize);
+        // let middle = dist.from_index(orders[self.order].matrix_id as usize);
 
         let old_time = time_between_two_nodes(before, after);
 
