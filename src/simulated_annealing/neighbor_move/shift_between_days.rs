@@ -153,6 +153,7 @@ impl ShiftBetweenDays {
         shift_route.linked_vector.remove(self.shift.node_index);
         shift_route.linked_vector.compact();
 
+        shift_route.check_correctness_time();
         let target_route = truck.get_mut(self.target.day).get_mut(self.target.time_of_day);
 
         target_route.capacity += order.trash();
@@ -160,6 +161,7 @@ impl ShiftBetweenDays {
 
         target_route.linked_vector.insert_after(self.target.node_index, shift_value);
 
+        target_route.check_correctness_time();
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);
     }
@@ -207,6 +209,7 @@ impl NeighborMove for ShiftBetweenDays {
 
         shift_route.linked_vector.remove(self.shift.node_index);
         shift_route.linked_vector.compact();
+        shift_route.check_correctness_time();
         let new_shift_len = shift_route.linked_vector.len();
 
         let old_target_len = target_route.linked_vector.len();
@@ -214,6 +217,8 @@ impl NeighborMove for ShiftBetweenDays {
         target_route.time += target_diff;
 
         target_route.linked_vector.insert_after(self.target.node_index, shift_value);
+        target_route.check_correctness_time();
+
         let new_target_len = target_route.linked_vector.len();
 
         order_flags.remove_order(self.shift.order, self.shift.day);
