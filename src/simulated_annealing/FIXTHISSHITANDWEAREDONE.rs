@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
-use crate::simulated_annealing::route::Route;
+use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::week::DayEnum::Monday;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
@@ -48,10 +48,12 @@ fn delete_bad_day(day: &mut Day, bad_list: &Vec<usize>){
 
 }
 fn delete_bad_route(route: &mut Route, bad_list: &Vec<usize>){
-    let lv = &route.linked_vector;
-    for (node_i, order_i) in lv.iter(){
-        if bad_list.contains(order_i){
-            route.linked_vector.remove(node_i);
+    let lv = &mut route.linked_vector;
+    for node in lv.list.iter(){
+        if bad_list.contains(&node.value){
+            lv.remove(node.index);
         }
+
     }
+
 }
