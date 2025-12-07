@@ -1,9 +1,5 @@
 use petgraph::matrix_graph::NodeIndex;
-use petgraph::visit::NodeIndexable;
-use crate::datastructures::linked_vectors::{LinkedVector};
 use crate::get_distance_matrix;
-use crate::resource::DistanceMatrix;
-use crate::simulated_annealing::route::Route;
 
 pub fn time_between_three_nodes(i1: NodeIndex, i2: NodeIndex, i3: NodeIndex) -> f32{
     let dist = get_distance_matrix();

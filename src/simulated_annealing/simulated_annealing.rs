@@ -3,7 +3,7 @@ use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Cost, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
 use flume::{Receiver, Sender, bounded};
 use rand::prelude::{SliceRandom, SmallRng};
@@ -181,9 +181,9 @@ impl SimulatedAnnealing {
         }
     }
 
-    fn accept(&self, cost: Evaluation) -> bool {
+    fn accept(&self, cost: Cost) -> bool {
         if self.unfilled_orders.len() == 0{
-            if cost.cost < 0f32{
+            if cost < 0f32{
                 return true;
             }
             return false;
