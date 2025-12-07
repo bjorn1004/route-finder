@@ -10,6 +10,7 @@ debug-assertions = false
 [dependencies]
 eframe = "0.33.2"
 egui = { version = "0.33.2", features = ["mint"] }
+flume = "0.11.1"
 petgraph = { version = "0.8.3", features = ["rayon"] }
 rand = { version = "0.9.2", features = ["nightly", "simd_support"] }
 rayon = "1.11.0"

@@ -2,6 +2,8 @@ use rand::{Rng, distr::{Distribution, StandardUniform}};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use super::day::{Day, TimeOfDay};
+
+#[derive(Clone)]
 pub struct Week {
     monday: Day,
     tuesday: Day,

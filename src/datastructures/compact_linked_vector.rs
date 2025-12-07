@@ -150,10 +150,20 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
     fn get_next(&self, index: NodeIndex) -> Option<NodeIndex> {
         self.list[index].next
     }
+    fn get_prev(&self, index: NodeIndex) -> Option<NodeIndex> {
+        self.list[index].prev
+    }
 
     fn get_next_value(&self, index: NodeIndex) -> Option<&T> {
         if let Some(next_index) = self.list[index].next{
             self.get_value(next_index)
+        } else {
+            None
+        }
+    }
+    fn get_prev_value(&self, index: NodeIndex) -> Option<&T> {
+        if let Some(prev_index) = self.list[index].prev{
+            self.get_value(prev_index)
         } else {
             None
         }
@@ -177,8 +187,6 @@ impl<T> CompactLinkedVector<T> {
         let new_index = self.get_valid_empty_index();
         let new_node: Node<T>;
         if self.list.is_empty() {
-            #[cfg(debug_assertions)]
-            assert!(node_index.is_none());
             new_node = Node {
                 value,
                 index: new_index,
@@ -299,6 +307,10 @@ impl<T> CompactLinkedVector<T> {
             && node.index != self.tail.unwrap()
             && node.next.is_none()
             && node.prev.is_none()
+    }
+
+    pub fn len(&self) -> usize {
+        self.list.len()
     }
 }
 

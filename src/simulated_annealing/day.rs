@@ -4,6 +4,8 @@ use std::fmt::Display;
 use super::route::Route;
 use rand::Rng;
 use rand::distr::{Distribution, StandardUniform};
+
+#[derive(Clone)]
 pub struct Day {
     morning: Route,
     afternoon: Route,
