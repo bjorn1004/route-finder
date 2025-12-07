@@ -67,10 +67,18 @@ impl ShiftInRoute{
 }
 impl NeighborMove for ShiftInRoute{
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<Evaluation> {
-        todo!()
+        Some(Evaluation{
+            cost: 0.0,
+        })
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
-        todo!()
+        let truck = if self.is_truck1 {truck1} else {truck2};
+        let route = truck.get_mut(self.day).get_mut(self.time_of_day);
+        let lv = &mut route.linked_vector;
+
+        let shifting_value = lv.get_value(self.shifting_node).unwrap().clone();
+        lv.remove(self.shifting_node);
+        lv.insert_after(self.target_neighbor1, shifting_value);
     }
 }

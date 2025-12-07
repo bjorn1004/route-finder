@@ -187,8 +187,6 @@ impl<T> CompactLinkedVector<T> {
         let new_index = self.get_valid_empty_index();
         let new_node: Node<T>;
         if self.list.is_empty() {
-            #[cfg(debug_assertions)]
-            assert!(node_index.is_none());
             new_node = Node {
                 value,
                 index: new_index,
@@ -309,6 +307,10 @@ impl<T> CompactLinkedVector<T> {
             && node.index != self.tail.unwrap()
             && node.next.is_none()
             && node.prev.is_none()
+    }
+
+    pub fn len(&self) -> usize {
+        self.list.len()
     }
 }
 

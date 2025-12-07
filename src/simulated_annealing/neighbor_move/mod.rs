@@ -1,4 +1,4 @@
 // I DO NOT KNOW WHAT THIS THING SHOULD BE NAMED YET
 pub mod neighbor_move_trait;
 pub mod add_new_order;
-mod shift_in_route;
+pub mod shift_in_route;

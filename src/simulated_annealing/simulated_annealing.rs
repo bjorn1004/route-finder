@@ -1,4 +1,5 @@
 use super::neighbor_move::add_new_order::AddNewOrder;
+use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
@@ -89,7 +90,7 @@ impl SimulatedAnnealing {
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
         // not really sure if this is correct
         loop {
-            let a = rng.random_range(1..2);
+            let a = rng.random_range(1..3);
             // something to decide which thing to choose
             let transactionthingy: Box<dyn NeighborMove> = match a {
                 1 => {
@@ -103,6 +104,17 @@ impl SimulatedAnnealing {
                         ))
                     } else {
                         return; // queue is empty, try something else
+                    }
+                }
+                2 => {
+                    if self.unfilled_orders.len() < 1000 {
+                        Box::new(ShiftInRoute::new(
+                            &self.truck1,
+                            &self.truck2,
+                            &mut rng,
+                        ))
+                    } else {
+                        return;
                     }
                 }
                 // remove function, try to remove all days from a single order.
