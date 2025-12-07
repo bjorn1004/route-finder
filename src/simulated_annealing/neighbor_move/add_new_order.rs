@@ -100,7 +100,7 @@ impl NeighborMove for AddNewOrder {
 
         let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
         if a.get_time() + time > 12f32*60f32*60f32{
-            return None;
+            // return None;
         }
 
         Some(cost + time)
