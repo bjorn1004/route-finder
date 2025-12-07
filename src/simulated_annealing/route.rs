@@ -21,7 +21,7 @@ impl Route{
         Route{
             linked_vector: route,
             capacity: 0,
-            time: 0f32,
+            time: 30f32*60f32,
         }
     }
 
