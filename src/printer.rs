@@ -55,6 +55,10 @@ fn print_route(buffer: &mut File, route: &Route, truck_id:&str, day_id:&str, sta
     let orders = get_orders();
     let mut last_i=0;
     let lv = &route.linked_vector;
+    if lv.len() < 3 {
+        return Ok(last_i)
+    }
+
     let iter = lv.iter().enumerate();
     for (i, (_, order_index)) in iter.skip(1) {
         write!(buffer,"{}; {}; {}; {}\n", truck_id, day_id, start_index+i,orders[*order_index].order)?;
