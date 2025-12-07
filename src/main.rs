@@ -19,6 +19,7 @@ mod gui;
 mod parser;
 mod resource;
 pub mod simulated_annealing;
+mod printer;
 
 pub static ORDERS: OnceLock<Vec<Company>> = const { OnceLock::new() };
 
