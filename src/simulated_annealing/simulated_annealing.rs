@@ -3,6 +3,7 @@ use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
 use super::week::{DayEnum, Week};
 use crate::get_orders;
+use crate::printer::print_solution;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
 use flume::{Receiver, Sender, bounded};
@@ -33,7 +34,7 @@ pub struct SimulatedAnnealing {
     egui_ctx: egui::Context,
     pause_rec: Receiver<()>,
     stop_rec: Receiver<()>,
-    q_channel: (Sender<u16>, Receiver<u16>),
+    q_channel: (Sender<u32>, Receiver<u32>),
     temp_channel: (Sender<f32>, Receiver<f32>),
     route_channel: (
         Sender<(Arc<Week>, Arc<Week>)>,
@@ -58,6 +59,10 @@ impl Distribution<TruckEnum> for StandardUniform {
 impl SimulatedAnnealing {
     pub fn new<R: Rng + ?Sized>(
         rng: &mut R,
+        temp: f32,
+        end_temp: f32,
+        q: u32,
+        a: f32,
         egui_ctx: egui::Context,
         pause_rec: Receiver<()>,
         stop_rec: Receiver<()>,
@@ -65,11 +70,11 @@ impl SimulatedAnnealing {
         // intializationthings
         let orders = get_orders();
         SimulatedAnnealing {
-            temp: 10000f32, // initialized as starting temperature, decreases to end_temp
-            end_temp: 0.1,
-            q: 10_000,
+            temp,// initialized as starting temperature, decreases to end_temp
+            end_temp,
+            q,
             iterations_done: 0,
-            a: 0.95, // keep around 0.95 or 0.99. It's better to change Q or temp
+            a, // keep around 0.95 or 0.99. It's better to change Q or temp
             truck1: Week::new(),
             truck2: Week::new(),
             order_flags: OrderFlags::new(orders.len()),
@@ -87,7 +92,7 @@ impl SimulatedAnnealing {
     pub fn get_channels(
         &self,
     ) -> (
-        Receiver<u16>,
+        Receiver<u32>,
         Receiver<f32>,
         Receiver<(Arc<Week>, Arc<Week>)>,
     ) {
@@ -122,8 +127,13 @@ impl SimulatedAnnealing {
             self.do_step(&mut rng);
 
             self.iterations_done += 1;
+            self.q_channel
+                .0
+                .try_send(self.iterations_done % self.q)
+                .ok();
             if self.iterations_done % self.q == 0 {
                 self.temp *= self.a;
+                self.temp_channel.0.try_send(self.temp).ok();
             }
             if self.temp <= self.end_temp {
                 break;
@@ -154,12 +164,11 @@ impl SimulatedAnnealing {
                             &self.order_flags,
                             random_order,
                         );
-                        if new_order.is_none(){
+                        if new_order.is_none() {
                             self.unfilled_orders.push_back(random_order);
                             continue;
                         }
                         Box::new(new_order.unwrap())
-
                     } else {
                         continue; // queue is empty, try something else
                     }
@@ -167,7 +176,7 @@ impl SimulatedAnnealing {
                 2 => {
                     if self.unfilled_orders.len() < 1000 {
                         let shift = ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng);
-                        if shift.is_none(){
+                        if shift.is_none() {
                             continue;
                         }
                         Box::new(shift.unwrap())
@@ -221,12 +230,12 @@ impl SimulatedAnnealing {
         if cost_change <= 0f32 {
             return true;
         }
-        let prob = E.powf(-cost_change/self.temp);
+        let prob = E.powf(-cost_change / self.temp);
         let rand_float: f32 = rng.random();
         if rand_float < prob {
-            return true
+            return true;
         }
-        return false
+        return false;
     }
 
     fn fill_unfilled_orders_list<R: Rng + ?Sized>(rng: &mut R) -> VecDeque<OrderIndex> {
