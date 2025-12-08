@@ -13,6 +13,7 @@ use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::sync::Arc;
+use std::time::Instant;
 use rand::distr::{Distribution, StandardUniform};
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
@@ -106,9 +107,9 @@ impl SimulatedAnnealing {
 
     pub fn biiiiiig_loop(&mut self) {
         let mut rng = SmallRng::from_os_rng();
+        let now = Instant::now();
         // let mut rng = SmallRng::seed_from_u64(0);
         // this ic currently an infinite loop.
-        // We will need some predicate to exit this loop
         loop {
             if self.stop_rec.try_recv().is_ok() {
                 break;
@@ -147,9 +148,11 @@ impl SimulatedAnnealing {
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
+        println!("seconds:      {}", now.elapsed().as_secs());
+        println!("iterations:   {}", self.iterations_done);
+        println!("iter/sec:     {}", self.iterations_done as u64/now.elapsed().as_secs());
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
-        println!("{}", self.iterations_done);
-        print_solution(&self.truck1, &self.truck2).expect("TODO: panic message");
+        print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
