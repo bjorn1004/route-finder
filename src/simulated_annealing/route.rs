@@ -2,13 +2,14 @@ use petgraph::visit::NodeIndexable;
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::{get_distance_matrix, get_orders};
+use crate::resource::Time;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::time_between_two_nodes;
 
 #[derive(Debug, Clone)]
 pub struct Route{
     pub linked_vector: CompactLinkedVector<OrderIndex>,
     pub capacity: u64,
-    pub time: f32,
+    pub time: Time,
 }
 pub type OrderIndex = usize;
 

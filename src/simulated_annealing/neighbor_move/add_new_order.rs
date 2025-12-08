@@ -1,7 +1,7 @@
 use petgraph::matrix_graph::NodeIndex;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
-use crate::{get_distance_matrix, get_orders};
+use crate::{get_orders};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
@@ -95,7 +95,7 @@ impl NeighborMove for AddNewOrder {
         let time = self.calculate_time_difference(truck1, truck2);
 
         let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
-        if a.get_time() + time > 12f32*60f32*60f32{
+        if a.get_total_time() + time > 12f32*60f32*60f32{
             // return None;
         }
 

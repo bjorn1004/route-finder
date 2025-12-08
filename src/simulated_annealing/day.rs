@@ -63,7 +63,7 @@ impl Day {
         }
     }
 
-    pub fn get_time(&self) -> f32 {
+    pub fn get_total_time(&self) -> f32 {
         self.morning.time + self.afternoon.time
     }
 }

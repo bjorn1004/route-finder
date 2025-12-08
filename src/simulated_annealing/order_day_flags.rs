@@ -175,6 +175,4 @@ impl OrderFlags {
     pub fn get_filled_count(&self, order_index: OrderIndex) -> u32 {
         self.orders[order_index].count_ones()
     }
-
-
 }
