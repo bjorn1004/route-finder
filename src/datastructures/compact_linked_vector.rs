@@ -63,6 +63,9 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
             None
         }
     }
+    fn get_value_unsafe(&self, index: LVNodeIndex) -> &T {
+        &self.list[index].value
+    }
 
     fn get_mut_value(&mut self, index: LVNodeIndex) -> Option<&mut T> {
         if index < self.list.len() {

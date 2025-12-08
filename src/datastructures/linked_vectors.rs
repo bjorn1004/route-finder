@@ -4,6 +4,7 @@ use rand::{Rng};
 pub trait LinkedVector<T>{
     fn get_random<R>(&self, rng: &mut R) -> Option<(LVNodeIndex, &T)> where R:Rng + ?Sized;
     fn get_value(&self, index: LVNodeIndex) -> Option<&T>;
+    fn get_value_unsafe(&self, index: LVNodeIndex) -> &T;
     fn get_mut_value(&mut self, index: LVNodeIndex) -> Option<&mut T>;
     fn get_head_index(&self) -> Option<LVNodeIndex>;
     fn get_tail_index(&self) -> Option<LVNodeIndex>;
