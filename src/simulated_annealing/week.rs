@@ -1,4 +1,5 @@
 use rand::{Rng, distr::{Distribution, StandardUniform}};
+use crate::resource::Time;
 use super::day::{Day};
 
 #[derive(Clone)]
@@ -62,5 +63,13 @@ impl Week{
             DayEnum::Thursday   => {&self.thursday}
             DayEnum::Friday     => {&self.friday}
         }
+    }
+
+    pub fn get_total_time(&self) -> Time {
+        self.monday.get_total_time()+
+            self.tuesday.get_total_time()+
+            self.wednesday.get_total_time()+
+            self.thursday.get_total_time()+
+            self.friday.get_total_time()
     }
 }
