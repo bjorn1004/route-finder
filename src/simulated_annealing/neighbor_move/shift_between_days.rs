@@ -173,8 +173,8 @@ impl NeighborMove for ShiftBetweenDays {
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.target.day);
-        if target_day.get_time() + target_diff > 12f32 * 60f32 * 60f32{
-            let overtime = (target_day.get_time() + target_diff - 12f32 * 60f32 * 60f32) * 0.03f32;
+        if target_day.get_total_time() + target_diff > 12f32 * 60f32 * 60f32{
+            let overtime = (target_day.get_total_time() + target_diff - 12f32 * 60f32 * 60f32) * 0.03f32;
             return Some(shift_diff + target_diff + overtime)
         }
 
