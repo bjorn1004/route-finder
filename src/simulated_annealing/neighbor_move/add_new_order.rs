@@ -2,6 +2,7 @@ use petgraph::matrix_graph::NodeIndex;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
+use crate::resource::Time;
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
@@ -58,13 +59,13 @@ impl AddNewOrder {
     }
 
 
-    fn calculate_time_difference(&self, truck1: &Week, truck2: &Week) -> f32{
+    fn calculate_time_difference(&self, truck1: &Week, truck2: &Week) -> Time{
         let orders = get_orders();
         let order = &orders[self.order];
         let route = (if self.is_truck_1 { truck1 } else {truck2}).get(self.day).get(self.time_of_day);
 
-        let before_order_i = *route.linked_vector.get_value(self.insert_after_index).unwrap();
-        let after_order_i = *route.linked_vector.get_next_value(self.insert_after_index).unwrap();
+        let before_order_i = *route.linked_vector.get_value_unsafe(self.insert_after_index);
+        let after_order_i = *route.linked_vector.get_next_value_unsafe(self.insert_after_index);
 
         let before: NodeIndex<u16> = orders[before_order_i].matrix_id.into();
         let after: NodeIndex<u16> = orders[after_order_i].matrix_id.into();

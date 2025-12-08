@@ -164,12 +164,18 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
             None
         }
     }
+    fn get_next_value_unsafe(&self, index: LVNodeIndex) -> &T {
+        &self.list[self.list[index].next.unwrap()].value
+    }
     fn get_prev_value(&self, index: LVNodeIndex) -> Option<&T> {
         if let Some(prev_index) = self.list[index].prev{
             self.get_value(prev_index)
         } else {
             None
         }
+    }
+    fn get_prev_value_unsafe(&self, index: LVNodeIndex) -> &T {
+        &self.list[self.list[index].prev.unwrap()].value
     }
 }
 impl<T> CompactLinkedVector<T> {

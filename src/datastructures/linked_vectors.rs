@@ -16,8 +16,10 @@ pub trait LinkedVector<T>{
     fn set_value_at_index(&mut self, index: LVNodeIndex, value: T);
     fn get_next(&self, index: LVNodeIndex) -> Option<LVNodeIndex>;
     fn get_next_value(&self, index: LVNodeIndex) -> Option<&T>;
+    fn get_next_value_unsafe(&self, index: LVNodeIndex) -> &T;
     fn get_prev(&self, index: LVNodeIndex) -> Option<LVNodeIndex>;
     fn get_prev_value(&self, index: LVNodeIndex) -> Option<&T>;
+    fn get_prev_value_unsafe(&self, index: LVNodeIndex) -> &T;
 }
 #[derive(Clone)]
 pub struct Node<T>{

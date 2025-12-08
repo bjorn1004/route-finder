@@ -1,7 +1,7 @@
-use petgraph::visit::NodeIndexable;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
-use crate::{get_distance_matrix, get_orders};
+use crate::{get_orders};
+use crate::resource::Time;
 use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
@@ -78,7 +78,7 @@ impl ShiftBetweenDays {
 
         let route = truck.get(day).get(time_of_day);
 
-        let (node, order_index) = route.linked_vector.get_random(rng).unwrap();
+        let (node, _) = route.linked_vector.get_random(rng).unwrap();
 
 
         if requirement(route, node){
@@ -101,29 +101,29 @@ impl ShiftBetweenDays {
         }
     }
 
-    /// returns a tuple where item1 contains change to shiftRoute, item2 contains change to targetRoute
-    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> Option<(CostChange, CostChange)>{
+    /// returns a tuple where item1 contains change in time to shiftRoute, item2 contains change to targetRoute
+    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> Option<(Time, Time)>{
         let shift_lv = &(if self.shift.truck == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.shift.day)
             .get(self.shift.time_of_day)
             .linked_vector;
 
         let orders = get_orders();
-        let dist = get_distance_matrix();
-        let emptying_time = orders[*shift_lv.get_value(self.shift.node_index).unwrap()].emptying_time;
+        let emptying_time = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].emptying_time;
 
-        let before_shift = dist.from_index(orders[*shift_lv.get_prev_value(self.shift.node_index).unwrap()].matrix_id as usize);
-        let shift = dist.from_index(orders[*shift_lv.get_value(self.shift.node_index).unwrap()].matrix_id as usize);
-        let after_shift = dist.from_index(orders[*shift_lv.get_next_value(self.shift.node_index).unwrap()].matrix_id as usize);
+        let before_shift = orders[*shift_lv.get_prev_value_unsafe(self.shift.node_index)].matrix_id.into();
+
+        let shift = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].matrix_id.into();
+        let after_shift = orders[*shift_lv.get_next_value_unsafe(self.shift.node_index)].matrix_id.into();
 
         let target_lv = &(if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.target.day)
             .get(self.target.time_of_day)
             .linked_vector;
-        let t1 = dist.from_index(orders[*target_lv.get_value(self.target.node_index).unwrap()].matrix_id as usize);
-        let t2 = dist.from_index(orders[*target_lv.get_next_value(self.target.node_index).unwrap()].matrix_id as usize);
+        let t1 = orders[*target_lv.get_value_unsafe(self.target.node_index)].matrix_id.into();
+        let t2 = orders[*target_lv.get_next_value_unsafe(self.target.node_index)].matrix_id.into();
 
-        // add the difference between the shifting_node and the two nodes where it fill be put between
+        // add the difference between the shifting_node and the two nodes where it will be put between
         let mut target_diff = time_between_three_nodes(t1, shift, t2);
         // remove the time between these two nodes
         target_diff -= time_between_two_nodes(t1, t2);
@@ -167,7 +167,7 @@ impl ShiftBetweenDays {
 }
 
 impl NeighborMove for ShiftBetweenDays {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange> {
+    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> Option<CostChange> {
         // this is the time difference
         let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2)?;
 
