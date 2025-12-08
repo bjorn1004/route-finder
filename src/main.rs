@@ -1,6 +1,9 @@
 #![feature(iter_map_windows)]
 
-use std::{error::Error, sync::{Arc, OnceLock}};
+use std::{
+    error::Error,
+    sync::{Arc, OnceLock},
+};
 
 use eframe::UserEvent;
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -14,9 +17,9 @@ use crate::{
 mod datastructures;
 mod gui;
 mod parser;
+mod printer;
 mod resource;
 pub mod simulated_annealing;
-mod printer;
 
 pub static ORDERS: OnceLock<Arc<[Company]>> = const { OnceLock::new() };
 
