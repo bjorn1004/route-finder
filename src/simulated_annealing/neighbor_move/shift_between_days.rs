@@ -147,7 +147,7 @@ impl ShiftBetweenDays {
         let shift_value = *shift_route.linked_vector.get_value(self.shift.node_index).unwrap();
 
         shift_route.capacity -= order.trash();
-        shift_route.time += shift_diff;
+        shift_route.time += shift_diff as Time;
 
         shift_route.linked_vector.remove(self.shift.node_index);
         shift_route.linked_vector.compact();
@@ -156,7 +156,7 @@ impl ShiftBetweenDays {
         let target_route = truck.get_mut(self.target.day).get_mut(self.target.time_of_day);
 
         target_route.capacity += order.trash();
-        target_route.time += target_diff;
+        target_route.time += target_diff as Time;
 
         target_route.linked_vector.insert_after(self.target.node_index, shift_value);
 
@@ -173,8 +173,8 @@ impl NeighborMove for ShiftBetweenDays {
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.target.day);
-        if target_day.get_total_time() + target_diff > 12f32 * 60f32 * 60f32{
-            let overtime = (target_day.get_total_time() + target_diff - 12f32 * 60f32 * 60f32) * 0.03f32;
+        if target_day.get_total_time() + target_diff > 12 as Time * 60 as Time* 60 as Time{
+            let overtime = (target_day.get_total_time() + target_diff - 12 as Time* 60 as Time * 60 as Time) * 0.03 as Time;
             return Some(shift_diff + target_diff + overtime)
         }
 

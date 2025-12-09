@@ -1,3 +1,4 @@
+use crate::resource::Time;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use super::super::week::Week;
 
@@ -9,4 +10,4 @@ pub trait NeighborMove {
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags);
 }
 
-pub type CostChange = f32;
+pub type CostChange = Time;

@@ -2,7 +2,7 @@ use std::error::Error;
 
 use petgraph::matrix_graph::MatrixGraph;
 
-use crate::resource::{Company, Distance, DistanceMatrix, Frequency};
+use crate::resource::{Company, Distance, DistanceMatrix, Frequency, Time};
 
 // Small helper function for getting columns
 fn get_next(
@@ -31,7 +31,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
                 frequency: get_next(&mut columns, "Frequentie")?.parse()?,
                 container_count: get_next(&mut columns, "AantContainers")?.parse()?,
                 container_volume: get_next(&mut columns, "VolumePerContainer")?.parse()?,
-                emptying_time: (get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<f32>()?) * 60.0,
+                emptying_time: (get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<Time>()?) * 60.0,
                 matrix_id: get_next(&mut columns, "MatrixID")?.parse()?,
                 x_coordinate: get_next(&mut columns, "XCoordinaat")?.parse()?,
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,

@@ -86,21 +86,21 @@ impl NeighborMove for AddNewOrder {
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange>{
         let orders = get_orders();
         let order = &orders[self.order];
-        let mut cost: f32 = 0f32;
+        let mut cost: Time = 0 as Time;
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
         if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
-            cost -= 3f32 * order.emptying_time * order.frequency as u32 as f32;
+            cost -= 3 as Time * order.emptying_time * order.frequency as u32 as Time;
         }
 
         let time = self.calculate_time_difference(truck1, truck2);
 
         let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
-        if a.get_total_time() + time > 12f32*60f32*60f32{
+        if a.get_total_time() + time > 12 as Time*60 as Time*60 as Time{
             // return None;
         }
 
-        Some(cost + time)
+        Some((cost + time) as CostChange)
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
