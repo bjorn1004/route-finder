@@ -35,6 +35,10 @@ impl OrderFlags {
         }
     }
 
+    pub fn clear(&mut self, order: OrderIndex) {
+        self.orders[order] &= 0b0_0000;
+    }
+
 
     pub fn get_random_allowed_day<R: Rng + ?Sized>(&self, order_index: OrderIndex, rng: &mut R) -> Option<DayEnum>{
         let order = &get_orders()[order_index];

@@ -2,10 +2,12 @@ use std::collections::HashMap;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
+use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::{Route};
 use crate::simulated_annealing::week::{DayEnum, Week};
 
-pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week){
+pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags){
     let orders = get_orders();
     let mut order_count:HashMap<usize, usize> = HashMap::new();
 
@@ -19,6 +21,10 @@ pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week){
     let bad: Vec<usize> = a.iter().map(|(a, b)| **a).collect();
     let filtered_bad: Vec<&usize> = bad.iter().filter(|i| **i != dropoff_index).collect();
     let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
+
+    for bad in &good_bad{
+        order_flags.clear(*bad);
+    }
 
     delete_bad_week(truck1, &good_bad);
     delete_bad_week(truck2, &good_bad);
@@ -63,8 +69,20 @@ fn delete_bad_route(route: &mut Route, bad_list: &Vec<usize>){
         }
     }
 
+
+    let orders = get_orders();
     for bad_index in bad_indexes {
+        let order = &orders[*lv.get_value_unsafe(bad_index)];
+        let back = orders[*lv.get_prev_value_unsafe(bad_index)].matrix_id;
+        let current = order.matrix_id;
+        let front = orders[*lv.get_next_value_unsafe(bad_index)].matrix_id;
+
+        route.time += time_between_two_nodes(back, front);
+        route.time -= time_between_three_nodes(back, current, front);
+        route.time -= order.emptying_time;
+        route.capacity -= orders[*lv.get_value_unsafe(bad_index)].trash();
         lv.remove(bad_index);
+
     }
     lv.compact();
 }
