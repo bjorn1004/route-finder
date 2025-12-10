@@ -67,7 +67,7 @@ pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error + Send + 
             let node_b: u16 = get_next(&mut colunms, "MatrixID2")?.parse()?;
             let distance = Distance {
                 absolute_distance: get_next(&mut colunms, "Afstand")?.parse()?,
-                travel_time: get_next(&mut colunms, "Rijtijd")?.parse()?,
+                travel_time: (get_next(&mut colunms, "Rijtijd")?.parse()?),
             };
 
             graph.add_edge(node_a.into(), node_b.into(), distance);

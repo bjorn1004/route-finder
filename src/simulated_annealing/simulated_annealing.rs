@@ -25,7 +25,7 @@ pub struct SimulatedAnnealing {
     q: u32,
     iterations_done: u32,
     a: f32,
-    score: f32,
+    score: i32,
 
     truck1: Week,
     truck2: Week,
@@ -166,7 +166,7 @@ impl SimulatedAnnealing {
         let after_recalc = calculate_score(&self.truck1, &self.truck2);
         println!("{}", after_recalc);
         println!();
-        println!("difference in minutes: {}", (before_recalc-after_recalc)/60.0);
+        println!("difference in minutes: {}", (before_recalc-after_recalc)/6000);
         print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
@@ -238,6 +238,14 @@ impl SimulatedAnnealing {
                         .ok();
                     self.egui_ctx.request_repaint();
                 }
+                #[cfg(debug_assertions)]
+                let current_time = self.truck1.get_total_time() + self.truck2.get_total_time();
+                #[cfg(debug_assertions)]
+                self.truck1.recalculate_total_time();
+                #[cfg(debug_assertions)]
+                self.truck2.recalculate_total_time();
+                #[cfg(debug_assertions)]
+                assert_eq!(current_time, self.truck1.get_total_time() + self.truck2.get_total_time());
                 break;
             }
         }
