@@ -16,7 +16,7 @@ pub struct Company {
 }
 pub type MatrixID = u16;
 /// time in centiseconds
-pub type Time = u32;
+pub type Time = i32;
 /// 100 centiseconds
 pub const SECOND:Time = 100;
 /// 60 * 100 centiseconds
