@@ -66,9 +66,9 @@ impl AddNewOrder {
         let before_order_i = *route.linked_vector.get_value_unsafe(self.insert_after_index);
         let after_order_i = *route.linked_vector.get_next_value_unsafe(self.insert_after_index);
 
-        let before = orders[before_order_i].matrix_id.into();
-        let after = orders[after_order_i].matrix_id.into();
-        let middle = orders[self.order].matrix_id.into();
+        let before = orders[before_order_i].matrix_id;
+        let after = orders[after_order_i].matrix_id;
+        let middle = orders[self.order].matrix_id;
 
         let old_time = time_between_two_nodes(before, after);
 

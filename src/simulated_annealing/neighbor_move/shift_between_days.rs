@@ -111,17 +111,17 @@ impl ShiftBetweenDays {
         let orders = get_orders();
         let emptying_time = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].emptying_time;
 
-        let before_shift = orders[*shift_lv.get_prev_value_unsafe(self.shift.node_index)].matrix_id.into();
+        let before_shift = orders[*shift_lv.get_prev_value_unsafe(self.shift.node_index)].matrix_id;
 
-        let shift = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].matrix_id.into();
-        let after_shift = orders[*shift_lv.get_next_value_unsafe(self.shift.node_index)].matrix_id.into();
+        let shift = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].matrix_id;
+        let after_shift = orders[*shift_lv.get_next_value_unsafe(self.shift.node_index)].matrix_id;
 
         let target_lv = &(if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.target.day)
             .get(self.target.time_of_day)
             .linked_vector;
-        let t1 = orders[*target_lv.get_value_unsafe(self.target.node_index)].matrix_id.into();
-        let t2 = orders[*target_lv.get_next_value_unsafe(self.target.node_index)].matrix_id.into();
+        let t1 = orders[*target_lv.get_value_unsafe(self.target.node_index)].matrix_id;
+        let t2 = orders[*target_lv.get_next_value_unsafe(self.target.node_index)].matrix_id;
 
         // add the difference between the shifting_node and the two nodes where it will be put between
         let mut target_diff = time_between_three_nodes(t1, shift, t2);

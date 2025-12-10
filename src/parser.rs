@@ -32,7 +32,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
                 container_count: get_next(&mut columns, "AantContainers")?.parse()?,
                 container_volume: get_next(&mut columns, "VolumePerContainer")?.parse()?,
                 emptying_time: ((get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<f32>()?) * 6000.0) as Time,
-                matrix_id: get_next(&mut columns, "MatrixID")?.parse()?,
+                matrix_id: (get_next(&mut columns, "MatrixID")?.parse::<u16>()?).into(),
                 x_coordinate: get_next(&mut columns, "XCoordinaat")?.parse()?,
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
             })
@@ -47,7 +47,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
             container_count: 0,
             container_volume: 0,
             emptying_time: 0,
-            matrix_id: 287,
+            matrix_id: 287.into(),
             x_coordinate: 56343016,
             y_coordinate: 513026712,
         })

@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use petgraph::matrix_graph::DiMatrix;
+use petgraph::{matrix_graph::DiMatrix, prelude::*};
 
 #[derive(Debug, Clone)]
 pub struct Company {
@@ -14,7 +14,7 @@ pub struct Company {
     pub x_coordinate: u32,
     pub y_coordinate: u32, // maybe turn this into a nalgebra vector if we need it
 }
-pub type MatrixID = u16;
+pub type MatrixID = NodeIndex<u16>;
 /// time in centiseconds
 pub type Time = i32;
 /// 100 centiseconds

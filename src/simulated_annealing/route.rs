@@ -68,8 +68,8 @@ impl Route{
             if lv.get_tail_index() == Some(node_i){
                 break;
             }
-            let matrix_i = orders[*order_i].matrix_id.into();
-            let next_matrix_i = orders[*lv.get_next_value(node_i).unwrap()].matrix_id.into();
+            let matrix_i = orders[*order_i].matrix_id;
+            let next_matrix_i = orders[*lv.get_next_value(node_i).unwrap()].matrix_id;
 
             time_travel += time_between_two_nodes(matrix_i, next_matrix_i);
             time_travel += orders[*order_i].emptying_time;
