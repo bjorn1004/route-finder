@@ -1,5 +1,6 @@
 use rand::{Rng, distr::{Distribution, StandardUniform}};
 use crate::resource::Time;
+use crate::simulated_annealing::route::Route;
 use super::day::{Day};
 
 #[derive(Clone)]
@@ -64,6 +65,14 @@ impl Week{
             DayEnum::Friday     => {&self.friday}
         }
     }
+    
+    pub fn recalculate_total_time(&mut self) {
+        self.monday.recalculate_total_time();
+        self.tuesday.recalculate_total_time();
+        self.wednesday.recalculate_total_time();
+        self.thursday.recalculate_total_time();
+        self.friday.recalculate_total_time();
+    }
 
     pub fn get_total_time(&self) -> Time {
         self.monday.get_total_time()+
@@ -71,5 +80,19 @@ impl Week{
             self.wednesday.get_total_time()+
             self.thursday.get_total_time()+
             self.friday.get_total_time()
+    }
+    pub fn iter(&self) -> impl Iterator<Item = &Route> {
+        [
+            &self.monday.morning,
+            &self.monday.afternoon,
+            &self.tuesday.morning,
+            &self.tuesday.afternoon,
+            &self.wednesday.morning,
+            &self.wednesday.afternoon,
+            &self.thursday.morning,
+            &self.thursday.afternoon,
+            &self.friday.morning,
+            &self.friday.afternoon,
+        ].into_iter()
     }
 }

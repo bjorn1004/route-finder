@@ -140,7 +140,7 @@ impl ShiftBetweenDays {
         Some((shift_diff, target_diff))
     }
 
-    fn apply_same_truck_case(&self, truck: &mut Week, order_flags: &mut OrderFlags, shift_diff: CostChange, target_diff: CostChange){
+    fn apply_same_truck_case(&self, truck: &mut Week, order_flags: &mut OrderFlags, shift_diff: Time, target_diff: Time){
         let order = &get_orders()[self.shift.order];
         let shift_route= truck.get_mut(self.shift.day).get_mut(self.shift.time_of_day);
 
@@ -173,8 +173,8 @@ impl NeighborMove for ShiftBetweenDays {
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.target.day);
-        if target_day.get_total_time() + target_diff > 12f32 * 60f32 * 60f32{
-            let overtime = (target_day.get_total_time() + target_diff - 12f32 * 60f32 * 60f32) * 0.03f32;
+        if target_day.get_total_time() + target_diff > 12.0 * 60.0 * 60.0{
+            let overtime = (target_day.get_total_time() + target_diff - 12.0 * 60.0 * 60.0) * 0.03;
             return Some(shift_diff + target_diff + overtime)
         }
 
@@ -202,29 +202,19 @@ impl NeighborMove for ShiftBetweenDays {
 
         let shift_value = *shift_route.linked_vector.get_value(self.shift.node_index).unwrap();
 
-        let old_shift_len = shift_route.linked_vector.len();
         shift_route.capacity -= order.trash();
         shift_route.time += shift_diff;
 
         shift_route.linked_vector.remove(self.shift.node_index);
         shift_route.linked_vector.compact();
         shift_route.check_correctness_time();
-        let new_shift_len = shift_route.linked_vector.len();
-
-        let old_target_len = target_route.linked_vector.len();
         target_route.capacity += order.trash();
         target_route.time += target_diff;
 
         target_route.linked_vector.insert_after(self.target.node_index, shift_value);
         target_route.check_correctness_time();
 
-        let new_target_len = target_route.linked_vector.len();
-
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);
-
-        assert_eq!(old_shift_len-1, new_shift_len);
-        assert_eq!(old_target_len+1, new_target_len);
-
     }
 }

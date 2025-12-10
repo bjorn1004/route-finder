@@ -4,11 +4,12 @@ use std::fmt::Display;
 use super::route::Route;
 use rand::Rng;
 use rand::distr::{Distribution, StandardUniform};
+use crate::resource::Time;
 
 #[derive(Clone)]
 pub struct Day {
-    morning: Route,
-    afternoon: Route,
+    pub morning: Route,
+    pub afternoon: Route,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
@@ -63,7 +64,13 @@ impl Day {
         }
     }
 
-    pub fn get_total_time(&self) -> f32 {
-        self.morning.time + self.afternoon.time
+    pub fn get_total_time(&self) -> Time {
+        // I cannot figure out how to do this without the return statement or extra brackets
+        return  if self.morning.linked_vector.len()   == 2 {0 as Time} else {self.morning.time} +
+                if self.afternoon.linked_vector.len() == 2 {0 as Time} else {self.afternoon.time};
+    }
+    pub fn recalculate_total_time(&mut self) {
+        self.morning.recalculate_total_time();
+        self.afternoon.recalculate_total_time();
     }
 }

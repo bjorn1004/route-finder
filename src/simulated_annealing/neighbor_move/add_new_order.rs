@@ -67,15 +67,13 @@ impl AddNewOrder {
         let before_order_i = *route.linked_vector.get_value_unsafe(self.insert_after_index);
         let after_order_i = *route.linked_vector.get_next_value_unsafe(self.insert_after_index);
 
-        let before: NodeIndex<u16> = orders[before_order_i].matrix_id.into();
-        let after: NodeIndex<u16> = orders[after_order_i].matrix_id.into();
-        let middle: NodeIndex<u16> = orders[self.order].matrix_id.into();
+        let before = orders[before_order_i].matrix_id.into();
+        let after = orders[after_order_i].matrix_id.into();
+        let middle = orders[self.order].matrix_id.into();
 
         let old_time = time_between_two_nodes(before, after);
 
         let new_time = time_between_three_nodes(before, middle, after);
-
-        // als totale reistijd > toegestane reistijd
 
         new_time - old_time + order.emptying_time
     }
@@ -86,17 +84,17 @@ impl NeighborMove for AddNewOrder {
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange>{
         let orders = get_orders();
         let order = &orders[self.order];
-        let mut cost: f32 = 0f32;
+        let mut cost: CostChange = 0.0;
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
         if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
-            cost -= 3f32 * order.emptying_time * order.frequency as u32 as f32;
+            cost -= 3.0 * order.emptying_time * order.frequency as u32 as Time;
         }
 
         let time = self.calculate_time_difference(truck1, truck2);
 
         let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
-        if a.get_total_time() + time > 12f32*60f32*60f32{
+        if a.get_total_time() + time > 12.0 * 60.0 * 60.0 {
             // return None;
         }
 

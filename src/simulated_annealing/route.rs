@@ -23,7 +23,7 @@ impl Route{
         Route{
             linked_vector: route,
             capacity: 0,
-            time: 30f32*60f32,
+            time: 30.0*60.0,
         }
     }
 
@@ -36,30 +36,58 @@ impl Route{
                    0u64, "The currently stored trash volume is incorrect")
 
     }
+
+    pub fn recalculate_total_time(&mut self) {
+        self.time = self.calculate_time();
+    }
     pub fn check_correctness_time(&self) -> bool{
         return true;
-        let dist = get_distance_matrix();
-        let orders = get_orders();
-        let mut time_travel = 0f32;
-        let lv = &self.linked_vector;
-        for (node_i, order_i) in lv.iter().skip(1){
-            let prev_order_i = lv.get_prev_value(node_i).unwrap();
-
-            let node_mi = dist.from_index(orders[*order_i].matrix_id as usize);
-            let prev_node_mi = dist.from_index(orders[*prev_order_i].matrix_id as usize);
-
-            time_travel += time_between_two_nodes(prev_node_mi, node_mi);
-            time_travel += orders[*order_i].emptying_time;
-
-        }
-
-        time_travel += 30f32 * 60f32; // add the 30 minutes of trash dumping
-        let difference = self.time - time_travel;
-        if difference > 1f32{
-            println!("{}", self.linked_vector.len());
+        let calculated_time = self.calculate_time();
+        let difference = self.time - calculated_time;
+        if difference > 1.0 {
+            if self.linked_vector.len() == 2 && calculated_time == 30.0*60.0{
+                return true
+            }
+            println!("found inconsistency");
+            println!("route length: {}", self.linked_vector.len());
+            println!("stored time: {}", self.time);
+            println!("actual time: {}", calculated_time);
             return false
         }
         true
+    }
+
+
+    /// This function calculates how much time the route takes.
+    /// It always adds the 30 minutes dropoff time at the end of the route, even if it doesn't have to.
+    /// This is to stay consistent with how we store the Time value in the route.
+    fn calculate_time(&self) -> Time {
+        let orders = get_orders();
+        let mut time_travel = 0.0;
+        let lv = &self.linked_vector;
+        for (node_i, order_i) in lv.iter() {
+            if lv.get_tail_index() == Some(node_i){
+                break;
+            }
+            let matrix_i = orders[*order_i].matrix_id.into();
+            let next_matrix_i = orders[*lv.get_next_value(node_i).unwrap()].matrix_id.into();
+
+            time_travel += time_between_two_nodes(matrix_i, next_matrix_i);
+            time_travel += orders[*order_i].emptying_time;
+
+            // let prev_order_i = lv.get_prev_value(node_i).unwrap();
+            //
+            // let node_mi = orders[*order_i].matrix_id.into();
+            // let prev_node_mi = orders[*prev_order_i].matrix_id.into();
+            //
+            // time_travel += time_between_two_nodes(prev_node_mi, node_mi);
+            // time_travel += orders[*order_i].emptying_time;
+        }
+
+        time_travel += 60.0 * 30.0;
+        // We don't have to manually add 30 minutes for this calculation,
+        // because it is already included in the emptying time of the dropoff
+        time_travel
     }
 
 

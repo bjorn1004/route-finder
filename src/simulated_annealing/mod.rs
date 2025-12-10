@@ -6,3 +6,4 @@ pub mod week;
 mod order_day_flags;
 mod FIXTHISSHITANDWEAREDONE;
 mod neighbor_chooser;
+mod score_calculator;
