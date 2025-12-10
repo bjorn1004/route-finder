@@ -76,12 +76,12 @@ impl ShiftInRoute{
 
         let orders = get_orders();
 
-        let before_shift = orders[*lv.get_prev_value(self.shifting_node).unwrap()].matrix_id.into();
-        let after_shift = orders[*lv.get_next_value(self.shifting_node).unwrap()].matrix_id.into();
+        let before_shift = orders[*lv.get_prev_value(self.shifting_node).unwrap()].matrix_id;
+        let after_shift = orders[*lv.get_next_value(self.shifting_node).unwrap()].matrix_id;
 
-        let t1 = orders[*lv.get_value_unsafe(self.target_neighbor1)].matrix_id.into();
-        let shift = orders[*lv.get_value_unsafe(self.shifting_node)].matrix_id.into();
-        let t2 = orders[*lv.get_value_unsafe(self.target_neighbor2)].matrix_id.into();
+        let t1 = orders[*lv.get_value_unsafe(self.target_neighbor1)].matrix_id;
+        let shift = orders[*lv.get_value_unsafe(self.shifting_node)].matrix_id;
+        let t2 = orders[*lv.get_value_unsafe(self.target_neighbor2)].matrix_id;
 
         // add the difference between the shifting_node and the two nodes where it fill be put between
         let mut time_difference = time_between_three_nodes(t1, shift, t2);

@@ -70,7 +70,7 @@ pub fn show_center_panel(ctx: &egui::Context, ui: &mut Ui, app: &mut GuiApp) {
     painter.extend(route_lines);
     let shapes = get_orders().iter().map(|o| {
         let screen_pos = app.camera * Pos2::new(o.x_coordinate as f32, o.y_coordinate as f32);
-        let (colour, radius) = match o.matrix_id {
+        let (colour, radius) = match o.matrix_id.index() {
             287 => (Color32::GREEN, 3.5), // Maarheeze, the dump site
             _ => (Color32::BLUE, 2.0),
         };
