@@ -71,10 +71,10 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
                                 if route.capacity > 100_000 {
                                     ui.colored_label(
                                         Color32::RED,
-                                        format!("{}L, (OVERFLOW)", route.capacity.to_string()),
+                                        format!("{}L, (OVERFLOW)", route.capacity),
                                     );
                                 } else {
-                                    ui.label(format!("{}L", route.capacity.to_string()));
+                                    ui.label(format!("{}L", route.capacity));
                                 };
                                 ui.end_row();
                                 ui.label("Time (h:m:s):");
@@ -184,16 +184,10 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
                                         if summary_route.capacity > 200_000 {
                                             ui.colored_label(
                                                 Color32::RED,
-                                                format!(
-                                                    "{}L, (OVERFLOW)",
-                                                    summary_route.capacity.to_string()
-                                                ),
+                                                format!("{}L, (OVERFLOW)", summary_route.capacity),
                                             );
                                         } else {
-                                            ui.label(format!(
-                                                "{}L",
-                                                summary_route.capacity.to_string()
-                                            ));
+                                            ui.label(format!("{}L", summary_route.capacity));
                                         };
                                         ui.end_row();
                                         ui.label("Time (h:m:s):");

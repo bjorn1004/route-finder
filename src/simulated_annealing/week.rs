@@ -1,7 +1,10 @@
-use rand::{Rng, distr::{Distribution, StandardUniform}};
+use super::day::Day;
 use crate::resource::Time;
 use crate::simulated_annealing::route::Route;
-use super::day::{Day};
+use rand::{
+    Rng,
+    distr::{Distribution, StandardUniform},
+};
 
 #[derive(Clone)]
 pub struct Week {
@@ -18,7 +21,7 @@ pub enum DayEnum {
     Tuesday,
     Wednesday,
     Thursday,
-    Friday
+    Friday,
 }
 // This makes it easier to get a random day
 impl Distribution<DayEnum> for StandardUniform {
@@ -28,13 +31,13 @@ impl Distribution<DayEnum> for StandardUniform {
             1 => DayEnum::Tuesday,
             2 => DayEnum::Wednesday,
             3 => DayEnum::Thursday,
-            _ => DayEnum::Friday
+            _ => DayEnum::Friday,
         }
     }
 }
-impl Week{
-    pub fn new() -> Self{
-        Week{
+impl Week {
+    pub fn new() -> Self {
+        Week {
             monday: Day::new(),
             tuesday: Day::new(),
             wednesday: Day::new(),
@@ -42,30 +45,33 @@ impl Week{
             friday: Day::new(),
         }
     }
-    pub fn get_random<R>(&self, rng: &mut R) -> (&Day, DayEnum) where R: Rng + ?Sized, {
-        let random_day:DayEnum = rng.random();
+    pub fn get_random<R>(&self, rng: &mut R) -> (&Day, DayEnum)
+    where
+        R: Rng + ?Sized,
+    {
+        let random_day: DayEnum = rng.random();
         (self.get(random_day), random_day)
     }
 
     pub fn get_mut(&mut self, day: DayEnum) -> &mut Day {
         match day {
-            DayEnum::Monday     => {&mut self.monday}
-            DayEnum::Tuesday    => {&mut self.tuesday}
-            DayEnum::Wednesday  => {&mut self.wednesday}
-            DayEnum::Thursday   => {&mut self.thursday}
-            DayEnum::Friday     => {&mut self.friday}
+            DayEnum::Monday => &mut self.monday,
+            DayEnum::Tuesday => &mut self.tuesday,
+            DayEnum::Wednesday => &mut self.wednesday,
+            DayEnum::Thursday => &mut self.thursday,
+            DayEnum::Friday => &mut self.friday,
         }
     }
     pub fn get(&self, day: DayEnum) -> &Day {
         match day {
-            DayEnum::Monday     => {&self.monday}
-            DayEnum::Tuesday    => {&self.tuesday}
-            DayEnum::Wednesday  => {&self.wednesday}
-            DayEnum::Thursday   => {&self.thursday}
-            DayEnum::Friday     => {&self.friday}
+            DayEnum::Monday => &self.monday,
+            DayEnum::Tuesday => &self.tuesday,
+            DayEnum::Wednesday => &self.wednesday,
+            DayEnum::Thursday => &self.thursday,
+            DayEnum::Friday => &self.friday,
         }
     }
-    
+
     pub fn recalculate_total_time(&mut self) {
         self.monday.recalculate_total_time();
         self.tuesday.recalculate_total_time();
@@ -75,11 +81,11 @@ impl Week{
     }
 
     pub fn get_total_time(&self) -> Time {
-        self.monday.get_total_time()+
-            self.tuesday.get_total_time()+
-            self.wednesday.get_total_time()+
-            self.thursday.get_total_time()+
-            self.friday.get_total_time()
+        self.monday.get_total_time()
+            + self.tuesday.get_total_time()
+            + self.wednesday.get_total_time()
+            + self.thursday.get_total_time()
+            + self.friday.get_total_time()
     }
     pub fn iter(&self) -> impl Iterator<Item = &Route> {
         [
@@ -93,6 +99,13 @@ impl Week{
             &self.thursday.afternoon,
             &self.friday.morning,
             &self.friday.afternoon,
-        ].into_iter()
+        ]
+        .into_iter()
+    }
+}
+
+impl Default for Week {
+    fn default() -> Self {
+        Self::new()
     }
 }

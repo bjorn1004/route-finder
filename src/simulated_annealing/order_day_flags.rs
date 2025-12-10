@@ -1,48 +1,55 @@
-use rand::Rng;
+use super::week::DayEnum;
 use crate::get_orders;
 use crate::resource::{Company, Frequency};
 use crate::simulated_annealing::route::OrderIndex;
-use super::week::DayEnum;
+use rand::Rng;
 pub struct OrderFlags {
     orders: Vec<u8>,
 }
 
-
 /// Maybe use the left 3 bits to store the frequency of each order
 impl OrderFlags {
-    pub fn new(size: usize) -> Self{
+    pub fn new(size: usize) -> Self {
         OrderFlags {
-            orders: vec![0; size]
+            orders: vec![0; size],
         }
     }
 
-    pub fn add_order(&mut self, order: OrderIndex, day: DayEnum){
+    pub fn add_order(&mut self, order: OrderIndex, day: DayEnum) {
         match day {
-            DayEnum::Monday     => {self.orders[order] |= 0b00010000}
-            DayEnum::Tuesday    => {self.orders[order] |= 0b00001000}
-            DayEnum::Wednesday  => {self.orders[order] |= 0b00000100}
-            DayEnum::Thursday   => {self.orders[order] |= 0b00000010}
-            DayEnum::Friday     => {self.orders[order] |= 0b00000001}
+            DayEnum::Monday => self.orders[order] |= 0b00010000,
+            DayEnum::Tuesday => self.orders[order] |= 0b00001000,
+            DayEnum::Wednesday => self.orders[order] |= 0b00000100,
+            DayEnum::Thursday => self.orders[order] |= 0b00000010,
+            DayEnum::Friday => self.orders[order] |= 0b00000001,
         }
     }
-    pub fn remove_order(&mut self, order: OrderIndex, day: DayEnum){
+    pub fn remove_order(&mut self, order: OrderIndex, day: DayEnum) {
         match day {
-            DayEnum::Monday     => {self.orders[order] &= 0b00001111}
-            DayEnum::Tuesday    => {self.orders[order] &= 0b00010111}
-            DayEnum::Wednesday  => {self.orders[order] &= 0b00011011}
-            DayEnum::Thursday   => {self.orders[order] &= 0b00011101}
-            DayEnum::Friday     => {self.orders[order] &= 0b00011110}
+            DayEnum::Monday => self.orders[order] &= 0b00001111,
+            DayEnum::Tuesday => self.orders[order] &= 0b00010111,
+            DayEnum::Wednesday => self.orders[order] &= 0b00011011,
+            DayEnum::Thursday => self.orders[order] &= 0b00011101,
+            DayEnum::Friday => self.orders[order] &= 0b00011110,
         }
     }
 
-
-    pub fn get_random_allowed_day<R: Rng + ?Sized>(&self, order_index: OrderIndex, rng: &mut R) -> Option<DayEnum>{
+    pub fn get_random_allowed_day<R: Rng + ?Sized>(
+        &self,
+        order_index: OrderIndex,
+        rng: &mut R,
+    ) -> Option<DayEnum> {
         let order = &get_orders()[order_index];
         let flags = self.orders[order_index] & 0b1_1111;
         self._get_random_allowed_day(flags, order, rng)
     }
 
-    pub fn get_random_day_to_shift_to<R: Rng + ?Sized>(&self, order_index: OrderIndex, shift_from: DayEnum, rng: &mut R) -> Option<DayEnum>{
+    pub fn get_random_day_to_shift_to<R: Rng + ?Sized>(
+        &self,
+        order_index: OrderIndex,
+        shift_from: DayEnum,
+        rng: &mut R,
+    ) -> Option<DayEnum> {
         let order = &get_orders()[order_index];
         let flags = (self.orders[order_index] & 0b1_1111) ^ Self::day_to_flags(shift_from);
 
@@ -51,51 +58,49 @@ impl OrderFlags {
         self._get_random_allowed_day(flags, order, rng)
     }
 
-    fn _get_random_allowed_day<R: Rng+?Sized>(&self, flags:u8, order: &Company, rng: &mut R) -> Option<DayEnum> {
-        match order.frequency{
-            Frequency::None => panic!("Tried to add something with frequency 0 to a route. \
-            Frequency 0 is preserved for the dropoff locations"),
+    fn _get_random_allowed_day<R: Rng + ?Sized>(
+        &self,
+        flags: u8,
+        order: &Company,
+        rng: &mut R,
+    ) -> Option<DayEnum> {
+        match order.frequency {
+            Frequency::None => panic!(
+                "Tried to add something with frequency 0 to a route. \
+            Frequency 0 is preserved for the dropoff locations"
+            ),
             Frequency::Once => {
-                if flags == 0{
+                if flags == 0 {
                     Some(rng.random())
                 } else {
                     None
                 }
             }
-            Frequency::Twice => {
-                match flags {
-                    0b10000 => Some(DayEnum::Thursday),
-                    0b01000 => Some(DayEnum::Friday),
-                    0b00010 => Some(DayEnum::Monday),
-                    0b00001 => Some(DayEnum::Tuesday),
-                    0b00100 => panic!("An order with frequency 2 has been put on Wednesday"),
-                    0b00000 => {
-                        match rng.random_range(0..4){
-                            0 => Some(DayEnum::Monday),
-                            1 => Some(DayEnum::Tuesday),
-                            2 => Some(DayEnum::Thursday),
-                            3 => Some(DayEnum::Friday),
-                            _ => None
-                        }
-                    }
-                    _ => unreachable!()
-                }
-            }
+            Frequency::Twice => match flags {
+                0b10000 => Some(DayEnum::Thursday),
+                0b01000 => Some(DayEnum::Friday),
+                0b00010 => Some(DayEnum::Monday),
+                0b00001 => Some(DayEnum::Tuesday),
+                0b00100 => panic!("An order with frequency 2 has been put on Wednesday"),
+                0b00000 => match rng.random_range(0..4) {
+                    0 => Some(DayEnum::Monday),
+                    1 => Some(DayEnum::Tuesday),
+                    2 => Some(DayEnum::Thursday),
+                    3 => Some(DayEnum::Friday),
+                    _ => None,
+                },
+                _ => unreachable!(),
+            },
             Frequency::Thrice => {
                 let mask = 0b10000 | 0b00100 | 0b00001;
-                let available:u8 = mask & !flags;
-                if available == 0{
-                    return None
+                let available: u8 = mask & !flags;
+                if available == 0 {
+                    return None;
                 }
-
 
                 // find how many are available
                 let mut count = 0;
-                for bit in &[
-                    0b10000,
-                    0b00100,
-                    0b00001
-                ] {
+                for bit in &[0b10000, 0b00100, 0b00001] {
                     if available & bit != 0 {
                         count += 1;
                     }
@@ -129,13 +134,7 @@ impl OrderFlags {
 
                 // count available days
                 let mut count = 0;
-                for bit in &[
-                    0b10000,
-                    0b01000,
-                    0b00100,
-                    0b00010,
-                    0b00001,
-                ] {
+                for bit in &[0b10000, 0b01000, 0b00100, 0b00010, 0b00001] {
                     if available & bit != 0 {
                         count += 1;
                     }
@@ -160,16 +159,16 @@ impl OrderFlags {
                 }
 
                 unreachable!()
-            },
+            }
         }
     }
-    fn day_to_flags(day: DayEnum) -> u8{
+    fn day_to_flags(day: DayEnum) -> u8 {
         match day {
-            DayEnum::Monday => {0b1_0000}
-            DayEnum::Tuesday => {0b0_1000}
-            DayEnum::Wednesday => {0b0_0100}
-            DayEnum::Thursday => {0b0_0010}
-            DayEnum::Friday => {0b0_0001}
+            DayEnum::Monday => 0b1_0000,
+            DayEnum::Tuesday => 0b0_1000,
+            DayEnum::Wednesday => 0b0_0100,
+            DayEnum::Thursday => 0b0_0010,
+            DayEnum::Friday => 0b0_0001,
         }
     }
     pub fn get_filled_count(&self, order_index: OrderIndex) -> u32 {

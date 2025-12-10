@@ -19,6 +19,18 @@ use std::f32::consts::E;
 use std::sync::Arc;
 use std::time::Instant;
 
+type RouteState = (Arc<Week>, Arc<Week>);
+
+pub struct SimulatedAnnealingConfig {
+    pub temp: f32,
+    pub end_temp: f32,
+    pub q: u32,
+    pub a: f32,
+    pub egui_ctx: egui::Context,
+    pub pause_rec: Receiver<()>,
+    pub stop_rec: Receiver<()>,
+}
+
 pub struct SimulatedAnnealing {
     temp: f32,
     end_temp: f32,
@@ -41,10 +53,7 @@ pub struct SimulatedAnnealing {
     score_channel: (Sender<i32>, Receiver<i32>),
     q_channel: (Sender<u32>, Receiver<u32>),
     temp_channel: (Sender<f32>, Receiver<f32>),
-    route_channel: (
-        Sender<(Arc<Week>, Arc<Week>)>,
-        Receiver<(Arc<Week>, Arc<Week>)>,
-    ),
+    route_channel: (Sender<RouteState>, Receiver<RouteState>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
@@ -62,33 +71,24 @@ impl Distribution<TruckEnum> for StandardUniform {
 }
 
 impl SimulatedAnnealing {
-    pub fn new<R: Rng + ?Sized>(
-        rng: &mut R,
-        temp: f32,
-        end_temp: f32,
-        q: u32,
-        a: f32,
-        egui_ctx: egui::Context,
-        pause_rec: Receiver<()>,
-        stop_rec: Receiver<()>,
-    ) -> Self {
+    pub fn new<R: Rng + ?Sized>(rng: &mut R, config: SimulatedAnnealingConfig) -> Self {
         // intializationthings
         let orders = get_orders();
         SimulatedAnnealing {
-            temp, // initialized as starting temperature, decreases to end_temp
-            end_temp,
-            q,
+            temp: config.temp, // initialized as starting temperature, decreases to end_temp
+            end_temp: config.end_temp,
+            q: config.q,
             iterations_done: 0,
-            a, // keep around 0.95 or 0.99. It's better to change Q or temp
+            a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
             score: calcualte_starting_score(),
             truck1: Week::new(),
             truck2: Week::new(),
             order_flags: OrderFlags::new(orders.len()),
             unfilled_orders: Self::fill_unfilled_orders_list(rng),
             paused: false,
-            egui_ctx,
-            pause_rec,
-            stop_rec,
+            egui_ctx: config.egui_ctx,
+            pause_rec: config.pause_rec,
+            stop_rec: config.stop_rec,
             score_channel: bounded(1),
             q_channel: bounded(1),
             temp_channel: bounded(1),
@@ -96,13 +96,21 @@ impl SimulatedAnnealing {
         }
     }
 
+    /// Set the trucks to be used in the simulated annealing process
+    pub fn with_trucks(&mut self, truck1: Week, truck2: Week) {
+        self.truck1 = truck1;
+        self.truck2 = truck2;
+        self.score = calculate_score(&self.truck1, &self.truck2);
+    }
+
+    /// Get the channels for communicating with the GUI
     pub fn get_channels(
         &self,
     ) -> (
         Receiver<i32>,
         Receiver<u32>,
         Receiver<f32>,
-        Receiver<(Arc<Week>, Arc<Week>)>,
+        Receiver<RouteState>,
     ) {
         (
             self.score_channel.1.clone(),
@@ -144,7 +152,7 @@ impl SimulatedAnnealing {
                 .try_send(self.iterations_done % self.q)
                 .ok();
             self.score_channel.0.try_send(self.score).ok();
-            if self.iterations_done % self.q == 0 {
+            if self.iterations_done.is_multiple_of(self.q) {
                 self.temp *= self.a;
                 self.temp_channel.0.try_send(self.temp).ok();
             }

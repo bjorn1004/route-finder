@@ -1,10 +1,9 @@
-
 use std::fmt::Display;
 
 use super::route::Route;
+use crate::resource::Time;
 use rand::Rng;
 use rand::distr::{Distribution, StandardUniform};
-use crate::resource::Time;
 
 #[derive(Clone)]
 pub struct Day {
@@ -13,16 +12,16 @@ pub struct Day {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
-pub enum TimeOfDay{
+pub enum TimeOfDay {
     Morning,
-    Afternoon
+    Afternoon,
 }
 
 impl Display for TimeOfDay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let show = match self {
-           Self::Morning => "Morning",
-           Self::Afternoon => "Afternoon"
+            Self::Morning => "Morning",
+            Self::Afternoon => "Afternoon",
         };
         write!(f, "{show}")
     }
@@ -47,30 +46,43 @@ impl Day {
     pub fn get_random<R: Rng + ?Sized>(&self, rng: &mut R) -> (&Route, TimeOfDay) {
         match rng.random() {
             TimeOfDay::Morning => (&self.morning, TimeOfDay::Morning),
-            TimeOfDay::Afternoon => (&self.afternoon, TimeOfDay::Afternoon)
+            TimeOfDay::Afternoon => (&self.afternoon, TimeOfDay::Afternoon),
         }
     }
-    pub fn get_mut(&mut self, time_of_day: TimeOfDay) -> &mut Route{
+    pub fn get_mut(&mut self, time_of_day: TimeOfDay) -> &mut Route {
         match time_of_day {
-            TimeOfDay::Morning => {&mut self.morning}
-            TimeOfDay::Afternoon => {&mut self.afternoon}
+            TimeOfDay::Morning => &mut self.morning,
+            TimeOfDay::Afternoon => &mut self.afternoon,
         }
     }
 
-    pub fn get(&self, time_of_day: TimeOfDay) -> &Route{
+    pub fn get(&self, time_of_day: TimeOfDay) -> &Route {
         match time_of_day {
-            TimeOfDay::Morning => {&self.morning}
-            TimeOfDay::Afternoon => {&self.afternoon}
+            TimeOfDay::Morning => &self.morning,
+            TimeOfDay::Afternoon => &self.afternoon,
         }
     }
 
     pub fn get_total_time(&self) -> Time {
         // I cannot figure out how to do this without the return statement or extra brackets
-        return  if self.morning.linked_vector.len()   == 2 {0 as Time} else {self.morning.time} +
-                if self.afternoon.linked_vector.len() == 2 {0 as Time} else {self.afternoon.time};
+        (if self.morning.linked_vector.len() == 2 {
+            0 as Time
+        } else {
+            self.morning.time
+        } + if self.afternoon.linked_vector.len() == 2 {
+            0 as Time
+        } else {
+            self.afternoon.time
+        })
     }
     pub fn recalculate_total_time(&mut self) {
         self.morning.recalculate_total_time();
         self.afternoon.recalculate_total_time();
+    }
+}
+
+impl Default for Day {
+    fn default() -> Self {
+        Self::new()
     }
 }

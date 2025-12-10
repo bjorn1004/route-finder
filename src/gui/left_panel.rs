@@ -1,5 +1,7 @@
 use super::GuiApp;
-use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
+use crate::simulated_annealing::simulated_annealing::{
+    SimulatedAnnealing, SimulatedAnnealingConfig,
+};
 use egui::Ui;
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
@@ -26,13 +28,15 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
             let mut rng = SmallRng::seed_from_u64(0);
             let mut the_thing = SimulatedAnnealing::new(
                 &mut rng,
-                app.temp,
-                app.end_temp,
-                app.q,
-                app.alpha,
-                ctx.clone(),
-                app.pause_channel.1.clone(),
-                app.stop_channel.1.clone(),
+                SimulatedAnnealingConfig {
+                    temp: app.temp,
+                    end_temp: app.end_temp,
+                    q: app.q,
+                    a: app.alpha,
+                    egui_ctx: ctx.clone(),
+                    pause_rec: app.pause_channel.1.clone(),
+                    stop_rec: app.stop_channel.1.clone(),
+                },
             );
             let (score, q, temp, route) = the_thing.get_channels();
             app.score_rec = Some(score);
