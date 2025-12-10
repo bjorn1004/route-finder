@@ -1,3 +1,4 @@
+use std::cmp::min;
 use super::neighbor_move::add_new_order::AddNewOrder;
 use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
@@ -165,7 +166,7 @@ impl SimulatedAnnealing {
         println!("iterations:   {}", self.iterations_done);
         println!(
             "iter/sec:     {}",
-            self.iterations_done as u64 / now.elapsed().as_secs()
+            self.iterations_done as u64 / min(now.elapsed().as_secs(), 1)
         );
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
         let before_recalc = calculate_score(&self.truck1, &self.truck2);
