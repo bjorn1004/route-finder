@@ -1,12 +1,12 @@
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::{Time, FULL_DAY};
+use crate::resource::{Time, FULL_DAY, HALF_HOUR};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove, ScoreChange};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
@@ -101,7 +101,7 @@ impl NeighborMove for AddNewOrder {
         Some(cost + time)
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
+    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
         order_flags.add_order(self.order, self.day);
 
         let time_difference = self.calculate_time_difference(truck1, truck2);
@@ -112,5 +112,20 @@ impl NeighborMove for AddNewOrder {
         route.capacity += get_orders()[self.order].trash();
         route.time += time_difference;
         route.check_correctness_time();
+
+        let order = &get_orders()[self.order];
+        // stel dit is de laatste van een order, 3x ledigingsduur weghalen
+        let penalty = if order_flags.get_filled_count(self.order) == order.frequency as u32{
+            -3 * order.emptying_time * order.frequency as Time
+        } else {
+            0
+        };
+
+        let new_route_added = if route.linked_vector.len() == 3{
+            HALF_HOUR
+        } else {
+            0
+        };
+        time_difference + penalty + new_route_added
     }
 }

@@ -1,7 +1,7 @@
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::{Time, FULL_DAY};
+use crate::resource::{Time, FULL_DAY, HALF_HOUR};
 use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
@@ -140,7 +140,7 @@ impl ShiftBetweenDays {
         Some((shift_diff, target_diff))
     }
 
-    fn apply_same_truck_case(&self, truck: &mut Week, order_flags: &mut OrderFlags, shift_diff: Time, target_diff: Time){
+    fn apply_same_truck_case(&self, truck: &mut Week, order_flags: &mut OrderFlags, shift_diff: Time, target_diff: Time) -> Time {
         let order = &get_orders()[self.shift.order];
         let shift_route= truck.get_mut(self.shift.day).get_mut(self.shift.time_of_day);
 
@@ -153,6 +153,13 @@ impl ShiftBetweenDays {
         shift_route.linked_vector.compact();
 
         shift_route.check_correctness_time();
+
+        let shift_route_empty:Time = if shift_route.linked_vector.len() == 2 {
+            -HALF_HOUR
+        } else {
+            0
+        };
+
         let target_route = truck.get_mut(self.target.day).get_mut(self.target.time_of_day);
 
         target_route.capacity += order.trash();
@@ -163,6 +170,14 @@ impl ShiftBetweenDays {
         target_route.check_correctness_time();
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);
+
+        let target_diff_new_route:Time = if target_route.linked_vector.len() == 3 {
+            HALF_HOUR
+        } else {
+            0
+        };
+
+        shift_diff + target_diff + shift_route_empty + target_diff_new_route
     }
 }
 
@@ -181,7 +196,7 @@ impl NeighborMove for ShiftBetweenDays {
         Some(shift_diff+target_diff)
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
+    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> Time {
 
 
         let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2).unwrap();
@@ -192,8 +207,7 @@ impl NeighborMove for ShiftBetweenDays {
                                                        truck1.get_mut(self.target.day).get_mut(self.target.time_of_day)),
             (t1, t2) if t1 == t2 => {
                 let truck = if t1 == TruckEnum::Truck1 {truck1} else {truck2};
-                self.apply_same_truck_case(truck, order_flags, shift_diff, target_diff);
-                return
+                return self.apply_same_truck_case(truck, order_flags, shift_diff, target_diff)
             }
             _ => unreachable!(),
         };
@@ -216,5 +230,18 @@ impl NeighborMove for ShiftBetweenDays {
 
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);
+
+        let shift_route_empty:Time = if shift_route.linked_vector.len() == 2 {
+            -HALF_HOUR
+        } else {
+            0
+        };
+        let target_diff_new_route:Time = if target_route.linked_vector.len() == 3 {
+            HALF_HOUR
+        } else {
+            0
+        };
+
+        shift_diff + target_diff + shift_route_empty + target_diff_new_route
     }
 }

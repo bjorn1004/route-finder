@@ -153,6 +153,7 @@ impl SimulatedAnnealing {
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
+        println!("stored score: {}", self.score);
         println!("seconds:      {}", now.elapsed().as_secs());
         println!("iterations:   {}", self.iterations_done);
         println!("iter/sec:     {}", self.iterations_done as u64/now.elapsed().as_secs());
@@ -164,7 +165,7 @@ impl SimulatedAnnealing {
         self.truck2.recalculate_total_time();
         println!("recalculated the shit");
         let after_recalc = calculate_score(&self.truck1, &self.truck2);
-        println!("{}", after_recalc);
+        println!("score: {}", after_recalc);
         println!();
         println!("difference in minutes: {}", (before_recalc-after_recalc)/6000);
         print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
@@ -227,8 +228,8 @@ impl SimulatedAnnealing {
             // if we want to go through with this thing
             if self.accept(cost, rng) {
                 // change the route
-                transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
 
+                self.score += transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
                 // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
                 // Future: It should only send a new route when it's faster, not just accepted
                 if !self.route_channel.0.is_full() {

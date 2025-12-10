@@ -106,7 +106,7 @@ impl NeighborMove for ShiftInRoute{
         Some(self.time_difference(truck1, truck2)?)
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, _: &mut OrderFlags) {
+    fn apply(&self, truck1: &mut Week, truck2: &mut Week, _: &mut OrderFlags) -> Time {
         // calculate the change in time after this operation
         let time_difference = self.time_difference(truck1, truck2).unwrap();
 
@@ -123,5 +123,6 @@ impl NeighborMove for ShiftInRoute{
         // don't need to compact, because the lv has the same length as before the operations.
 
         route.check_correctness_time();
+        time_difference
     }
 }

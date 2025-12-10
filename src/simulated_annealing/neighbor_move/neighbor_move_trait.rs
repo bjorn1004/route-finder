@@ -7,7 +7,8 @@ pub trait NeighborMove {
     // (not sure how to implement this yet)
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange>;
     // this would perform the thing on the schedules.
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags);
+    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange;
 }
 
 pub type CostChange = Time;
+pub type ScoreChange = Time;
