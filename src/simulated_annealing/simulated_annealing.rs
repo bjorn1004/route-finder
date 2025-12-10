@@ -157,12 +157,16 @@ impl SimulatedAnnealing {
         println!("iterations:   {}", self.iterations_done);
         println!("iter/sec:     {}", self.iterations_done as u64/now.elapsed().as_secs());
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
-        println!("{}",calculate_score(&self.truck1, &self.truck2));
+        let before_recalc = calculate_score(&self.truck1, &self.truck2);
+        println!("{}", before_recalc);
 
         self.truck1.recalculate_total_time();
         self.truck2.recalculate_total_time();
         println!("recalculated the shit");
-        println!("{}",calculate_score(&self.truck1, &self.truck2));
+        let after_recalc = calculate_score(&self.truck1, &self.truck2);
+        println!("{}", after_recalc);
+        println!();
+        println!("difference in minutes: {}", (before_recalc-after_recalc)/60.0);
         print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
@@ -240,7 +244,7 @@ impl SimulatedAnnealing {
     }
 
     fn accept<R: Rng + ?Sized>(&self, cost_change: CostChange, rng: &mut R) -> bool {
-        if cost_change <= 0f64 {
+        if cost_change <= 0.0 {
             return true;
         }
         let prob = E.powf(-cost_change as f32/ self.temp);

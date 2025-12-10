@@ -68,6 +68,10 @@ impl Week{
     
     pub fn recalculate_total_time(&mut self) {
         self.monday.recalculate_total_time();
+        self.tuesday.recalculate_total_time();
+        self.wednesday.recalculate_total_time();
+        self.thursday.recalculate_total_time();
+        self.friday.recalculate_total_time();
     }
 
     pub fn get_total_time(&self) -> Time {

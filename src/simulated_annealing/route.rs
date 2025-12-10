@@ -23,7 +23,7 @@ impl Route{
         Route{
             linked_vector: route,
             capacity: 0,
-            time: 30 as Time*60 as Time,
+            time: 30.0*60.0,
         }
     }
 
@@ -39,7 +39,6 @@ impl Route{
 
     pub fn recalculate_total_time(&mut self) {
         self.time = self.calculate_time();
-
     }
     pub fn check_correctness_time(&self) -> bool{
         return true;
@@ -63,20 +62,31 @@ impl Route{
     /// It always adds the 30 minutes dropoff time at the end of the route, even if it doesn't have to.
     /// This is to stay consistent with how we store the Time value in the route.
     fn calculate_time(&self) -> Time {
-        let dist = get_distance_matrix();
         let orders = get_orders();
-        let mut time_travel = 0 as Time;
+        let mut time_travel = 0.0;
         let lv = &self.linked_vector;
-        for (node_i, order_i) in lv.iter().skip(1) {
-            let prev_order_i = lv.get_prev_value(node_i).unwrap();
+        for (node_i, order_i) in lv.iter() {
+            if lv.get_tail_index() == Some(node_i){
+                break;
+            }
+            let matrix_i = orders[*order_i].matrix_id.into();
+            let next_matrix_i = orders[*lv.get_next_value(node_i).unwrap()].matrix_id.into();
 
-            let node_mi = orders[*order_i].matrix_id.into();
-            let prev_node_mi = orders[*prev_order_i].matrix_id.into();
-
-            time_travel += time_between_two_nodes(prev_node_mi, node_mi);
+            time_travel += time_between_two_nodes(matrix_i, next_matrix_i);
             time_travel += orders[*order_i].emptying_time;
+
+            // let prev_order_i = lv.get_prev_value(node_i).unwrap();
+            //
+            // let node_mi = orders[*order_i].matrix_id.into();
+            // let prev_node_mi = orders[*prev_order_i].matrix_id.into();
+            //
+            // time_travel += time_between_two_nodes(prev_node_mi, node_mi);
+            // time_travel += orders[*order_i].emptying_time;
         }
-        time_travel += 30 as Time * 60 as Time; // add the 30 minutes of trash dumping
+
+        time_travel += 60.0 * 30.0;
+        // We don't have to manually add 30 minutes for this calculation,
+        // because it is already included in the emptying time of the dropoff
         time_travel
     }
 
