@@ -31,7 +31,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
                 frequency: get_next(&mut columns, "Frequentie")?.parse()?,
                 container_count: get_next(&mut columns, "AantContainers")?.parse()?,
                 container_volume: get_next(&mut columns, "VolumePerContainer")?.parse()?,
-                emptying_time: (get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<Time>()?) * MINUTE ,
+                emptying_time: ((get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<f32>()?) * MINUTE as f32) as Time,
                 matrix_id: (get_next(&mut columns, "MatrixID")?.parse::<u16>()?).into(),
                 x_coordinate: get_next(&mut columns, "XCoordinaat")?.parse()?,
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
