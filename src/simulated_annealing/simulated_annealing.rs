@@ -1,23 +1,23 @@
 use super::neighbor_move::add_new_order::AddNewOrder;
 use super::neighbor_move::shift_in_route::ShiftInRoute;
 use super::order_day_flags::OrderFlags;
-use super::week::{Week};
+use super::week::Week;
 use crate::get_orders;
 use crate::printer::print_solution;
 use crate::resource::Company;
+use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
+use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 use crate::simulated_annealing::route::OrderIndex;
+use crate::simulated_annealing::score_calculator::{calcualte_starting_score, calculate_score};
 use flume::{Receiver, Sender, bounded};
-use rand::prelude::{SmallRng};
+use rand::distr::{Distribution, StandardUniform};
+use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::sync::Arc;
 use std::time::Instant;
-use rand::distr::{Distribution, StandardUniform};
-use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
-use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
-use crate::simulated_annealing::score_calculator::{calcualte_starting_score, calculate_score};
 
 pub struct SimulatedAnnealing {
     temp: f32,
@@ -38,6 +38,7 @@ pub struct SimulatedAnnealing {
     egui_ctx: egui::Context,
     pause_rec: Receiver<()>,
     stop_rec: Receiver<()>,
+    score_channel: (Sender<i32>, Receiver<i32>),
     q_channel: (Sender<u32>, Receiver<u32>),
     temp_channel: (Sender<f32>, Receiver<f32>),
     route_channel: (
@@ -74,7 +75,7 @@ impl SimulatedAnnealing {
         // intializationthings
         let orders = get_orders();
         SimulatedAnnealing {
-            temp,// initialized as starting temperature, decreases to end_temp
+            temp, // initialized as starting temperature, decreases to end_temp
             end_temp,
             q,
             iterations_done: 0,
@@ -88,6 +89,7 @@ impl SimulatedAnnealing {
             egui_ctx,
             pause_rec,
             stop_rec,
+            score_channel: bounded(1),
             q_channel: bounded(1),
             temp_channel: bounded(1),
             route_channel: bounded(1),
@@ -97,11 +99,13 @@ impl SimulatedAnnealing {
     pub fn get_channels(
         &self,
     ) -> (
+        Receiver<i32>,
         Receiver<u32>,
         Receiver<f32>,
         Receiver<(Arc<Week>, Arc<Week>)>,
     ) {
         (
+            self.score_channel.1.clone(),
             self.q_channel.1.clone(),
             self.temp_channel.1.clone(),
             self.route_channel.1.clone(),
@@ -115,6 +119,7 @@ impl SimulatedAnnealing {
         // this ic currently an infinite loop.
 
         calculate_score(&self.truck1, &self.truck2);
+
         loop {
             if self.stop_rec.try_recv().is_ok() {
                 break;
@@ -138,6 +143,7 @@ impl SimulatedAnnealing {
                 .0
                 .try_send(self.iterations_done % self.q)
                 .ok();
+            self.score_channel.0.try_send(self.score).ok();
             if self.iterations_done % self.q == 0 {
                 self.temp *= self.a;
                 self.temp_channel.0.try_send(self.temp).ok();
@@ -156,7 +162,10 @@ impl SimulatedAnnealing {
         println!("stored score: {}", self.score);
         println!("seconds:      {}", now.elapsed().as_secs());
         println!("iterations:   {}", self.iterations_done);
-        println!("iter/sec:     {}", self.iterations_done as u64/now.elapsed().as_secs());
+        println!(
+            "iter/sec:     {}",
+            self.iterations_done as u64 / now.elapsed().as_secs()
+        );
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
         let before_recalc = calculate_score(&self.truck1, &self.truck2);
         println!("{}", before_recalc);
@@ -167,7 +176,10 @@ impl SimulatedAnnealing {
         let after_recalc = calculate_score(&self.truck1, &self.truck2);
         println!("score: {}", after_recalc);
         println!();
-        println!("difference in minutes: {}", (before_recalc-after_recalc)/6000);
+        println!(
+            "difference in minutes: {}",
+            (before_recalc - after_recalc) / 6000
+        );
         print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
@@ -203,8 +215,13 @@ impl SimulatedAnnealing {
                     Box::new(shift.unwrap())
                 }
                 3 => {
-                    let shift = ShiftBetweenDays::new(&self.truck1, &self.truck2, &mut rng, &self.order_flags);
-                    if shift.is_none(){
+                    let shift = ShiftBetweenDays::new(
+                        &self.truck1,
+                        &self.truck2,
+                        &mut rng,
+                        &self.order_flags,
+                    );
+                    if shift.is_none() {
                         continue;
                     }
                     Box::new(shift.unwrap())
@@ -229,7 +246,11 @@ impl SimulatedAnnealing {
             if self.accept(cost, rng) {
                 // change the route
 
-                self.score += transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
+                self.score += transactionthingy.apply(
+                    &mut self.truck1,
+                    &mut self.truck2,
+                    &mut self.order_flags,
+                );
                 // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
                 // Future: It should only send a new route when it's faster, not just accepted
                 if !self.route_channel.0.is_full() {
@@ -248,7 +269,7 @@ impl SimulatedAnnealing {
         if cost_change <= 0 {
             return true;
         }
-        let prob = E.powf(-(cost_change as f32)/ self.temp);
+        let prob = E.powf(-(cost_change as f32) / self.temp);
         let rand_float: f32 = rng.random();
         if rand_float < prob {
             return true;

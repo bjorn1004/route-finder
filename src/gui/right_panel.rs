@@ -78,7 +78,7 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
                                 };
                                 ui.end_row();
                                 ui.label("Time (h:m:s):");
-                                let total_seconds = route.time as u32;
+                                let total_seconds = route.time as u32 / 100;
                                 let hours = total_seconds / 3600;
                                 let minutes = (total_seconds % 3600) / 60;
                                 let seconds = total_seconds % 60;
@@ -197,7 +197,7 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
                                         };
                                         ui.end_row();
                                         ui.label("Time (h:m:s):");
-                                        let total_seconds = summary_route.time as u32;
+                                        let total_seconds = summary_route.time as u32 / 100;
                                         let hours = total_seconds / 3600;
                                         let minutes = (total_seconds % 3600) / 60;
                                         let seconds = total_seconds % 60;
@@ -208,7 +208,7 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
                                         ui.end_row();
                                         ui.label("Finish time:");
                                         let finish_time = {
-                                            let total_minutes = summary_route.time as u32 / 60;
+                                            let total_minutes = summary_route.time as u32 / 6000;
                                             let hours = 6 + (total_minutes / 60);
                                             let minutes = total_minutes % 60;
                                             Time::from_hms(

@@ -34,7 +34,8 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
                 app.pause_channel.1.clone(),
                 app.stop_channel.1.clone(),
             );
-            let (q, temp, route) = the_thing.get_channels();
+            let (score, q, temp, route) = the_thing.get_channels();
+            app.score_rec = Some(score);
             app.q_rec = Some(q);
             app.temp_rec = Some(temp);
             app.route_rec = Some(route);
@@ -45,6 +46,11 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
         }
     });
     ui.label("Searching overview");
+    if let Some(score_rec) = &app.score_rec
+        && let Ok(cur_score) = score_rec.try_recv()
+    {
+        app.cur_score = cur_score as f32 / 6000.0;
+    }
     if let Some(temp_rec) = &app.temp_rec
         && let Ok(cur_temp) = temp_rec.try_recv()
     {
@@ -60,7 +66,7 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
         .num_columns(2)
         .show(ui, |ui| {
             ui.label("Current score:");
-            ui.label("todo");
+            ui.label(app.cur_score.to_string());
             ui.end_row();
             ui.label("Temperature:");
             ui.label(app.cur_temp.to_string());
