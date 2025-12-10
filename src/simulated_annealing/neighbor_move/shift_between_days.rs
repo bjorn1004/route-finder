@@ -1,7 +1,7 @@
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::Time;
+use crate::resource::{Time, FULL_DAY};
 use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
@@ -173,8 +173,8 @@ impl NeighborMove for ShiftBetweenDays {
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.target.day);
-        if target_day.get_total_time() + target_diff > 12.0 * 60.0 * 60.0{
-            let overtime = (target_day.get_total_time() + target_diff - 12.0 * 60.0 * 60.0) * 0.03;
+        if target_day.get_total_time() + target_diff > FULL_DAY{
+            let overtime = ((target_day.get_total_time() + target_diff - FULL_DAY) * /*penalty percentage*/3) / 100;
             return Some(shift_diff + target_diff + overtime)
         }
 

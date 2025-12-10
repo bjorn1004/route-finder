@@ -3,7 +3,7 @@ use crate::resource::Time;
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::week::Week;
 
-pub fn calculate_score(truck1: &Week, truck2: &Week) -> f32{
+pub fn calculate_score(truck1: &Week, truck2: &Week) -> Time{
     let orders = get_orders();
     let mut order_count: Vec<usize> = vec![0;orders.len()];
 
@@ -34,7 +34,7 @@ pub fn calculate_score(truck1: &Week, truck2: &Week) -> f32{
     
     println!("time: {}", total_time);
     println!("penalty: {}", penalty);
-    total_time as f32 + penalty as f32
+    total_time + penalty
 }
 
 pub fn add_orders(route: &Route, order_count: &mut Vec<usize>){
@@ -43,7 +43,7 @@ pub fn add_orders(route: &Route, order_count: &mut Vec<usize>){
     }
 }
 
-pub fn calcualte_starting_score() -> f32{
+pub fn calcualte_starting_score() -> Time{
     calculate_score(&Week::new(), &Week::new())
 }
 

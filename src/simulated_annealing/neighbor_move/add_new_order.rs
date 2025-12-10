@@ -1,8 +1,7 @@
-use petgraph::matrix_graph::NodeIndex;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::Time;
+use crate::resource::{Time, FULL_DAY};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
@@ -84,17 +83,17 @@ impl NeighborMove for AddNewOrder {
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange>{
         let orders = get_orders();
         let order = &orders[self.order];
-        let mut cost: CostChange = 0.0;
+        let mut cost: CostChange = 0;
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
         if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
-            cost -= 3.0 * order.emptying_time * order.frequency as u32 as Time;
+            cost -= 3 * order.emptying_time * order.frequency as Time;
         }
 
         let time = self.calculate_time_difference(truck1, truck2);
 
         let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
-        if a.get_total_time() + time > 12.0 * 60.0 * 60.0 {
+        if a.get_total_time() + time > FULL_DAY {
             // return None;
         }
 

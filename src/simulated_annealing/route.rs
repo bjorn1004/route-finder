@@ -1,14 +1,13 @@
-use petgraph::visit::NodeIndexable;
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::datastructures::linked_vectors::LinkedVector;
-use crate::{get_distance_matrix, get_orders};
-use crate::resource::Time;
+use crate::{get_orders};
+use crate::resource::{Time, HALF_HOUR};
 use crate::simulated_annealing::neighbor_move::evaluation_helper::time_between_two_nodes;
 
 #[derive(Debug, Clone)]
 pub struct Route{
     pub linked_vector: CompactLinkedVector<OrderIndex>,
-    pub capacity: u64,
+    pub capacity: u32,
     pub time: Time,
 }
 pub type OrderIndex = usize;
@@ -23,7 +22,7 @@ impl Route{
         Route{
             linked_vector: route,
             capacity: 0,
-            time: 30.0*60.0,
+            time: HALF_HOUR,
         }
     }
 
@@ -44,8 +43,8 @@ impl Route{
         return true;
         let calculated_time = self.calculate_time();
         let difference = self.time - calculated_time;
-        if difference > 1.0 {
-            if self.linked_vector.len() == 2 && calculated_time == 30.0*60.0{
+        if difference > 1 {
+            if self.linked_vector.len() == 2 && calculated_time == HALF_HOUR{
                 return true
             }
             println!("found inconsistency");
@@ -63,7 +62,7 @@ impl Route{
     /// This is to stay consistent with how we store the Time value in the route.
     fn calculate_time(&self) -> Time {
         let orders = get_orders();
-        let mut time_travel = 0.0;
+        let mut time_travel = 0;
         let lv = &self.linked_vector;
         for (node_i, order_i) in lv.iter() {
             if lv.get_tail_index() == Some(node_i){
@@ -84,9 +83,8 @@ impl Route{
             // time_travel += orders[*order_i].emptying_time;
         }
 
-        time_travel += 60.0 * 30.0;
-        // We don't have to manually add 30 minutes for this calculation,
-        // because it is already included in the emptying time of the dropoff
+        // Add the 30 minutes for the dropoff
+        time_travel += HALF_HOUR;
         time_travel
     }
 

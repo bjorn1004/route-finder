@@ -25,7 +25,7 @@ pub struct SimulatedAnnealing {
     q: u32,
     iterations_done: u32,
     a: f32,
-    score: f32,
+    score: i32,
 
     truck1: Week,
     truck2: Week,
@@ -166,7 +166,7 @@ impl SimulatedAnnealing {
         let after_recalc = calculate_score(&self.truck1, &self.truck2);
         println!("{}", after_recalc);
         println!();
-        println!("difference in minutes: {}", (before_recalc-after_recalc)/60.0);
+        println!("difference in minutes: {}", (before_recalc-after_recalc)/6000);
         print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
@@ -244,10 +244,10 @@ impl SimulatedAnnealing {
     }
 
     fn accept<R: Rng + ?Sized>(&self, cost_change: CostChange, rng: &mut R) -> bool {
-        if cost_change <= 0.0 {
+        if cost_change <= 0 {
             return true;
         }
-        let prob = E.powf(-cost_change as f32/ self.temp);
+        let prob = E.powf(-(cost_change as f32)/ self.temp);
         let rand_float: f32 = rng.random();
         if rand_float < prob {
             return true;
@@ -255,7 +255,7 @@ impl SimulatedAnnealing {
         false
     }
 
-    fn fill_unfilled_orders_list<R: Rng + ?Sized>(rng: &mut R) -> VecDeque<OrderIndex> {
+    fn fill_unfilled_orders_list<R: Rng + ?Sized>(_rng: &mut R) -> VecDeque<OrderIndex> {
         let mut deliveries = Vec::new();
         let orders = get_orders();
         let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
