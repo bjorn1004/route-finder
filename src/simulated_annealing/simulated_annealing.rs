@@ -244,10 +244,10 @@ impl SimulatedAnnealing {
     }
 
     fn accept<R: Rng + ?Sized>(&self, cost_change: CostChange, rng: &mut R) -> bool {
-        if cost_change <= 0.0 {
+        if cost_change <= 0 {
             return true;
         }
-        let prob = E.powf(-cost_change as f32/ self.temp);
+        let prob = E.powf(-(cost_change as f32)/ self.temp);
         let rand_float: f32 = rng.random();
         if rand_float < prob {
             return true;
@@ -255,7 +255,7 @@ impl SimulatedAnnealing {
         false
     }
 
-    fn fill_unfilled_orders_list<R: Rng + ?Sized>(rng: &mut R) -> VecDeque<OrderIndex> {
+    fn fill_unfilled_orders_list<R: Rng + ?Sized>(_rng: &mut R) -> VecDeque<OrderIndex> {
         let mut deliveries = Vec::new();
         let orders = get_orders();
         let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();

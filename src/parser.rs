@@ -31,7 +31,7 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
                 frequency: get_next(&mut columns, "Frequentie")?.parse()?,
                 container_count: get_next(&mut columns, "AantContainers")?.parse()?,
                 container_volume: get_next(&mut columns, "VolumePerContainer")?.parse()?,
-                emptying_time: (get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<Time>()?) * 60.0,
+                emptying_time: ((get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<f32>()?) * 6000.0) as Time,
                 matrix_id: get_next(&mut columns, "MatrixID")?.parse()?,
                 x_coordinate: get_next(&mut columns, "XCoordinaat")?.parse()?,
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
@@ -46,9 +46,9 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
             frequency: Frequency::None,
             container_count: 0,
             container_volume: 0,
-            emptying_time: 0.0,
+            emptying_time: 0,
             matrix_id: 287,
-            x_coordinate: 56343016,// somewhere logical for this thing to be, idk rn
+            x_coordinate: 56343016,
             y_coordinate: 513026712,
         })
     }
