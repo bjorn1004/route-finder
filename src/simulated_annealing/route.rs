@@ -44,8 +44,8 @@ impl Route{
         return true;
         let calculated_time = self.calculate_time();
         let difference = self.time - calculated_time;
-        if difference > 1 as Time{
-            if self.linked_vector.len() == 2 && calculated_time == 30 as Time*60 as Time{
+        if difference > 1.0 {
+            if self.linked_vector.len() == 2 && calculated_time == 30.0*60.0{
                 return true
             }
             println!("found inconsistency");

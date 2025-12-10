@@ -103,7 +103,7 @@ impl ShiftInRoute{
 }
 impl NeighborMove for ShiftInRoute{
     fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> Option<CostChange> {
-        Some(self.time_difference(truck1, truck2)? as CostChange)
+        Some(self.time_difference(truck1, truck2)?)
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, _: &mut OrderFlags) {
