@@ -15,7 +15,7 @@ pub struct Company {
     pub y_coordinate: u32, // maybe turn this into a nalgebra vector if we need it
 }
 pub type MatrixID = u16;
-pub type Time = f64;
+pub type Time = f32;
 impl Company {
     pub fn trash(&self) -> u64 {
         self.container_count as u64 * self.container_volume as u64
