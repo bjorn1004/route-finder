@@ -18,6 +18,7 @@ use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::sync::Arc;
 use std::time::Instant;
+use crate::simulated_annealing::neighbor_move::remove_random::RemoveRandom;
 
 pub struct SimulatedAnnealing {
     temp: f32,
@@ -225,6 +226,18 @@ impl SimulatedAnnealing {
                         continue;
                     }
                     Box::new(shift.unwrap())
+                }
+                4 => {
+                    let remove = RemoveRandom::new(
+                        &self.truck1,
+                        &self.truck2,
+                        &mut rng,
+                        &self.order_flags
+                    );
+                    if remove.is_none() {
+                        continue;
+                    }
+                    Box::new(remove.unwrap())
                 }
                 // remove function, try to remove all days from a single order.
                 // for example, if freq==2, remove the order on both the monday and thursday,
