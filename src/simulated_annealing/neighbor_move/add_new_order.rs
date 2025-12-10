@@ -7,12 +7,13 @@ use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
+use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 /// This will add an order to a random route where it is allowed to add it to.
 /// If you try to add an order, that doesn't have any allowed routes, it panics
 pub struct AddNewOrder {
-    is_truck_1: bool,
+    truck_enum: TruckEnum,
     day: DayEnum,
     time_of_day: TimeOfDay,
     insert_after_index: LVNodeIndex,
@@ -21,8 +22,8 @@ pub struct AddNewOrder {
 impl AddNewOrder {
     pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags, order: OrderIndex) ->  Option<Self>{
 
-        let is_truck_1:bool = rng.random();
-        let truck = if is_truck_1 {truck1} else {truck2};
+        let truck_enum: TruckEnum = rng.random();
+        let truck = if truck_enum == TruckEnum::Truck1 {truck1} else {truck2};
 
         let capacity = get_orders()[order].trash();
         // check if there is still an allowed day open
@@ -44,7 +45,7 @@ impl AddNewOrder {
 
 
                 return Some(AddNewOrder {
-                    is_truck_1,
+                    truck_enum,
                     day: day_enum,
                     time_of_day: time_of_day_enum,
                     insert_after_index: index,
@@ -61,7 +62,7 @@ impl AddNewOrder {
     fn calculate_time_difference(&self, truck1: &Week, truck2: &Week) -> Time{
         let orders = get_orders();
         let order = &orders[self.order];
-        let route = (if self.is_truck_1 { truck1 } else {truck2}).get(self.day).get(self.time_of_day);
+        let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else {truck2}).get(self.day).get(self.time_of_day);
 
         let before_order_i = *route.linked_vector.get_value_unsafe(self.insert_after_index);
         let after_order_i = *route.linked_vector.get_next_value_unsafe(self.insert_after_index);
@@ -92,7 +93,7 @@ impl NeighborMove for AddNewOrder {
 
         let time = self.calculate_time_difference(truck1, truck2);
 
-        let a = (if self.is_truck_1 {truck1} else {truck2}).get(self.day);
+        let a = (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2}).get(self.day);
         if a.get_total_time() + time > FULL_DAY {
             // return None;
         }
@@ -104,7 +105,7 @@ impl NeighborMove for AddNewOrder {
         order_flags.add_order(self.order, self.day);
 
         let time_difference = self.calculate_time_difference(truck1, truck2);
-        let truck = if self.is_truck_1 {truck1} else {truck2};
+        let truck = if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2};
         let day = truck.get_mut(self.day);
         let route = day.get_mut(self.time_of_day);
         route.linked_vector.insert_after(self.insert_after_index, self.order);
