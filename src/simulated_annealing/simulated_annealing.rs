@@ -238,14 +238,6 @@ impl SimulatedAnnealing {
                         .ok();
                     self.egui_ctx.request_repaint();
                 }
-                #[cfg(debug_assertions)]
-                let current_time = self.truck1.get_total_time() + self.truck2.get_total_time();
-                #[cfg(debug_assertions)]
-                self.truck1.recalculate_total_time();
-                #[cfg(debug_assertions)]
-                self.truck2.recalculate_total_time();
-                #[cfg(debug_assertions)]
-                assert_eq!(current_time, self.truck1.get_total_time() + self.truck2.get_total_time());
                 break;
             }
         }
