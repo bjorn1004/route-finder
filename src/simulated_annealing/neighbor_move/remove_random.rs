@@ -33,12 +33,6 @@ impl RemoveRandom {
             if node_i == lv.get_head_index()? || node_i == lv.get_tail_index()?{
                 continue;
             }
-            let orders = get_orders();
-            if orders[*order_i].frequency as u8 !=  1{
-                // we only do orders with frequency 1 for now.
-                return None;
-            }
-
             return Some(RemoveRandom{
                 truck_enum,
                 day,
@@ -69,7 +63,7 @@ impl NeighborMove for RemoveRandom {
         let route = (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
             .get(self.day)
             .get(self.time_of_day);
-        let orders = get_orders();
+        let order = &get_orders()[self.order_i];
 
         // make sure we stored the correct order_i
         #[cfg(debug_assertions)]
@@ -77,8 +71,11 @@ impl NeighborMove for RemoveRandom {
 
         let time_diff = self.time_difference(route);
 
-        // for now, frequency will always be one.
-        let penalty = orders[self.order_i].trash() as i32 * 3 * orders[self.order_i].frequency as Time;
+        let penalty = if order.frequency as u32 == order_flags.get_filled_count(self.order_i) {
+            order.trash() as i32 * 3 * order.frequency as Time
+        } else {
+          0
+        };
         let empty_route = if route.linked_vector.len() == 3{
             -HALF_HOUR
         } else {
@@ -100,12 +97,17 @@ impl NeighborMove for RemoveRandom {
         let lv = &mut route.linked_vector;
 
         lv.remove(self.remove_i);
+        lv.compact();
         route.time += time_diff;
         route.capacity -= order.trash();
         order_flags.remove_order(self.order_i, self.day);
 
         // for now, frequency will always be one.
-        let penalty = order.trash() as i32 * 3 * order.frequency as Time;
+        let penalty = if order.frequency as u32 == order_flags.get_filled_count(self.order_i) {
+            order.trash() as i32 * 3 * order.frequency as Time
+        } else {
+            0
+        };
         let empty_route = if route.linked_vector.len() == 3{
             -HALF_HOUR
         } else {
