@@ -2,7 +2,7 @@ use std::error::Error;
 
 use petgraph::matrix_graph::MatrixGraph;
 
-use crate::resource::{Company, Distance, DistanceMatrix, Frequency, Time, MINUTE};
+use crate::resource::{Company, Distance, DistanceMatrix, Frequency, Time, MINUTE, SECOND};
 
 // Small helper function for getting columns
 fn get_next(
@@ -67,7 +67,7 @@ pub fn parse_distance_matrix() -> Result<DistanceMatrix, Box<dyn Error + Send + 
             let node_b: u16 = get_next(&mut colunms, "MatrixID2")?.parse()?;
             let distance = Distance {
                 absolute_distance: get_next(&mut colunms, "Afstand")?.parse()?,
-                travel_time: (get_next(&mut colunms, "Rijtijd")?.parse::<Time>()?) *100,
+                travel_time: (get_next(&mut colunms, "Rijtijd")?.parse::<Time>()?) * SECOND,
             };
 
             graph.add_edge(node_a.into(), node_b.into(), distance);

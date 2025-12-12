@@ -184,11 +184,13 @@ impl SimulatedAnnealing {
         );
         print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
     }
-
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
         // not really sure if this is correct
         loop {
-            let a = rng.random_range(1..4);
+            let mut removed_order: Option<OrderIndex> = None;
+            #[cfg(debug_assertions)]
+            let mut chosen_neighbor: &str;
+            let a = rng.random_range(1..3);
             // something to decide which thing to choose
             let transactionthingy: Box<dyn NeighborMove> = match a {
                 1 => {
@@ -204,15 +206,24 @@ impl SimulatedAnnealing {
                             self.unfilled_orders.push_front(random_order);
                             continue;
                         }
+                        #[cfg(debug_assertions)]
+                        {
+                            chosen_neighbor = "add";
+                        }
                         Box::new(new_order.unwrap())
+
                     } else {
                         continue; // queue is empty, try something else
                     }
                 }
-                2 => {
+                4 => {
                     let shift = ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng);
                     if shift.is_none() {
                         continue;
+                    }
+                    #[cfg(debug_assertions)]
+                    {
+                        chosen_neighbor = "shift";
                     }
                     Box::new(shift.unwrap())
                 }
@@ -226,19 +237,29 @@ impl SimulatedAnnealing {
                     if shift.is_none() {
                         continue;
                     }
+                    #[cfg(debug_assertions)]
+                    {
+                        chosen_neighbor = "shift_between_days";
+                    }
                     Box::new(shift.unwrap())
                 }
-                4 => {
+                2 => {
                     let remove = RemoveRandom::new(
                         &self.truck1,
                         &self.truck2,
                         &mut rng,
                         &self.order_flags
                     );
-                    if remove.is_none() {
+                    if let Some((remove, order_i)) = remove {
+                        removed_order = Some(order_i);
+                        #[cfg(debug_assertions)]
+                        {
+                            chosen_neighbor = "remove_random";
+                        }
+                        Box::new(remove)
+                    } else {
                         continue;
                     }
-                    Box::new(remove.unwrap())
                 }
                 // remove function, try to remove all days from a single order.
                 // for example, if freq==2, remove the order on both the monday and thursday,
@@ -265,6 +286,16 @@ impl SimulatedAnnealing {
                     &mut self.truck2,
                     &mut self.order_flags,
                 );
+
+                if let Some(order) = removed_order{
+                    self.unfilled_orders.push_back(order);
+                }
+
+                #[cfg(debug_assertions)]
+                println!("{}", chosen_neighbor);
+
+                debug_assert_eq!(self.score, calculate_score(&self.truck2, &self.truck2));
+
                 // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
                 // Future: It should only send a new route when it's faster, not just accepted
                 if !self.route_channel.0.is_full() {

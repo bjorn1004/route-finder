@@ -14,13 +14,13 @@ pub struct RemoveRandom {
     truck_enum: TruckEnum,
     day: DayEnum,
     time_of_day: TimeOfDay,
-    remove_i: LVNodeIndex,
+    node_i: LVNodeIndex,
     order_i: OrderIndex,
 }
 
 
 impl RemoveRandom {
-    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags) ->  Option<Self>{
+    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags) ->  Option<(Self, OrderIndex)>{
         let truck_enum: TruckEnum = rng.random();
         let day:DayEnum = rng.random();
         let time_of_day:TimeOfDay = rng.random();
@@ -33,28 +33,15 @@ impl RemoveRandom {
             if node_i == lv.get_head_index()? || node_i == lv.get_tail_index()?{
                 continue;
             }
-            return Some(RemoveRandom{
+            return Some((RemoveRandom{
                 truck_enum,
                 day,
                 time_of_day,
-                remove_i: node_i,
+                node_i,
                 order_i: *order_i,
-            });
+            }, *order_i));
         }
         unreachable!();
-    }
-    fn time_difference(&self, route: &Route) -> Time {
-        let lv = &route.linked_vector;
-        let orders = get_orders();
-
-        let back = orders[*lv.get_prev_value_unsafe(self.remove_i)].matrix_id;
-        let current = orders[self.order_i].matrix_id;
-        let front = orders[*lv.get_next_value_unsafe(self.remove_i)].matrix_id;
-
-        let removed_time = -time_between_three_nodes(back, current, front);
-        let added_time = time_between_two_nodes(back, front);
-
-        removed_time + added_time
     }
 }
 
@@ -66,10 +53,9 @@ impl NeighborMove for RemoveRandom {
         let order = &get_orders()[self.order_i];
 
         // make sure we stored the correct order_i
-        #[cfg(debug_assertions)]
-        assert_eq!(self.order_i, *route.linked_vector.get_value(self.remove_i).unwrap());
+        debug_assert_eq!(self.order_i, *route.linked_vector.get_value(self.node_i).unwrap());
 
-        let time_diff = self.time_difference(route);
+        let time_diff = route.calculate_time_if_remove_node(self.node_i);
 
         let penalty = if order.frequency as u32 == order_flags.get_filled_count(self.order_i) {
             order.trash() as i32 * 3 * order.frequency as Time
@@ -91,29 +77,33 @@ impl NeighborMove for RemoveRandom {
             .get_mut(self.time_of_day);
         let order = &get_orders()[self.order_i];
 
-        let time_diff = self.time_difference(route);
+        #[cfg(debug_assertions)]
+        if !route.check_correctness_time("before removing"){
+            panic!()
+        }
 
-
-        let lv = &mut route.linked_vector;
-
-        lv.remove(self.remove_i);
-        lv.compact();
-        route.time += time_diff;
-        route.capacity -= order.trash();
-        order_flags.remove_order(self.order_i, self.day);
-
-        // for now, frequency will always be one.
+        // if we did all days of an order before remove, we will get a penalty after removing this.
         let penalty = if order.frequency as u32 == order_flags.get_filled_count(self.order_i) {
             order.trash() as i32 * 3 * order.frequency as Time
         } else {
             0
         };
-        let empty_route = if route.linked_vector.len() == 3{
+
+        let time_diff = route.remove_node(self.node_i);
+        order_flags.remove_order(self.order_i, self.day);
+
+        // If the route has length 2 after removing a node, the only 2 nodes in the route are dropoffs
+        let empty_route = if route.linked_vector.len() == 2{
             -HALF_HOUR
         } else {
             0
         };
-        println!("deleted yay");
+        #[cfg(debug_assertions)]
+        if !route.check_correctness_time("after removing") {
+            panic!()
+        }
+        println!("did correct");
+
         time_diff + penalty + empty_route
     }
 }

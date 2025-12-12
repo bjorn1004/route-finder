@@ -152,7 +152,7 @@ impl ShiftBetweenDays {
         shift_route.linked_vector.remove(self.shift.node_index);
         shift_route.linked_vector.compact();
 
-        shift_route.check_correctness_time();
+        shift_route.check_correctness_time("checked in route where node is removed");
 
         let shift_route_empty:Time = if shift_route.linked_vector.len() == 2 {
             -HALF_HOUR
@@ -167,7 +167,7 @@ impl ShiftBetweenDays {
 
         target_route.linked_vector.insert_after(self.target.node_index, shift_value);
 
-        target_route.check_correctness_time();
+        target_route.check_correctness_time("Checked in route where node is added");
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);
 
@@ -221,12 +221,12 @@ impl NeighborMove for ShiftBetweenDays {
 
         shift_route.linked_vector.remove(self.shift.node_index);
         shift_route.linked_vector.compact();
-        shift_route.check_correctness_time();
+        shift_route.check_correctness_time("checked in route where node is removed");
         target_route.capacity += order.trash();
         target_route.time += target_diff;
 
         target_route.linked_vector.insert_after(self.target.node_index, shift_value);
-        target_route.check_correctness_time();
+        target_route.check_correctness_time("Checked in route where node is added");
 
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);

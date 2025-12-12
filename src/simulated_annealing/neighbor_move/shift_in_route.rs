@@ -122,7 +122,7 @@ impl NeighborMove for ShiftInRoute{
         lv.insert_after(self.target_neighbor1, shifting_value);
         // don't need to compact, because the lv has the same length as before the operations.
 
-        route.check_correctness_time();
+        route.check_correctness_time("Checked after a shift");
         time_difference
     }
 }

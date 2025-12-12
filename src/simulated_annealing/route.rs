@@ -1,8 +1,8 @@
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
-use crate::datastructures::linked_vectors::LinkedVector;
+use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::{get_orders};
 use crate::resource::{Time, HALF_HOUR};
-use crate::simulated_annealing::neighbor_move::evaluation_helper::time_between_two_nodes;
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 
 #[derive(Debug, Clone)]
 pub struct Route{
@@ -39,15 +39,15 @@ impl Route{
     pub fn recalculate_total_time(&mut self) {
         self.time = self.calculate_time();
     }
-    pub fn check_correctness_time(&self) -> bool{
-        return true;
+    pub fn check_correctness_time(&self, message: &str) -> bool{
         let calculated_time = self.calculate_time();
         let difference = self.time - calculated_time;
-        if difference > 1 {
+        if difference != 0 {
             if self.linked_vector.len() == 2 && calculated_time == HALF_HOUR{
                 return true
             }
             println!("found inconsistency");
+            println!("{}", message);
             println!("route length: {}", self.linked_vector.len());
             println!("stored time: {}", self.time);
             println!("actual time: {}", calculated_time);
@@ -69,7 +69,7 @@ impl Route{
                 break;
             }
             let matrix_i = orders[*order_i].matrix_id;
-            let next_matrix_i = orders[*lv.get_next_value(node_i).unwrap()].matrix_id;
+            let next_matrix_i = orders[*lv.get_next_value_unsafe(node_i)].matrix_id;
 
             time_travel += time_between_two_nodes(matrix_i, next_matrix_i);
             time_travel += orders[*order_i].emptying_time;
@@ -88,6 +88,37 @@ impl Route{
         time_travel
     }
 
+    pub fn remove_node(&mut self, node: LVNodeIndex) -> Time{
+        let orders = get_orders();
+        let lv = &mut self.linked_vector;
+        let order = &orders[*lv.get_value_unsafe(node)];
 
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
 
+        let time_diff =
+            - time_between_three_nodes(prev, middle, next)
+            + time_between_two_nodes(prev, next);
+
+        self.time += time_diff - order.emptying_time;
+        self.capacity -= order.trash();
+        lv.remove(node);
+        lv.compact();
+        time_diff
+    }
+
+    pub fn calculate_time_if_remove_node(&self, node: LVNodeIndex) -> Time {
+        let orders = get_orders();
+        let lv = &self.linked_vector;
+        let order = &orders[*lv.get_value_unsafe(node)];
+
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+
+        - time_between_three_nodes(prev, middle, next) 
+            + time_between_two_nodes(prev, next) 
+            - order.emptying_time
+    }
 }

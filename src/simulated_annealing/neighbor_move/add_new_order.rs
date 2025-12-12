@@ -111,7 +111,7 @@ impl NeighborMove for AddNewOrder {
         route.linked_vector.insert_after(self.insert_after_index, self.order);
         route.capacity += get_orders()[self.order].trash();
         route.time += time_difference;
-        route.check_correctness_time();
+        route.check_correctness_time("New order added");
 
         let order = &get_orders()[self.order];
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
