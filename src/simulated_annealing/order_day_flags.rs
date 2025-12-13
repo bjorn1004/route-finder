@@ -174,4 +174,11 @@ impl OrderFlags {
     pub fn get_filled_count(&self, order_index: OrderIndex) -> u32 {
         self.orders[order_index].count_ones()
     }
+    pub fn get_counts(&self) -> Vec<u32> {
+        let mut counts: Vec<u32> = Vec::new();
+        for order in &self.orders{
+            counts.push(order.count_ones())
+        }
+        counts
+    }
 }

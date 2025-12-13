@@ -144,13 +144,25 @@ use test_env_helpers::*;
 mod tests {
     use crate::{get_distance_matrix, get_orders, DISTANCE_MATRIX, ORDERS};
     use crate::parser::{parse_distance_matrix, parse_orderfile};
+    use crate::resource::{Company, Frequency};
     use crate::simulated_annealing::route::Route;
 
     fn before_all(){
-        let order_vec = parse_orderfile().unwrap();
+        // We make most of the frequencies 0 to make the penalty score a lot lower.
+        // This helps with
+        let mut order_vec: Vec<Company>= parse_orderfile() .unwrap();
+        for (i, order) in order_vec.iter_mut().enumerate() {
+            if i > 3 {
+                order.frequency = Frequency::None;
+            }
+        }
         ORDERS.set(order_vec.into()).ok();
         let distance_matrix = parse_distance_matrix().unwrap();
         DISTANCE_MATRIX.set(distance_matrix).ok();
+    }
+
+    fn calculate_score_for_single_route(){
+
     }
 
     #[test]
@@ -177,13 +189,14 @@ mod tests {
     fn single_remove(){
         let route = &mut Route::default();
 
-        let before = route.calculate_time();
+        let before_time = route.calculate_time();
+
         route.apply_add_order(0, 0);
         route.remove_node(2);
 
 
-        assert_eq!(before, route.time);
+        assert_eq!(before_time, route.time);
         route.recalculate_total_time();
-        assert_eq!(before, route.time);
+        assert_eq!(before_time, route.time);
     }
 }
