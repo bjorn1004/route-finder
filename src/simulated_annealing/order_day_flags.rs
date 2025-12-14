@@ -17,20 +17,20 @@ impl OrderFlags {
 
     pub fn add_order(&mut self, order: OrderIndex, day: DayEnum) {
         match day {
-            DayEnum::Monday => self.orders[order] |= 0b00010000,
-            DayEnum::Tuesday => self.orders[order] |= 0b00001000,
-            DayEnum::Wednesday => self.orders[order] |= 0b00000100,
+            DayEnum::Monday =>   self.orders[order] |= 0b00010000,
+            DayEnum::Tuesday =>  self.orders[order] |= 0b00001000,
+            DayEnum::Wednesday =>self.orders[order] |= 0b00000100,
             DayEnum::Thursday => self.orders[order] |= 0b00000010,
-            DayEnum::Friday => self.orders[order] |= 0b00000001,
+            DayEnum::Friday =>   self.orders[order] |= 0b00000001,
         }
     }
     pub fn remove_order(&mut self, order: OrderIndex, day: DayEnum) {
         match day {
-            DayEnum::Monday => self.orders[order] &= 0b00001111,
-            DayEnum::Tuesday => self.orders[order] &= 0b00010111,
-            DayEnum::Wednesday => self.orders[order] &= 0b00011011,
+            DayEnum::Monday =>   self.orders[order] &= 0b00001111,
+            DayEnum::Tuesday =>  self.orders[order] &= 0b00010111,
+            DayEnum::Wednesday =>self.orders[order] &= 0b00011011,
             DayEnum::Thursday => self.orders[order] &= 0b00011101,
-            DayEnum::Friday => self.orders[order] &= 0b00011110,
+            DayEnum::Friday =>   self.orders[order] &= 0b00011110,
         }
     }
 

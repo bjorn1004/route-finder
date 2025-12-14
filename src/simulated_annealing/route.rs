@@ -88,7 +88,22 @@ impl Route {
         time_travel += HALF_HOUR;
         time_travel
     }
-    pub fn remove_node(&mut self, node: LVNodeIndex) -> Time{
+    pub fn calculate_remove_node(&self, node: LVNodeIndex) -> Time{
+        let orders = get_orders();
+        let lv = &self.linked_vector;
+        let order = &orders[*lv.get_value_unsafe(node)];
+
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+
+        let time_diff =
+            - time_between_three_nodes(prev, middle, next)
+                + time_between_two_nodes(prev, next);
+
+        time_diff - order.emptying_time
+    }
+    pub fn apply_remove_node(&mut self, node: LVNodeIndex) -> Time{
         let orders = get_orders();
         let lv = &mut self.linked_vector;
         let order = &orders[*lv.get_value_unsafe(node)];
@@ -106,6 +121,21 @@ impl Route {
         lv.remove(node);
         lv.compact();
         time_diff
+    }
+    pub fn calculate_add_order(&self, node: LVNodeIndex, order_index: OrderIndex) -> Time {
+        let orders = get_orders();
+        let lv = &self.linked_vector;
+
+        let order = &orders[order_index];
+
+        let prev = orders[*lv.get_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+
+        let time_diff = time_between_three_nodes(prev, middle, next)
+            - time_between_two_nodes(prev, next);
+
+        time_diff + order.emptying_time
     }
     pub fn apply_add_order(&mut self, node: LVNodeIndex, order_index: OrderIndex) -> Time {
         let orders = get_orders();
@@ -192,7 +222,7 @@ mod tests {
         let before_time = route.calculate_time();
 
         route.apply_add_order(0, 0);
-        route.remove_node(2);
+        route.apply_remove_node(2);
 
 
         assert_eq!(before_time, route.time);
