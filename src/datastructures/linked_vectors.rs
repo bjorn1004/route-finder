@@ -13,11 +13,12 @@ pub trait LinkedVector<T>{
     fn push_front(&mut self, value: T) -> LVNodeIndex;
     fn push_back(&mut self, value: T) -> LVNodeIndex;
     fn remove(&mut self, index: LVNodeIndex);
+    fn shift(&mut self, shift_index: LVNodeIndex, target_index: LVNodeIndex);
     fn set_value_at_index(&mut self, index: LVNodeIndex, value: T);
-    fn get_next(&self, index: LVNodeIndex) -> Option<LVNodeIndex>;
+    fn get_next_index(&self, index: LVNodeIndex) -> Option<LVNodeIndex>;
     fn get_next_value(&self, index: LVNodeIndex) -> Option<&T>;
     fn get_next_value_unsafe(&self, index: LVNodeIndex) -> &T;
-    fn get_prev(&self, index: LVNodeIndex) -> Option<LVNodeIndex>;
+    fn get_prev_index(&self, index: LVNodeIndex) -> Option<LVNodeIndex>;
     fn get_prev_value(&self, index: LVNodeIndex) -> Option<&T>;
     fn get_prev_value_unsafe(&self, index: LVNodeIndex) -> &T;
 }

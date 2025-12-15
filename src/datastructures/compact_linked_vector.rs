@@ -29,7 +29,7 @@ pub struct CompactLinkedVector<T> {
     tail: Option<LVNodeIndex>, // the index of the tail in our list
     empty_indices: Vec<LVNodeIndex>,
 }
-impl<T> LinkedVector<T> for CompactLinkedVector<T> {
+impl<T: std::fmt::Debug + std::cmp::PartialEq<T>> LinkedVector<T> for CompactLinkedVector<T> {
     fn get_random<R>(&self, rng: &mut R) -> Option<(LVNodeIndex, &T)>
     where
         R: Rng + ?Sized,
@@ -150,13 +150,9 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
         self.list[index].value = value;
     }
 
-    fn get_next(&self, index: LVNodeIndex) -> Option<LVNodeIndex> {
+    fn get_next_index(&self, index: LVNodeIndex) -> Option<LVNodeIndex> {
         self.list[index].next
     }
-    fn get_prev(&self, index: LVNodeIndex) -> Option<LVNodeIndex> {
-        self.list[index].prev
-    }
-
     fn get_next_value(&self, index: LVNodeIndex) -> Option<&T> {
         if let Some(next_index) = self.list[index].next{
             self.get_value(next_index)
@@ -164,8 +160,16 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
             None
         }
     }
+
     fn get_next_value_unsafe(&self, index: LVNodeIndex) -> &T {
-        &self.list[self.list[index].next.unwrap()].value
+        let next = self.list[index].next.unwrap();
+
+        debug_assert_eq!(&self.list[next].value, self.get_next_value(index).unwrap());
+
+        &self.list[next].value
+    }
+    fn get_prev_index(&self, index: LVNodeIndex) -> Option<LVNodeIndex> {
+        self.list[index].prev
     }
     fn get_prev_value(&self, index: LVNodeIndex) -> Option<&T> {
         if let Some(prev_index) = self.list[index].prev{
@@ -176,6 +180,32 @@ impl<T> LinkedVector<T> for CompactLinkedVector<T> {
     }
     fn get_prev_value_unsafe(&self, index: LVNodeIndex) -> &T {
         &self.list[self.list[index].prev.unwrap()].value
+    }
+
+    /// THIS THING HAS NOT BEEN TESTED YET PLZ DO NOT TOUCH 
+    fn shift(&mut self, shift_index: LVNodeIndex, target_index: LVNodeIndex) {
+        let prev_index = self.get_prev_index(shift_index);
+        let next_index = self.get_next_index(shift_index);
+        let prev_node = &mut self.list[prev_index.unwrap()];
+        prev_node.next = next_index;
+
+        let next_node = &mut self.list[next_index.unwrap()];
+        next_node.prev = prev_index;
+
+        let after_target = self.get_next_index(target_index);
+        let shift_node = &mut self.list[shift_index];
+        shift_node.prev = Some(target_index);
+        shift_node.next = after_target;
+
+        self.list[after_target.unwrap()].prev = Some(target_index);
+        self.list[target_index].next = after_target;
+
+        #[cfg(debug_assertions)]
+        {
+
+        }
+        
+        panic!("THIS THING DOES NOT WORK YET PLZ DON'T USE YET")
     }
 }
 impl<T> CompactLinkedVector<T> {

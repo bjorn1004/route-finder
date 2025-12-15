@@ -1,11 +1,11 @@
-use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::week::{DayEnum, Week};
 use std::collections::HashMap;
+use crate::simulated_annealing::order_day_flags::OrderFlags;
 
-pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week) {
+pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
     let orders = get_orders();
     let mut order_count: HashMap<usize, usize> = HashMap::new();
 
@@ -18,9 +18,13 @@ pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week) {
         .collect();
 
     let dropoff_index = get_orders().len() - 1;
-    let bad: Vec<usize> = a.iter().map(|(a, b)| **a).collect();
+    let bad: Vec<usize> = a.iter().map(|(a, _)| **a).collect();
     let filtered_bad: Vec<&usize> = bad.iter().filter(|i| **i != dropoff_index).collect();
     let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
+
+    for bad_order in &good_bad{
+        order_flags.clear(*bad_order);
+    }
 
     delete_bad_week(truck1, &good_bad);
     delete_bad_week(truck2, &good_bad);
@@ -55,16 +59,15 @@ fn delete_bad_day(day: &mut Day, bad_list: &[usize]) {
     delete_bad_route(day.get_mut(TimeOfDay::Afternoon), bad_list);
 }
 fn delete_bad_route(route: &mut Route, bad_list: &[usize]) {
-    let lv = &mut route.linked_vector;
     let mut bad_indexes = Vec::new();
-    for (node_i, order_i) in lv.iter() {
+    for (node_i, order_i) in route.linked_vector.iter() {
         if bad_list.contains(order_i) {
             bad_indexes.push(node_i);
         }
     }
 
     for bad_index in bad_indexes {
-        lv.remove(bad_index);
+        route.apply_remove_node_without_compact(bad_index);
     }
-    lv.compact();
+    route.linked_vector.compact();
 }

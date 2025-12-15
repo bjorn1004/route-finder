@@ -1,10 +1,6 @@
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
-use crate::get_orders;
 use crate::resource::Time;
 use crate::simulated_annealing::day::TimeOfDay;
-use crate::simulated_annealing::neighbor_move::evaluation_helper::{
-    time_between_three_nodes, time_between_two_nodes,
-};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::week::{DayEnum, Week};
@@ -16,7 +12,6 @@ pub struct ShiftInRoute {
     time_of_day: TimeOfDay,
     shifting_node: LVNodeIndex,
     target_neighbor1: LVNodeIndex,
-    target_neighbor2: LVNodeIndex,
 }
 
 impl ShiftInRoute {
@@ -46,7 +41,7 @@ impl ShiftInRoute {
             break;
         }
 
-        let before_shifting_node = lv.get_prev(shifting_node).unwrap();
+        let before_shifting_node = lv.get_prev_index(shifting_node).unwrap();
 
         let target_neighbor1: LVNodeIndex;
         loop {
@@ -61,57 +56,33 @@ impl ShiftInRoute {
             break;
         }
 
-        let target_neighbor2: LVNodeIndex = lv.get_next(target_neighbor1).unwrap();
-
         Some(ShiftInRoute {
             is_truck1,
             day: day_enum,
             time_of_day,
             shifting_node,
             target_neighbor1,
-            target_neighbor2,
         })
     }
 
-    pub fn time_difference(&self, truck1: &Week, truck2: &Week) -> Option<Time> {
+    pub fn time_difference(&self, truck1: &Week, truck2: &Week) -> Time {
+
         let truck = if self.is_truck1 { truck1 } else { truck2 };
         let route = truck.get(self.day).get(self.time_of_day);
         let lv = &route.linked_vector;
 
-        let orders = get_orders();
-
-        let before_shift = orders[*lv.get_prev_value(self.shifting_node).unwrap()].matrix_id;
-        let after_shift = orders[*lv.get_next_value(self.shifting_node).unwrap()].matrix_id;
-
-        let t1 = orders[*lv.get_value_unsafe(self.target_neighbor1)].matrix_id;
-        let shift = orders[*lv.get_value_unsafe(self.shifting_node)].matrix_id;
-        let t2 = orders[*lv.get_value_unsafe(self.target_neighbor2)].matrix_id;
-
-        // add the difference between the shifting_node and the two nodes where it fill be put between
-        let mut time_difference = time_between_three_nodes(t1, shift, t2);
-        // remove the time between these two nodes
-        time_difference -= time_between_two_nodes(t1, t2);
-
-        // add the time between the two neighbors of the node that will be shifted
-        time_difference += time_between_two_nodes(before_shift, after_shift);
-        // remove the time between the node that will be shifted and it's current neighbors
-        time_difference -= time_between_three_nodes(before_shift, shift, after_shift);
-
-        // normally we would calculate the emptying time here,
-        // but the shifted node will end up in this route again,
-        // thus we will end up with the same emptying time for this route.
-
-        Some(time_difference)
+        route.calculate_remove_node(self.shifting_node) +
+            route.calculate_add_order(self.target_neighbor1, *lv.get_value_unsafe(self.shifting_node))
     }
 }
 impl NeighborMove for ShiftInRoute {
     fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> Option<CostChange> {
-        self.time_difference(truck1, truck2)
+        Some(self.time_difference(truck1, truck2))
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, _: &mut OrderFlags) -> Time {
         // calculate the change in time after this operation
-        let time_difference = self.time_difference(truck1, truck2).unwrap();
+        let time_difference = self.time_difference(truck1, truck2);
 
         let truck = if self.is_truck1 { truck1 } else { truck2 };
         let route = truck.get_mut(self.day).get_mut(self.time_of_day);
@@ -125,7 +96,9 @@ impl NeighborMove for ShiftInRoute {
         lv.insert_after(self.target_neighbor1, shifting_value);
         // don't need to compact, because the lv has the same length as before the operations.
 
+        #[cfg(debug_assertions)]
         route.check_correctness_time();
+
         time_difference
     }
 }

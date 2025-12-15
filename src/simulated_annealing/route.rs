@@ -1,8 +1,8 @@
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
-use crate::datastructures::linked_vectors::LinkedVector;
-use crate::get_orders;
+use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
+use crate::{get_orders, EXTREME_TEST_FLAG};
 use crate::resource::{HALF_HOUR, Time};
-use crate::simulated_annealing::neighbor_move::evaluation_helper::time_between_two_nodes;
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 
 #[derive(Debug, Clone)]
 pub struct Route {
@@ -42,7 +42,9 @@ impl Route {
         self.time = self.calculate_time();
     }
     pub fn check_correctness_time(&self) -> bool {
-        return true;
+        if !EXTREME_TEST_FLAG{
+            return true
+        }
         let calculated_time = self.calculate_time();
         let difference = self.time - calculated_time;
         if difference > 1 {
@@ -88,10 +90,167 @@ impl Route {
         time_travel += HALF_HOUR;
         time_travel
     }
+    pub fn calculate_remove_node(&self, node: LVNodeIndex) -> Time{
+        let orders = get_orders();
+        let lv = &self.linked_vector;
+        let order = &orders[*lv.get_value_unsafe(node)];
+
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+
+        let time_diff =
+            - time_between_three_nodes(prev, middle, next)
+                + time_between_two_nodes(prev, next);
+
+        time_diff - order.emptying_time
+    }
+    pub fn apply_remove_node(&mut self, node: LVNodeIndex) -> Time{
+        let orders = get_orders();
+        let lv = &mut self.linked_vector;
+        let order = &orders[*lv.get_value_unsafe(node)];
+
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+
+        let time_diff =
+            - time_between_three_nodes(prev, middle, next)
+            + time_between_two_nodes(prev, next)
+            - order.emptying_time;
+
+        self.time += time_diff;
+        self.capacity -= order.trash();
+        lv.remove(node);
+        lv.compact();
+        time_diff
+    }
+    /// a special function for the FIXPLZPLZPLZPLZPLZPLZPLZ function.
+    pub fn apply_remove_node_without_compact(&mut self, node: LVNodeIndex) -> Time{
+        let orders = get_orders();
+        let lv = &mut self.linked_vector;
+        let order = &orders[*lv.get_value_unsafe(node)];
+
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+
+        let time_diff =
+            - time_between_three_nodes(prev, middle, next)
+            + time_between_two_nodes(prev, next)
+            - order.emptying_time;
+
+        self.time += time_diff;
+        self.capacity -= order.trash();
+        lv.remove(node);
+        time_diff
+    }
+    pub fn calculate_add_order(&self, insert_after_this: LVNodeIndex, order_to_insert: OrderIndex) -> Time {
+        let orders = get_orders();
+        let lv = &self.linked_vector;
+
+        let order = &orders[order_to_insert];
+
+        let prev = orders[*lv.get_value_unsafe(insert_after_this)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(insert_after_this)].matrix_id;
+
+        let time_diff = time_between_three_nodes(prev, middle, next)
+            - time_between_two_nodes(prev, next);
+
+        time_diff + order.emptying_time
+    }
+    pub fn apply_add_order(&mut self, insert_after_this: LVNodeIndex, order_index: OrderIndex) -> Time {
+        let orders = get_orders();
+        let lv = &mut self.linked_vector;
+
+        let order = &orders[order_index];
+
+        let prev = orders[*lv.get_value_unsafe(insert_after_this)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(insert_after_this)].matrix_id;
+
+        let time_diff =
+              time_between_three_nodes(prev, middle, next)
+            - time_between_two_nodes(prev, next)
+            + order.emptying_time;
+
+        self.time += time_diff;
+        self.capacity += order.trash();
+        lv.insert_after(insert_after_this, order_index);
+
+        time_diff
+    }
 }
 
 impl Default for Route {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+
+#[cfg(test)]
+use test_env_helpers::*;
+
+#[before_all]
+#[cfg(test)]
+mod tests {
+    use crate::{get_distance_matrix, get_orders, DISTANCE_MATRIX, ORDERS};
+    use crate::parser::{parse_distance_matrix, parse_orderfile};
+    use crate::resource::{Company, Frequency};
+    use crate::simulated_annealing::route::Route;
+
+    fn before_all(){
+        // We make most of the frequencies 0 to make the penalty score a lot lower.
+        // This helps with
+        let mut order_vec: Vec<Company>= parse_orderfile() .unwrap();
+        for (i, order) in order_vec.iter_mut().enumerate() {
+            if i > 3 {
+                order.frequency = Frequency::None;
+            }
+        }
+        ORDERS.set(order_vec.into()).ok();
+        let distance_matrix = parse_distance_matrix().unwrap();
+        DISTANCE_MATRIX.set(distance_matrix).ok();
+    }
+
+    fn calculate_score_for_single_route(){
+
+    }
+
+    #[test]
+    fn initialization_check(){
+        let orders = get_orders();
+        println!("{}", orders[0].order);
+        let matrix = get_distance_matrix();
+        println!("{}", matrix.get_edge_weight(0.into(), 1.into()).unwrap())
+    }
+
+    #[test]
+    fn single_add(){
+        let route = &mut Route::default();
+
+        route.apply_add_order(0, 0);
+
+
+        let before_recalc = route.time;
+        route.recalculate_total_time();
+        assert_eq!(before_recalc, route.time);
+    }
+
+    #[test]
+    fn single_remove(){
+        let route = &mut Route::default();
+
+        let before_time = route.calculate_time();
+
+        route.apply_add_order(0, 0);
+        route.apply_remove_node(2);
+
+
+        assert_eq!(before_time, route.time);
+        route.recalculate_total_time();
+        assert_eq!(before_time, route.time);
     }
 }

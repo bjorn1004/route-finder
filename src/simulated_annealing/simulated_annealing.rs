@@ -100,7 +100,7 @@ impl SimulatedAnnealing {
     pub fn with_trucks(&mut self, truck1: Week, truck2: Week) {
         self.truck1 = truck1;
         self.truck2 = truck2;
-        self.score = calculate_score(&self.truck1, &self.truck2);
+        self.score = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
     }
 
     /// Get the channels for communicating with the GUI
@@ -126,7 +126,7 @@ impl SimulatedAnnealing {
         // let mut rng = SmallRng::seed_from_u64(0);
         // this ic currently an infinite loop.
 
-        calculate_score(&self.truck1, &self.truck2);
+        calculate_score(&self.truck1, &self.truck2, &self.order_flags);
 
         loop {
             if self.stop_rec.try_recv().is_ok() {
@@ -174,14 +174,14 @@ impl SimulatedAnnealing {
             "iter/sec:     {}",
             self.iterations_done as u64 / now.elapsed().as_secs()
         );
-        fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
-        let before_recalc = calculate_score(&self.truck1, &self.truck2);
+        fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
+        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
         println!("{}", before_recalc);
 
         self.truck1.recalculate_total_time();
         self.truck2.recalculate_total_time();
         println!("recalculated the shit");
-        let after_recalc = calculate_score(&self.truck1, &self.truck2);
+        let after_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
         println!("score: {}", after_recalc);
         println!();
         println!(
