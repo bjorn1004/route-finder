@@ -16,6 +16,11 @@ impl OrderFlags {
     }
 
     pub fn add_order(&mut self, order: OrderIndex, day: DayEnum) {
+        // First we get the order, and do an and operator with the day.
+        // This works like a bitmask.
+        // If this value is not equal to 0,
+        // there was already something on the day where a new order would have been added.
+        debug_assert_eq!(self.orders[order] & Self::day_to_flags(day), 0);
         match day {
             DayEnum::Monday =>   self.orders[order] |= 0b00010000,
             DayEnum::Tuesday =>  self.orders[order] |= 0b00001000,
@@ -25,6 +30,11 @@ impl OrderFlags {
         }
     }
     pub fn remove_order(&mut self, order: OrderIndex, day: DayEnum) {
+        // First we get the order, and do an and operator with the day.
+        // This works like a bitmask.
+        // If this value is equal to 0,
+        // we did not have anything on the day where the order would have been removed
+        debug_assert_ne!(self.orders[order] & Self::day_to_flags(day), 0);
         match day {
             DayEnum::Monday =>   self.orders[order] &= 0b00001111,
             DayEnum::Tuesday =>  self.orders[order] &= 0b00010111,
@@ -53,7 +63,7 @@ impl OrderFlags {
         let order = &get_orders()[order_index];
         let flags = (self.orders[order_index] & 0b1_1111) ^ Self::day_to_flags(shift_from);
 
-        assert!(self.orders[order_index] & 0b1_1111 > flags); // assert that a one has been flipped to 0
+        debug_assert!(self.orders[order_index] & 0b1_1111 > flags); // assert that a one has been flipped to 0
 
         self._get_random_allowed_day(flags, order, rng)
     }
@@ -180,5 +190,10 @@ impl OrderFlags {
             counts.push(order.count_ones())
         }
         counts
+    }
+    pub fn clear(&mut self, order_index: OrderIndex) {
+        // check if we are actually clearing something here.
+        debug_assert_ne!(self.orders[order_index], 0);
+        self.orders[order_index] = 0;
     }
 }

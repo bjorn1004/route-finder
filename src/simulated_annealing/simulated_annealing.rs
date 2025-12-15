@@ -174,7 +174,7 @@ impl SimulatedAnnealing {
             "iter/sec:     {}",
             self.iterations_done as u64 / now.elapsed().as_secs()
         );
-        fixplzplzplzpl(&mut self.truck1, &mut self.truck2);
+        fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
         let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
         println!("{}", before_recalc);
 
