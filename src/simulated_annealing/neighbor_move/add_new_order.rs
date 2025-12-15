@@ -1,7 +1,7 @@
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::{Time, FULL_DAY, HALF_HOUR};
+use crate::resource::{Time, HALF_HOUR};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
@@ -59,6 +59,7 @@ impl AddNewOrder {
     }
 
 
+    #[cfg(debug_assertions)]
     fn calculate_time_difference(&self, truck1: &Week, truck2: &Week) -> Time{
         let orders = get_orders();
         let order = &orders[self.order];
@@ -82,44 +83,43 @@ impl AddNewOrder {
 
 impl NeighborMove for AddNewOrder {
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange>{
-        let orders = get_orders();
-        let order = &orders[self.order];
-        let mut cost: CostChange = 0;
+
+        let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else { truck2 }).get(self.day).get(self.time_of_day);
+        let time = route.calculate_add_order(self.insert_after_index, self.order);
+
+        let order = &get_orders()[self.order];
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
-        if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
-            cost -= 3 * order.emptying_time * order.frequency as Time;
-        }
-
-        let time = self.calculate_time_difference(truck1, truck2);
-
-        let a = (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2}).get(self.day);
-        if a.get_total_time() + time > FULL_DAY {
-            // return None;
-        }
+        let cost = if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
+            -3 * order.emptying_time * order.frequency as Time
+        } else {
+            0
+        };
 
         #[cfg(debug_assertions)]
         {
-            let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else { truck2 }).get(self.day).get(self.time_of_day);
-            let in_route_calculator = route.calculate_add_order(self.insert_after_index, self.order);
-            assert_eq!(time, in_route_calculator);
+            let old_time_calaculator = self.calculate_time_difference(truck1, truck2);
+            assert_eq!(time, old_time_calaculator);
         }
+
         Some(cost + time)
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
-        order_flags.add_order(self.order, self.day);
+        #[cfg(debug_assertions)]
+        let checker_time_diff = self.calculate_time_difference(truck1, truck2);
 
-        let time_difference = self.calculate_time_difference(truck1, truck2);
-        let truck = if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2};
-        let day = truck.get_mut(self.day);
-        let route = day.get_mut(self.time_of_day);
-        route.linked_vector.insert_after(self.insert_after_index, self.order);
-        route.capacity += get_orders()[self.order].trash();
-        route.time += time_difference;
-        route.check_correctness_time();
+        let route= (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+            .get_mut(self.day)
+            .get_mut(self.time_of_day);
+
+        let time_difference = route.apply_add_order(self.insert_after_index, self.order);
+        order_flags.add_order(self.order, self.day);
+        #[cfg(debug_assertions)]
+        assert_eq!(time_difference, checker_time_diff);
 
         let order = &get_orders()[self.order];
+
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
         let penalty = if order_flags.get_filled_count(self.order) == order.frequency as u32{
             -3 * order.emptying_time * order.frequency as Time

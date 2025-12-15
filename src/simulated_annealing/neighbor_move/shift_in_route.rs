@@ -1,10 +1,6 @@
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
-use crate::get_orders;
 use crate::resource::Time;
 use crate::simulated_annealing::day::TimeOfDay;
-use crate::simulated_annealing::neighbor_move::evaluation_helper::{
-    time_between_three_nodes, time_between_two_nodes,
-};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::week::{DayEnum, Week};
@@ -16,7 +12,6 @@ pub struct ShiftInRoute {
     time_of_day: TimeOfDay,
     shifting_node: LVNodeIndex,
     target_neighbor1: LVNodeIndex,
-    target_neighbor2: LVNodeIndex,
 }
 
 impl ShiftInRoute {
@@ -61,16 +56,12 @@ impl ShiftInRoute {
             break;
         }
 
-        let target_neighbor2: LVNodeIndex = lv.get_next_index(target_neighbor1).unwrap();
-
-        debug_assert_eq!(lv.get_value(target_neighbor2).unwrap(), lv.get_next_value_unsafe(target_neighbor1));
         Some(ShiftInRoute {
             is_truck1,
             day: day_enum,
             time_of_day,
             shifting_node,
             target_neighbor1,
-            target_neighbor2,
         })
     }
 
@@ -80,43 +71,8 @@ impl ShiftInRoute {
         let route = truck.get(self.day).get(self.time_of_day);
         let lv = &route.linked_vector;
 
-        let time_difference =
-            route.calculate_remove_node(self.shifting_node) +
-                route.calculate_add_order(self.target_neighbor1, *lv.get_value_unsafe(self.shifting_node));
-
-        #[cfg(debug_assertions)]
-        {
-            // This is the old way I calaculated it. I have now abstracted the code into the route struct.
-            // I'll leave this here for now. I now for sure that the code below is correct.
-
-            let orders = get_orders();
-
-            let before_shift = orders[*lv.get_prev_value(self.shifting_node).unwrap()].matrix_id;
-            let after_shift = orders[*lv.get_next_value(self.shifting_node).unwrap()].matrix_id;
-
-            let t1 = orders[*lv.get_value_unsafe(self.target_neighbor1)].matrix_id;
-            let shift = orders[*lv.get_value_unsafe(self.shifting_node)].matrix_id;
-            let t2 = orders[*lv.get_value_unsafe(self.target_neighbor2)].matrix_id;
-
-            debug_assert_eq!(orders[*lv.get_next_value_unsafe(self.target_neighbor1)].matrix_id, t2);
-
-            // add the difference between the shifting_node and the two nodes where it will be put between
-            let mut old_time_difference = time_between_three_nodes(t1, shift, t2);
-            // remove the time between these two nodes
-            old_time_difference -= time_between_two_nodes(t1, t2);
-
-            // add the time between the two neighbors of the node that will be shifted
-            old_time_difference += time_between_two_nodes(before_shift, after_shift);
-            // remove the time between the node that will be shifted and it's current neighbors
-            old_time_difference -= time_between_three_nodes(before_shift, shift, after_shift);
-
-            // normally we would calculate the emptying time here,
-            // but the shifted node will end up in this route again,
-            // thus we will end up with the same emptying time for this route.
-            assert_eq!(old_time_difference, time_difference);
-        }
-
-        time_difference
+        route.calculate_remove_node(self.shifting_node) +
+            route.calculate_add_order(self.target_neighbor1, *lv.get_value_unsafe(self.shifting_node))
     }
 }
 impl NeighborMove for ShiftInRoute {
@@ -140,7 +96,9 @@ impl NeighborMove for ShiftInRoute {
         lv.insert_after(self.target_neighbor1, shifting_value);
         // don't need to compact, because the lv has the same length as before the operations.
 
+        #[cfg(debug_assertions)]
         route.check_correctness_time();
+
         time_difference
     }
 }

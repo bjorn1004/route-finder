@@ -116,12 +116,33 @@ impl Route {
 
         let time_diff =
             - time_between_three_nodes(prev, middle, next)
-                + time_between_two_nodes(prev, next);
+            + time_between_two_nodes(prev, next)
+            - order.emptying_time;
 
-        self.time += time_diff - order.emptying_time;
+        self.time += time_diff;
         self.capacity -= order.trash();
         lv.remove(node);
         lv.compact();
+        time_diff
+    }
+    /// a special function for the FIXPLZPLZPLZPLZPLZPLZPLZ function.
+    pub fn apply_remove_node_without_compact(&mut self, node: LVNodeIndex) -> Time{
+        let orders = get_orders();
+        let lv = &mut self.linked_vector;
+        let order = &orders[*lv.get_value_unsafe(node)];
+
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
+        let middle = order.matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+
+        let time_diff =
+            - time_between_three_nodes(prev, middle, next)
+            + time_between_two_nodes(prev, next)
+            - order.emptying_time;
+
+        self.time += time_diff;
+        self.capacity -= order.trash();
+        lv.remove(node);
         time_diff
     }
     pub fn calculate_add_order(&self, insert_after_this: LVNodeIndex, order_to_insert: OrderIndex) -> Time {
@@ -149,11 +170,12 @@ impl Route {
         let middle = order.matrix_id;
         let next = orders[*lv.get_next_value_unsafe(insert_after_this)].matrix_id;
 
-        let time_diff = time_between_three_nodes(prev, middle, next)
-            - time_between_two_nodes(prev, next);
+        let time_diff =
+              time_between_three_nodes(prev, middle, next)
+            - time_between_two_nodes(prev, next)
+            + order.emptying_time;
 
         self.time += time_diff;
-        self.time += order.emptying_time;
         self.capacity += order.trash();
         lv.insert_after(insert_after_this, order_index);
 

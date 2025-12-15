@@ -1,4 +1,3 @@
-use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
@@ -19,7 +18,7 @@ pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week, order_flags: &mut Or
         .collect();
 
     let dropoff_index = get_orders().len() - 1;
-    let bad: Vec<usize> = a.iter().map(|(a, b)| **a).collect();
+    let bad: Vec<usize> = a.iter().map(|(a, _)| **a).collect();
     let filtered_bad: Vec<&usize> = bad.iter().filter(|i| **i != dropoff_index).collect();
     let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
 
@@ -68,6 +67,7 @@ fn delete_bad_route(route: &mut Route, bad_list: &[usize]) {
     }
 
     for bad_index in bad_indexes {
-        route.apply_remove_node(bad_index);
+        route.apply_remove_node_without_compact(bad_index);
     }
+    route.linked_vector.compact();
 }

@@ -109,46 +109,72 @@ impl ShiftBetweenDays {
     }
 
     /// returns a tuple where item1 contains change in time to shiftRoute, item2 contains change to targetRoute
-    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> Option<(Time, Time)> {
-        let shift_lv = &(if self.shift.truck == TruckEnum::Truck1 {
+    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> Option<(Time/*shift*/, Time/*target*/)> {
+
+        let shift_route = (if self.shift.truck == TruckEnum::Truck1 {
             truck1
         } else {
             truck2
         })
-        .get(self.shift.day)
-        .get(self.shift.time_of_day)
-        .linked_vector;
+            .get(self.shift.day)
+            .get(self.shift.time_of_day);
 
-        let orders = get_orders();
-        let emptying_time = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].emptying_time;
+        let shift_diff = shift_route.calculate_remove_node(self.shift.node_index);
 
-        let before_shift = orders[*shift_lv.get_prev_value_unsafe(self.shift.node_index)].matrix_id;
-
-        let shift = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].matrix_id;
-        let after_shift = orders[*shift_lv.get_next_value_unsafe(self.shift.node_index)].matrix_id;
-
-        let target_lv = &(if self.target.truck == TruckEnum::Truck1 {
+        let target_route = (if self.target.truck == TruckEnum::Truck1 {
             truck1
         } else {
             truck2
         })
-        .get(self.target.day)
-        .get(self.target.time_of_day)
-        .linked_vector;
-        let t1 = orders[*target_lv.get_value_unsafe(self.target.node_index)].matrix_id;
-        let t2 = orders[*target_lv.get_next_value_unsafe(self.target.node_index)].matrix_id;
+            .get(self.target.day)
+            .get(self.target.time_of_day);
 
-        // add the difference between the shifting_node and the two nodes where it will be put between
-        let mut target_diff = time_between_three_nodes(t1, shift, t2);
-        // remove the time between these two nodes
-        target_diff -= time_between_two_nodes(t1, t2);
-        target_diff += emptying_time;
+        let target_diff = target_route.calculate_add_order(self.target.node_index, self.shift.order);
 
-        // add the time between the two neighbors of the node that will be shifted
-        let mut shift_diff = time_between_two_nodes(before_shift, after_shift);
-        // remove the time between the node that will be shifted and it's current neighbors
-        shift_diff -= time_between_three_nodes(before_shift, shift, after_shift);
-        shift_diff -= emptying_time;
+        #[cfg(debug_assertions)]
+        {
+            let shift_lv = &(if self.shift.truck == TruckEnum::Truck1 {
+                truck1
+            } else {
+                truck2
+            })
+                .get(self.shift.day)
+                .get(self.shift.time_of_day)
+                .linked_vector;
+
+            let orders = get_orders();
+            let emptying_time = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].emptying_time;
+
+            let before_shift = orders[*shift_lv.get_prev_value_unsafe(self.shift.node_index)].matrix_id;
+
+            let shift = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].matrix_id;
+            let after_shift = orders[*shift_lv.get_next_value_unsafe(self.shift.node_index)].matrix_id;
+
+            let target_lv = &(if self.target.truck == TruckEnum::Truck1 {
+                truck1
+            } else {
+                truck2
+            })
+                .get(self.target.day)
+                .get(self.target.time_of_day)
+                .linked_vector;
+            let t1 = orders[*target_lv.get_value_unsafe(self.target.node_index)].matrix_id;
+            let t2 = orders[*target_lv.get_next_value_unsafe(self.target.node_index)].matrix_id;
+
+            // add the difference between the shifting_node and the two nodes where it will be put between
+            let mut old_target_diff = time_between_three_nodes(t1, shift, t2);
+            // remove the time between these two nodes
+            old_target_diff -= time_between_two_nodes(t1, t2);
+            old_target_diff += emptying_time;
+
+            // add the time between the two neighbors of the node that will be shifted
+            let mut old_shift_diff = time_between_two_nodes(before_shift, after_shift);
+            // remove the time between the node that will be shifted and it's current neighbors
+            old_shift_diff -= time_between_three_nodes(before_shift, shift, after_shift);
+            old_shift_diff -= emptying_time;
+            assert_eq!(shift_diff, old_shift_diff);
+            assert_eq!(target_diff, old_target_diff);
+        }
 
         Some((shift_diff, target_diff))
     }
@@ -160,24 +186,12 @@ impl ShiftBetweenDays {
         shift_diff: Time,
         target_diff: Time,
     ) -> Time {
-        let order = &get_orders()[self.shift.order];
         let shift_route = truck
             .get_mut(self.shift.day)
             .get_mut(self.shift.time_of_day);
 
-        let shift_value = *shift_route
-            .linked_vector
-            .get_value(self.shift.node_index)
-            .unwrap();
-
-        shift_route.capacity -= order.trash();
-        shift_route.time += shift_diff;
-
-        shift_route.linked_vector.remove(self.shift.node_index);
-        shift_route.linked_vector.compact();
-
-        shift_route.check_correctness_time();
-
+        shift_route.apply_remove_node(self.shift.node_index);
+        order_flags.remove_order(self.shift.order, self.shift.day);
         let shift_route_empty: Time = if shift_route.linked_vector.len() == 2 {
             -HALF_HOUR
         } else {
@@ -188,15 +202,8 @@ impl ShiftBetweenDays {
             .get_mut(self.target.day)
             .get_mut(self.target.time_of_day);
 
-        target_route.capacity += order.trash();
-        target_route.time += target_diff;
+        target_route.apply_add_order(self.target.node_index, self.shift.order);
 
-        target_route
-            .linked_vector
-            .insert_after(self.target.node_index, shift_value);
-
-        target_route.check_correctness_time();
-        order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);
 
         let target_diff_new_route: Time = if target_route.linked_vector.len() == 3 {
@@ -260,26 +267,8 @@ impl NeighborMove for ShiftBetweenDays {
                 _ => unreachable!(),
             };
 
-        let order = &get_orders()[self.shift.order];
-
-        let shift_value = *shift_route
-            .linked_vector
-            .get_value(self.shift.node_index)
-            .unwrap();
-
-        shift_route.capacity -= order.trash();
-        shift_route.time += shift_diff;
-
-        shift_route.linked_vector.remove(self.shift.node_index);
-        shift_route.linked_vector.compact();
-        shift_route.check_correctness_time();
-        target_route.capacity += order.trash();
-        target_route.time += target_diff;
-
-        target_route
-            .linked_vector
-            .insert_after(self.target.node_index, shift_value);
-        target_route.check_correctness_time();
+        shift_route.apply_remove_node(self.shift.node_index);
+        target_route.apply_add_order(self.target.node_index, self.shift.order);
 
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);

@@ -17,14 +17,10 @@ pub struct Company {
 pub type MatrixID = NodeIndex<u16>;
 /// time in centiseconds
 pub type Time = i32;
-/// 100 centiseconds
-pub const SECOND:Time = 100;
 /// 60 * 100 centiseconds
 pub const MINUTE:Time = 60*100;
 /// 30 * 60 * 100 centiseconds
 pub const HALF_HOUR:Time = 30*60*100;
-/// 60 * 60 * 100 centiseconds
-pub const HOUR:Time = 60*60*100;
 /// 12 * 60 * 60 * 100 centiseconds;
 pub const FULL_DAY:Time = 12*60*60*100;
 impl Company {
