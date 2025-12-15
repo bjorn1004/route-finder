@@ -1,6 +1,6 @@
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
-use crate::get_orders;
+use crate::{get_orders, EXTREME_TEST_FLAG};
 use crate::resource::{HALF_HOUR, Time};
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 
@@ -42,7 +42,9 @@ impl Route {
         self.time = self.calculate_time();
     }
     pub fn check_correctness_time(&self) -> bool {
-        return true;
+        if !EXTREME_TEST_FLAG{
+            return true
+        }
         let calculated_time = self.calculate_time();
         let difference = self.time - calculated_time;
         if difference > 1 {
@@ -74,14 +76,6 @@ impl Route {
 
             time_travel += time_between_two_nodes(matrix_i, next_matrix_i);
             time_travel += orders[*order_i].emptying_time;
-
-            // let prev_order_i = lv.get_prev_value(node_i).unwrap();
-            //
-            // let node_mi = orders[*order_i].matrix_id.into();
-            // let prev_node_mi = orders[*prev_order_i].matrix_id.into();
-            //
-            // time_travel += time_between_two_nodes(prev_node_mi, node_mi);
-            // time_travel += orders[*order_i].emptying_time;
         }
 
         // Add the 30 minutes for the dropoff

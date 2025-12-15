@@ -60,16 +60,14 @@ fn delete_bad_day(day: &mut Day, bad_list: &[usize]) {
     delete_bad_route(day.get_mut(TimeOfDay::Afternoon), bad_list);
 }
 fn delete_bad_route(route: &mut Route, bad_list: &[usize]) {
-    let lv = &mut route.linked_vector;
     let mut bad_indexes = Vec::new();
-    for (node_i, order_i) in lv.iter() {
+    for (node_i, order_i) in route.linked_vector.iter() {
         if bad_list.contains(order_i) {
             bad_indexes.push(node_i);
         }
     }
 
     for bad_index in bad_indexes {
-        lv.remove(bad_index);
+        route.apply_remove_node(bad_index);
     }
-    lv.compact();
 }

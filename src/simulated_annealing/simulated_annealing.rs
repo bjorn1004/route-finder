@@ -174,6 +174,16 @@ impl SimulatedAnnealing {
             "iter/sec:     {}",
             self.iterations_done as u64 / now.elapsed().as_secs()
         );
+        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        println!("{}", before_recalc);
+
+        self.truck1.recalculate_total_time();
+        self.truck2.recalculate_total_time();
+        println!("recalculated the shit");
+        let after_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+
+        println!("NOW DO FIXPLZPLZPLZPZPLZ");
+        println!("THAT FUNCTION DOES NOT UPDATE THE SCORE CORRECTLY");
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
         let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
         println!("{}", before_recalc);

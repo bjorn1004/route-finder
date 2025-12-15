@@ -22,6 +22,7 @@ mod resource;
 pub mod simulated_annealing;
 
 pub static ORDERS: OnceLock<Arc<[Company]>> = const { OnceLock::new() };
+pub const EXTREME_TEST_FLAG:bool = false;
 
 #[inline(always)]
 /// If you call this function before orders are parsed I will call you silly and make you wear a dunce hat.
