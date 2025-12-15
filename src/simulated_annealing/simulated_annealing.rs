@@ -192,33 +192,28 @@ impl SimulatedAnnealing {
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        // not really sure if this is correct
-        loop {
+        let transactionthingy = self.choose_neighbor(rng);
+        // get the change in capacity/time
 
-            let transactionthingy = self.choose_neighbor(rng);
-            // get the change in capacity/time
+        let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
 
-            let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
+        // if we want to go through with this thing
+        if self.accept(cost, rng) {
+            // change the route
 
-            // if we want to go through with this thing
-            if self.accept(cost, rng) {
-                // change the route
-
-                self.score += transactionthingy.apply(
-                    &mut self.truck1,
-                    &mut self.truck2,
-                    &mut self.order_flags,
-                );
-                // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
-                // Future: It should only send a new route when it's faster, not just accepted
-                if !self.route_channel.0.is_full() {
-                    self.route_channel
-                        .0
-                        .try_send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
-                        .ok();
-                    self.egui_ctx.request_repaint();
-                }
-                break;
+            self.score += transactionthingy.apply(
+                &mut self.truck1,
+                &mut self.truck2,
+                &mut self.order_flags,
+            );
+            // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
+            // Future: It should only send a new route when it's faster, not just accepted
+            if !self.route_channel.0.is_full() {
+                self.route_channel
+                    .0
+                    .try_send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+                    .ok();
+                self.egui_ctx.request_repaint();
             }
         }
     }
