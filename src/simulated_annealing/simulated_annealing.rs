@@ -39,10 +39,10 @@ pub struct SimulatedAnnealing {
     a: f32,
     score: i32,
 
-    truck1: Week,
-    truck2: Week,
-    order_flags: OrderFlags,
-    unfilled_orders: VecDeque<OrderIndex>,
+    pub(crate) truck1: Week,
+    pub(crate) truck2: Week,
+    pub(crate) order_flags: OrderFlags,
+    pub(crate) unfilled_orders: VecDeque<OrderIndex>,
     // We could store variables here which are needed for simulated annealing.
     paused: bool,
 
@@ -194,52 +194,8 @@ impl SimulatedAnnealing {
     fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
         // not really sure if this is correct
         loop {
-            let a = rng.random_range(1..4);
-            // something to decide which thing to choose
-            let transactionthingy: Box<dyn NeighborMove> = match a {
-                1 => {
-                    if let Some(random_order) = self.unfilled_orders.pop_front() {
-                        let new_order = AddNewOrder::new(
-                            &self.truck1,
-                            &self.truck2,
-                            &mut rng,
-                            &self.order_flags,
-                            random_order,
-                        );
-                        if new_order.is_none() {
-                            self.unfilled_orders.push_front(random_order);
-                            continue;
-                        }
-                        Box::new(new_order.unwrap())
-                    } else {
-                        continue; // queue is empty, try something else
-                    }
-                }
-                2 => {
-                    let shift = ShiftInRoute::new(&self.truck1, &self.truck2, &mut rng);
-                    if shift.is_none() {
-                        continue;
-                    }
-                    Box::new(shift.unwrap())
-                }
-                3 => {
-                    let shift = ShiftBetweenDays::new(
-                        &self.truck1,
-                        &self.truck2,
-                        &mut rng,
-                        &self.order_flags,
-                    );
-                    if shift.is_none() {
-                        continue;
-                    }
-                    Box::new(shift.unwrap())
-                }
-                // remove function, try to remove all days from a single order.
-                // for example, if freq==2, remove the order on both the monday and thursday,
-                // this will cost O(n) in the length of the routes with our current strurcture
-                _ => unreachable!(),
-            };
 
+            let transactionthingy = self.choose_neighbor(rng);
             // get the change in capacity/time
 
             let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
