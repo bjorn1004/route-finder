@@ -101,6 +101,14 @@ impl ShiftInRoute {
         // but the shifted node will end up in this route again,
         // thus we will end up with the same emptying time for this route.
 
+
+        #[cfg(debug_assertions)]
+        {
+            let new_time_diff = route.calculate_remove_node(self.shifting_node) +
+                route.calculate_add_order(self.target_neighbor1, self.shifting_node);
+            assert_eq!(time_difference, new_time_diff);
+        }
+
         Some(time_difference)
     }
 }

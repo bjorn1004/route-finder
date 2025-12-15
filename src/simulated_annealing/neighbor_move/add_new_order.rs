@@ -100,7 +100,6 @@ impl NeighborMove for AddNewOrder {
 
         #[cfg(debug_assertions)]
         {
-            let orders = get_orders();
             let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else { truck2 }).get(self.day).get(self.time_of_day);
             let in_route_calculator = route.calculate_add_order(self.insert_after_index, self.order);
             assert_eq!(time, in_route_calculator);

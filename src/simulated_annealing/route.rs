@@ -76,6 +76,14 @@ impl Route {
 
             time_travel += time_between_two_nodes(matrix_i, next_matrix_i);
             time_travel += orders[*order_i].emptying_time;
+
+            // let prev_order_i = lv.get_prev_value(node_i).unwrap();
+            //
+            // let node_mi = orders[*order_i].matrix_id.into();
+            // let prev_node_mi = orders[*prev_order_i].matrix_id.into();
+            //
+            // time_travel += time_between_two_nodes(prev_node_mi, node_mi);
+            // time_travel += orders[*order_i].emptying_time;
         }
 
         // Add the 30 minutes for the dropoff
@@ -116,30 +124,30 @@ impl Route {
         lv.compact();
         time_diff
     }
-    pub fn calculate_add_order(&self, node: LVNodeIndex, order_index: OrderIndex) -> Time {
+    pub fn calculate_add_order(&self, insert_after_this: LVNodeIndex, order_to_insert: OrderIndex) -> Time {
         let orders = get_orders();
         let lv = &self.linked_vector;
 
-        let order = &orders[order_index];
+        let order = &orders[order_to_insert];
 
-        let prev = orders[*lv.get_value_unsafe(node)].matrix_id;
+        let prev = orders[*lv.get_value_unsafe(insert_after_this)].matrix_id;
         let middle = order.matrix_id;
-        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(insert_after_this)].matrix_id;
 
         let time_diff = time_between_three_nodes(prev, middle, next)
             - time_between_two_nodes(prev, next);
 
         time_diff + order.emptying_time
     }
-    pub fn apply_add_order(&mut self, node: LVNodeIndex, order_index: OrderIndex) -> Time {
+    pub fn apply_add_order(&mut self, insert_after_this: LVNodeIndex, order_to_insert: OrderIndex) -> Time {
         let orders = get_orders();
         let lv = &mut self.linked_vector;
 
-        let order = &orders[order_index];
+        let order = &orders[order_to_insert];
 
-        let prev = orders[*lv.get_value_unsafe(node)].matrix_id;
+        let prev = orders[*lv.get_value_unsafe(insert_after_this)].matrix_id;
         let middle = order.matrix_id;
-        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(insert_after_this)].matrix_id;
 
         let time_diff = time_between_three_nodes(prev, middle, next)
             - time_between_two_nodes(prev, next);
@@ -147,7 +155,7 @@ impl Route {
         self.time += time_diff;
         self.time += order.emptying_time;
         self.capacity += order.trash();
-        lv.insert_after(node, order_index);
+        lv.insert_after(insert_after_this, order_to_insert);
 
         time_diff
     }
