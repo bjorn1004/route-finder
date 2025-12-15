@@ -191,7 +191,7 @@ impl SimulatedAnnealing {
         print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
-    fn do_step<R: Rng + ?Sized>(&mut self, mut rng: &mut R) {
+    fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
         // not really sure if this is correct
         loop {
 
