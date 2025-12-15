@@ -109,7 +109,7 @@ impl ShiftBetweenDays {
     }
 
     /// returns a tuple where item1 contains change in time to shiftRoute, item2 contains change to targetRoute
-    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> Option<(Time/*shift*/, Time/*target*/)> {
+    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> (Time/*shift*/, Time/*target*/) {
 
         let shift_route = (if self.shift.truck == TruckEnum::Truck1 {
             truck1
@@ -176,7 +176,7 @@ impl ShiftBetweenDays {
             assert_eq!(target_diff, old_target_diff);
         }
 
-        Some((shift_diff, target_diff))
+        (shift_diff, target_diff)
     }
 
     fn apply_same_truck_case(
@@ -217,9 +217,9 @@ impl ShiftBetweenDays {
 }
 
 impl NeighborMove for ShiftBetweenDays {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> Option<CostChange> {
+    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> CostChange {
         // this is the time difference
-        let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2)?;
+        let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2);
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {
             truck1
@@ -230,14 +230,14 @@ impl NeighborMove for ShiftBetweenDays {
         if target_day.get_total_time() + target_diff > FULL_DAY {
             let overtime = ((target_day.get_total_time() + target_diff - FULL_DAY) * /*penalty percentage*/3)
                 / 100;
-            return Some(shift_diff + target_diff + overtime);
+            return shift_diff + target_diff + overtime;
         }
 
-        Some(shift_diff + target_diff)
+        shift_diff + target_diff
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> Time {
-        let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2).unwrap();
+        let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2);
         let (shift_route, target_route): (&mut Route, &mut Route) =
             match (self.shift.truck, self.target.truck) {
                 (TruckEnum::Truck1, TruckEnum::Truck2) => (

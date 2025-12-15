@@ -82,7 +82,7 @@ impl AddNewOrder {
 
 
 impl NeighborMove for AddNewOrder {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Option<CostChange>{
+    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> CostChange {
 
         let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else { truck2 }).get(self.day).get(self.time_of_day);
         let time = route.calculate_add_order(self.insert_after_index, self.order);
@@ -102,7 +102,7 @@ impl NeighborMove for AddNewOrder {
             assert_eq!(time, old_time_calaculator);
         }
 
-        Some(cost + time)
+        cost + time
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {

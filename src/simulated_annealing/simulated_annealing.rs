@@ -200,12 +200,6 @@ impl SimulatedAnnealing {
 
             let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
 
-            // I'm going to use is_none for bad things for now, will later probably be replaced by penalty costs.
-            if cost.is_none() {
-                continue;
-            }
-            let cost = cost.unwrap();
-
             // if we want to go through with this thing
             if self.accept(cost, rng) {
                 // change the route
