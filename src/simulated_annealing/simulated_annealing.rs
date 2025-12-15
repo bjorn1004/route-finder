@@ -1,5 +1,4 @@
-use super::neighbor_move::add_new_order::AddNewOrder;
-use super::neighbor_move::shift_in_route::ShiftInRoute;
+use std::cmp::{max};
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
@@ -7,7 +6,6 @@ use crate::printer::print_solution;
 use crate::resource::Company;
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
-use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::{calcualte_starting_score, calculate_score};
 use flume::{Receiver, Sender, bounded};
@@ -172,7 +170,7 @@ impl SimulatedAnnealing {
         println!("iterations:   {}", self.iterations_done);
         println!(
             "iter/sec:     {}",
-            self.iterations_done as u64 / now.elapsed().as_secs()
+            self.iterations_done as u64 / max(now.elapsed().as_secs(), 1)
         );
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
         let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);

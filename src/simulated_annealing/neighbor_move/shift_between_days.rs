@@ -109,7 +109,7 @@ impl ShiftBetweenDays {
     }
 
     /// returns a tuple where item1 contains change in time to shiftRoute, item2 contains change to targetRoute
-    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> (Time/*shift*/, Time/*target*/) {
+    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> (Time/*shift*/, Time/*target*/, Time /*empty_shift*/, Time /*new_target*/) {
 
         let shift_route = (if self.shift.truck == TruckEnum::Truck1 {
             truck1
@@ -176,7 +176,17 @@ impl ShiftBetweenDays {
             assert_eq!(target_diff, old_target_diff);
         }
 
-        (shift_diff, target_diff)
+        let shift_route_empty: Time = if shift_route.linked_vector.len() == 3 {
+            -HALF_HOUR
+        } else {
+            0
+        };
+        let target_diff_new_route: Time = if target_route.linked_vector.len() == 2 {
+            HALF_HOUR
+        } else {
+            0
+        };
+        (shift_diff, target_diff, shift_route_empty, target_diff_new_route)
     }
 
     fn apply_same_truck_case(
@@ -185,6 +195,8 @@ impl ShiftBetweenDays {
         order_flags: &mut OrderFlags,
         shift_diff: Time,
         target_diff: Time,
+        empty_shift: Time,
+        new_target: Time,
     ) -> Time {
         let shift_route = truck
             .get_mut(self.shift.day)
@@ -192,11 +204,6 @@ impl ShiftBetweenDays {
 
         shift_route.apply_remove_node(self.shift.node_index);
         order_flags.remove_order(self.shift.order, self.shift.day);
-        let shift_route_empty: Time = if shift_route.linked_vector.len() == 2 {
-            -HALF_HOUR
-        } else {
-            0
-        };
 
         let target_route = truck
             .get_mut(self.target.day)
@@ -206,20 +213,15 @@ impl ShiftBetweenDays {
 
         order_flags.add_order(self.shift.order, self.target.day);
 
-        let target_diff_new_route: Time = if target_route.linked_vector.len() == 3 {
-            HALF_HOUR
-        } else {
-            0
-        };
 
-        shift_diff + target_diff + shift_route_empty + target_diff_new_route
+        shift_diff + target_diff + empty_shift + new_target
     }
 }
 
 impl NeighborMove for ShiftBetweenDays {
     fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> CostChange {
         // this is the time difference
-        let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2);
+        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(truck1, truck2);
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {
             truck1
@@ -233,11 +235,11 @@ impl NeighborMove for ShiftBetweenDays {
             return shift_diff + target_diff + overtime;
         }
 
-        shift_diff + target_diff
+        shift_diff + target_diff + empty_shift + new_target
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> Time {
-        let (shift_diff, target_diff) = self.evaluate_shift_neighbors(truck1, truck2);
+        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(truck1, truck2);
         let (shift_route, target_route): (&mut Route, &mut Route) =
             match (self.shift.truck, self.target.truck) {
                 (TruckEnum::Truck1, TruckEnum::Truck2) => (
@@ -262,7 +264,7 @@ impl NeighborMove for ShiftBetweenDays {
                     } else {
                         truck2
                     };
-                    return self.apply_same_truck_case(truck, order_flags, shift_diff, target_diff);
+                    return self.apply_same_truck_case(truck, order_flags, shift_diff, target_diff, empty_shift, new_target);
                 }
                 _ => unreachable!(),
             };
@@ -273,17 +275,6 @@ impl NeighborMove for ShiftBetweenDays {
         order_flags.remove_order(self.shift.order, self.shift.day);
         order_flags.add_order(self.shift.order, self.target.day);
 
-        let shift_route_empty: Time = if shift_route.linked_vector.len() == 2 {
-            -HALF_HOUR
-        } else {
-            0
-        };
-        let target_diff_new_route: Time = if target_route.linked_vector.len() == 3 {
-            HALF_HOUR
-        } else {
-            0
-        };
-
-        shift_diff + target_diff + shift_route_empty + target_diff_new_route
+        shift_diff + target_diff + empty_shift + new_target
     }
 }
