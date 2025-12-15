@@ -139,11 +139,11 @@ impl Route {
 
         time_diff + order.emptying_time
     }
-    pub fn apply_add_order(&mut self, insert_after_this: LVNodeIndex, order_to_insert: OrderIndex) -> Time {
+    pub fn apply_add_order(&mut self, insert_after_this: LVNodeIndex, order_index: OrderIndex) -> Time {
         let orders = get_orders();
         let lv = &mut self.linked_vector;
 
-        let order = &orders[order_to_insert];
+        let order = &orders[order_index];
 
         let prev = orders[*lv.get_value_unsafe(insert_after_this)].matrix_id;
         let middle = order.matrix_id;
@@ -155,7 +155,7 @@ impl Route {
         self.time += time_diff;
         self.time += order.emptying_time;
         self.capacity += order.trash();
-        lv.insert_after(insert_after_this, order_to_insert);
+        lv.insert_after(insert_after_this, order_index);
 
         time_diff
     }
