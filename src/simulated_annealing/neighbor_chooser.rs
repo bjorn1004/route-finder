@@ -15,10 +15,9 @@ impl SimulatedAnnealing {
             1, // shift between days
             // 1, // remove
         ];
-        let dist = WeightedIndex::new(&weights).unwrap();
+        let weights = WeightedIndex::new(&weights).unwrap();
         loop {
-            let a = dist.sample(rng);
-
+            let a = weights.sample(rng);
 
             // something to decide which thing to choose
             let transactionthingy: Box<dyn NeighborMove> = match a {
