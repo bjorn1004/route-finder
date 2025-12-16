@@ -1,16 +1,10 @@
-use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::resource::Time;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::Route;
-use crate::simulated_annealing::week::DayEnum::Monday;
 use crate::simulated_annealing::week::Week;
 
 pub fn calculate_score(truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Time {
-    let truck = truck1.get(Monday);
-
-    truck.morning.linked_vector.push_front(0);
-
     let orders = get_orders();
     let mut order_count: Vec<usize> = vec![0; orders.len()];
 
