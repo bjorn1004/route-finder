@@ -90,8 +90,8 @@ impl NeighborMove for AddNewOrder {
         let order = &get_orders()[self.order];
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
-        let cost = if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
-            -3 * order.emptying_time * order.frequency as Time
+        let penalty = if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
+            -order.penalty()
         } else {
             0
         };
@@ -102,7 +102,7 @@ impl NeighborMove for AddNewOrder {
             assert_eq!(time, old_time_calaculator);
         }
 
-        cost + time
+        penalty + time
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {

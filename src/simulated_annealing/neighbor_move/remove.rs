@@ -1,4 +1,3 @@
-use std::io::empty;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::get_orders;
@@ -39,11 +38,6 @@ impl RemoveOrder{
                 continue;
             }
 
-            // only do frequency 1 for now
-            if !(get_orders()[*order_index].frequency as u8 == 1) {
-                return None;
-            }
-
             return Some(RemoveOrder{
                 truck_enum,
                 day_enum,
@@ -69,8 +63,9 @@ impl NeighborMove for RemoveOrder {
             0
         };
 
-        let penalty = if order_flags.get_filled_count(self.order_index) == 1 {
-            get_orders()[self.order_index].penalty()
+        let order = &get_orders()[self.order_index];
+        let penalty = if order_flags.get_filled_count(self.order_index) == order.frequency as u32{
+            order.penalty()
         } else {
             0
         };
@@ -93,12 +88,13 @@ impl NeighborMove for RemoveOrder {
             0
         };
 
-        order_flags.remove_order(self.order_index, self.day_enum);
-        let penalty = if order_flags.get_filled_count(self.order_index) == 0 {
-            get_orders()[self.order_index].penalty()
+        let order = &get_orders()[self.order_index];
+        let penalty = if order_flags.get_filled_count(self.order_index) == order.frequency as u32{
+            order.penalty()
         } else {
             0
         };
+        order_flags.remove_order(self.order_index, self.day_enum);
         diff + empty_route + penalty
     }
 }
