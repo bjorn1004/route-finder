@@ -1,6 +1,6 @@
 use super::week::DayEnum;
 use crate::get_orders;
-use crate::resource::{Company, Frequency};
+use crate::resource::{Frequency};
 use crate::simulated_annealing::route::OrderIndex;
 use rand::Rng;
 pub struct OrderFlags {
@@ -51,7 +51,7 @@ impl OrderFlags {
     ) -> Option<DayEnum> {
         let order = &get_orders()[order_index];
         let flags = self.orders[order_index] & 0b1_1111;
-        self._get_random_allowed_day(flags, order, rng)
+        OrderFlags::_get_random_allowed_day(flags, order.frequency, rng)
     }
 
     pub fn get_random_day_to_shift_to<R: Rng + ?Sized>(
@@ -65,16 +65,15 @@ impl OrderFlags {
 
         debug_assert!(self.orders[order_index] & 0b1_1111 > flags); // assert that a one has been flipped to 0
 
-        self._get_random_allowed_day(flags, order, rng)
+        OrderFlags::_get_random_allowed_day(flags, order.frequency, rng)
     }
 
-    fn _get_random_allowed_day<R: Rng + ?Sized>(
-        &self,
+    pub fn _get_random_allowed_day<R: Rng + ?Sized>(
         flags: u8,
-        order: &Company,
+        frequency: Frequency,
         rng: &mut R,
     ) -> Option<DayEnum> {
-        match order.frequency {
+        match frequency {
             Frequency::None => panic!(
                 "Tried to add something with frequency 0 to a route. \
             Frequency 0 is preserved for the dropoff locations"
