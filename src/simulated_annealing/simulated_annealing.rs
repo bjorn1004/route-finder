@@ -190,7 +190,7 @@ impl SimulatedAnnealing {
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let transactionthingy = self.choose_neighbor(rng);
+        let (transactionthingy, order_to_add_after_apply) = self.choose_neighbor(rng);
         // get the change in capacity/time
 
         let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
@@ -204,6 +204,10 @@ impl SimulatedAnnealing {
                 &mut self.truck2,
                 &mut self.order_flags,
             );
+
+            if let Some(order_to_add_after_apply) = order_to_add_after_apply {
+                self.unfilled_orders.push_back(order_to_add_after_apply)
+            }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
             // Future: It should only send a new route when it's faster, not just accepted
             if !self.route_channel.0.is_full() {

@@ -6,16 +6,20 @@ use crate::simulated_annealing::neighbor_move::shift_in_route::ShiftInRoute;
 use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
+use crate::simulated_annealing::neighbor_move::remove::RemoveOrder;
+use crate::simulated_annealing::route::OrderIndex;
+
 impl SimulatedAnnealing {
-    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R) -> Box<dyn NeighborMove> {
+    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R) -> (Box<dyn NeighborMove>, Option<OrderIndex>) {
         // https://docs.rs/rand_distr/latest/rand_distr/weighted/struct.WeightedIndex.html
         let weights = [
-            1, // add new order
-            1, // shift inside of a route
-            1, // shift between days
-            // 1, // remove
+            100000, // add new order
+            100000, // shift inside of a route
+            100000, // shift between days
+            1, // remove
         ];
         let weights = WeightedIndex::new(&weights).unwrap();
+        let mut order_to_add:Option<OrderIndex> = None;
         loop {
             let a = weights.sample(rng);
 
@@ -31,7 +35,7 @@ impl SimulatedAnnealing {
                             random_order,
                         );
                         if new_order.is_none() {
-                            self.unfilled_orders.push_front(random_order);
+                            self.unfilled_orders.push_back(random_order);
                             continue;
                         }
                         Box::new(new_order.unwrap())
@@ -62,12 +66,23 @@ impl SimulatedAnnealing {
                     }
                     Box::new(shift.unwrap())
                 }
+                3 => {
+                    let remove = RemoveOrder::new(
+                        &self.truck1,
+                        &self.truck2,
+                        rng
+                    );
+                    if remove.is_none() {
+                        continue;
+                    }
+                    Box::new(remove.unwrap())
+                }
                 // remove function, try to remove all days from a single order.
                 // for example, if freq==2, remove the order on both the monday and thursday,
                 // this will cost O(n) in the length of the routes with our current strurcture
                 _ => unreachable!(),
             };
-            return transactionthingy;
+            return (transactionthingy, None);
         }
     }
 }

@@ -27,6 +27,7 @@ impl Company {
     pub fn trash(&self) -> u32 {
         self.container_count as u32 * self.container_volume as u32
     }
+    pub fn penalty(&self) -> Time {3 * self.frequency as Time * self.emptying_time}
 }
 
 #[derive(Debug, Clone, Copy)]
