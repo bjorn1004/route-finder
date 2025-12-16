@@ -1,7 +1,9 @@
+use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::resource::Time;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::Route;
+use crate::simulated_annealing::week::DayEnum::Monday;
 use crate::simulated_annealing::solution::Solution;
 
 pub fn calculate_score(solution: &Solution, order_flags: &OrderFlags) -> Time {

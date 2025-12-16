@@ -5,3 +5,4 @@ pub mod shift_in_route;
 pub mod evaluation_helper;
 pub mod shift_between_days;
 pub mod remove;
+pub mod add_multiple_at_once;
