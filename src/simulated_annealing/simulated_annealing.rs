@@ -186,7 +186,7 @@ impl SimulatedAnnealing {
             "difference in minutes: {}",
             (before_recalc - after_recalc) / 6000
         );
-        print_solution(&self.truck1, &self.truck2).expect("failed to print the solution");
+        print_solution(after_recalc, &self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
