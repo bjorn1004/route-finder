@@ -3,6 +3,7 @@ use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
 use crate::resource::{Company, Time, HALF_HOUR};
 use crate::simulated_annealing::day::TimeOfDay;
+use crate::simulated_annealing::neighbor_move::add_new_order::AddNewOrder;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
@@ -13,7 +14,8 @@ use crate::simulated_annealing::week::{DayEnum, Week};
 /// This will add an order to a random route where it is allowed to add it to.
 /// If you try to add an order, that doesn't have any allowed routes, it panics
 pub struct AddMultipleNewOrders {
-    orders_to_add: Vec<OrderToAdd>,
+    where_to_add_orders: Vec<OrderToAdd>,
+    order_index: OrderIndex
 }
 
 struct OrderToAdd{
@@ -21,27 +23,36 @@ struct OrderToAdd{
     day: DayEnum,
     time_of_day: TimeOfDay,
     insert_after_index: LVNodeIndex,
-    order: OrderIndex,
 }
+/// This cannot coexist with the normal Add operation.
 impl AddMultipleNewOrders {
-    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags, order: OrderIndex) ->  Option<Self>{
-        let order = &get_orders()[order];
-        todo!()
+    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_index: OrderIndex) ->  Option<Self>{
+        let order = &get_orders()[order_index];
+        let mut orders_to_add: Vec<OrderToAdd> = Vec::new();
+        let mut flags = 0;
+        for _ in 0..order.frequency as u8 {
+            if let Some(order_to_add) = Self::get_random_allowed_order(truck1, truck2, rng, flags, order) {
+                flags |= OrderFlags::day_to_flags(order_to_add.day);
+                orders_to_add.push(order_to_add);
+            } else {
+                return None
+            }
+        }
+        Some(AddMultipleNewOrders{
+            where_to_add_orders: orders_to_add,
+            order_index
+        })
     }
 
-    fn get_random_allowed_order<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, flags: u8, order: &Company) -> OrderToAdd{
+    fn get_random_allowed_order<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, flags: u8, order: &Company) -> Option<OrderToAdd>{
 
         let truck_enum: TruckEnum = rng.random();
         let truck = if truck_enum == TruckEnum::Truck1 {truck1} else {truck2};
 
-        let capacity = order.trash();
         // check if there is still an allowed day open
-        if let Some(day_enum) = order_flags.get_random_allowed_day(order, rng){
+        if let Some(day_enum) = OrderFlags::_get_random_allowed_day(flags, order.frequency, rng){
             let day = truck.get(day_enum);
             let (route, time_of_day_enum) = day.get_random(rng);
-            if route.capacity + capacity > 100_000{
-                return None;
-            }
 
             let lv = &route.linked_vector;
             while let Some((index, _)) = lv.get_random(rng) {
@@ -53,12 +64,11 @@ impl AddMultipleNewOrders {
                 }
 
 
-                return Some(AddNewOrder {
+                return Some(OrderToAdd {
                     truck_enum,
                     day: day_enum,
                     time_of_day: time_of_day_enum,
                     insert_after_index: index,
-                    order,
                 })
             }
             panic!("how did we get here?")
@@ -70,78 +80,44 @@ impl AddMultipleNewOrders {
 
 
     #[cfg(debug_assertions)]
-    fn calculate_time_difference(&self, truck1: &Week, truck2: &Week) -> Time{
+    fn calculate_time_difference(&self, truck1: &Week, truck2: &Week, order_to_add: &OrderToAdd) -> Time{
         let orders = get_orders();
-        let order = &orders[self.order];
-        let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else {truck2}).get(self.day).get(self.time_of_day);
+        let order = &orders[self.order_index];
+        let route = (if order_to_add.truck_enum == TruckEnum::Truck1 { truck1 } else {truck2}).get(order_to_add.day).get(order_to_add.time_of_day);
 
-        let before_order_i = *route.linked_vector.get_value_unsafe(self.insert_after_index);
-        let after_order_i = *route.linked_vector.get_next_value_unsafe(self.insert_after_index);
-
-        let before = orders[before_order_i].matrix_id;
-        let after = orders[after_order_i].matrix_id;
-        let middle = orders[self.order].matrix_id;
-
-        let old_time = time_between_two_nodes(before, after);
-
-        let new_time = time_between_three_nodes(before, middle, after);
-
-        new_time - old_time + order.emptying_time
+        let time = route.calculate_add_order(order_to_add.insert_after_index, self.order_index);
+        time + order.emptying_time
     }
 }
 
 
-impl NeighborMove for AddNewOrder {
+impl NeighborMove for AddMultipleNewOrders {
     fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> CostChange {
-
-        let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else { truck2 }).get(self.day).get(self.time_of_day);
-        let time = route.calculate_add_order(self.insert_after_index, self.order);
-
-        let order = &get_orders()[self.order];
-
-        // stel dit is de laatste van een order, 3x ledigingsduur weghalen
-        let penalty = if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
-            -order.penalty()
-        } else {
-            0
-        };
-
-        #[cfg(debug_assertions)]
-        {
-            let old_time_calaculator = self.calculate_time_difference(truck1, truck2);
-            assert_eq!(time, old_time_calaculator);
-        }
-
-        penalty + time
+        self.where_to_add_orders
+            .iter()
+            .map(|order_info| self.calculate_time_difference(truck1, truck2, order_info))
+            .sum::<Time>()
+            // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
+            - get_orders()[self.order_index].penalty()
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
-        #[cfg(debug_assertions)]
-        let checker_time_diff = self.calculate_time_difference(truck1, truck2);
 
-        let route= (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
-            .get_mut(self.day)
-            .get_mut(self.time_of_day);
+        let mut total_score_change = 0;
+        for order_info in &self.where_to_add_orders {
+            let route= (if order_info.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+                .get_mut(order_info.day)
+                .get_mut(order_info.time_of_day);
 
-        let time_difference = route.apply_add_order(self.insert_after_index, self.order);
-        order_flags.add_order(self.order, self.day);
-        #[cfg(debug_assertions)]
-        assert_eq!(time_difference, checker_time_diff);
+            total_score_change += route.apply_add_order(order_info.insert_after_index, self.order_index);
+            order_flags.add_order(self.order_index, order_info.day);
 
-        let order = &get_orders()[self.order];
+            if route.linked_vector.len() == 3{
+                total_score_change += HALF_HOUR;
+            };
+        }
 
-        // stel dit is de laatste van een order, 3x ledigingsduur weghalen
-        let penalty = if order_flags.get_filled_count(self.order) == order.frequency as u32{
-            -3 * order.emptying_time * order.frequency as Time
-        } else {
-            0
-        };
-
-        let new_route_added = if route.linked_vector.len() == 3{
-            HALF_HOUR
-        } else {
-            0
-        };
-        time_difference + penalty + new_route_added
+        // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
+        total_score_change - get_orders()[self.order_index].penalty()
     }
 }
