@@ -171,7 +171,7 @@ impl OrderFlags {
             }
         }
     }
-    fn day_to_flags(day: DayEnum) -> u8 {
+    pub fn day_to_flags(day: DayEnum) -> u8 {
         match day {
             DayEnum::Monday => 0b1_0000,
             DayEnum::Tuesday => 0b0_1000,
