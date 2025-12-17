@@ -1,3 +1,4 @@
+use std::cmp::max;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::get_orders;
 use crate::resource::{FULL_DAY, HALF_HOUR, Time};
@@ -235,7 +236,12 @@ impl NeighborMove for ShiftBetweenDays {
             return shift_diff + target_diff + overtime;
         }
 
-        shift_diff + target_diff + empty_shift + new_target
+        let capacity_penalty = max(
+            (((target_day.get(self.target.time_of_day).capacity + get_orders()[self.target.order].trash() - 100_000) as i32 )*3)/100,
+            0
+        );
+
+        shift_diff + target_diff + empty_shift + new_target + capacity_penalty
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> Time {

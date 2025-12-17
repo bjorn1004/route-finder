@@ -40,8 +40,8 @@ pub fn calculate_score(truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -
 
     let total_time = truck1.get_total_time() + truck2.get_total_time();
 
-    println!("time: {}", total_time);
-    println!("penalty: {}", penalty);
+    // println!("time: {}", total_time);
+    // println!("penalty: {}", penalty);
     total_time + penalty
 }
 

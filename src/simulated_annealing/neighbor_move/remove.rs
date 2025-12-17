@@ -14,11 +14,11 @@ pub struct RemoveOrder{
     day_enum: DayEnum,
     time_of_day: TimeOfDay,
     node_index: LVNodeIndex,
-    order_index: OrderIndex,
+    pub order_index: OrderIndex,
 }
 
 impl RemoveOrder{
-    pub fn new<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R) -> Option<Self>{
+    pub fn new<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R) -> Option<(Self, OrderIndex)>{
         let truck_enum: TruckEnum = rng.random();
         let day_enum: DayEnum = rng.random();
         let time_of_day: TimeOfDay = rng.random();
@@ -38,13 +38,14 @@ impl RemoveOrder{
                 continue;
             }
 
-            return Some(RemoveOrder{
+            return Some((RemoveOrder{
                 truck_enum,
                 day_enum,
                 time_of_day,
                 node_index,
                 order_index: *order_index,
-            })
+            },
+            *order_index))
         }
         panic!("The linkedvector was completely empty when trying to remove an order");
     }

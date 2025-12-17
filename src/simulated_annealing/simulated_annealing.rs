@@ -165,7 +165,6 @@ impl SimulatedAnnealing {
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
-        println!("stored score: {}", self.score);
         println!("seconds:      {}", now.elapsed().as_secs());
         println!("iterations:   {}", self.iterations_done);
         println!(
@@ -173,19 +172,21 @@ impl SimulatedAnnealing {
             self.iterations_done as u64 / max(now.elapsed().as_secs(), 1)
         );
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
-        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-        println!("{}", before_recalc);
 
+        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
         self.truck1.recalculate_total_time();
         self.truck2.recalculate_total_time();
-        println!("recalculated the shit");
         let after_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        if after_recalc != before_recalc {
+            println!("Incorrect score was stored");
+            println!();
+            println!(
+                "difference in minutes: {}",
+                (before_recalc - after_recalc) / 6000
+            );
+        }
+
         println!("score: {}", after_recalc);
-        println!();
-        println!(
-            "difference in minutes: {}",
-            (before_recalc - after_recalc) / 6000
-        );
         print_solution(after_recalc, &self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
@@ -206,6 +207,7 @@ impl SimulatedAnnealing {
             );
 
             if let Some(order_to_add_after_apply) = order_to_add_after_apply {
+                println!("put something back");
                 self.unfilled_orders.push_back(order_to_add_after_apply)
             }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
