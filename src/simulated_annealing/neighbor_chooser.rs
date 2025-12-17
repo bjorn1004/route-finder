@@ -68,22 +68,23 @@ impl SimulatedAnnealing {
                     Box::new(shift.unwrap())
                 }
                 3 => {
-                    let remove = RemoveOrder::new(
+                    if let Some((remove, _order_to_add)) = RemoveOrder::new(
                         &self.truck1,
                         &self.truck2,
                         rng
-                    );
-                    if remove.is_none() {
+                    ){
+                        order_to_add = Some(_order_to_add);
+                        Box::new(remove)
+                    } else {
                         continue;
                     }
-                    Box::new(remove.unwrap())
                 }
                 // remove function, try to remove all days from a single order.
                 // for example, if freq==2, remove the order on both the monday and thursday,
                 // this will cost O(n) in the length of the routes with our current strurcture
                 _ => unreachable!(),
             };
-            return (transactionthingy, None);
+            return (transactionthingy, order_to_add);
         }
     }
 }

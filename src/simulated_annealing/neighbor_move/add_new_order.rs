@@ -1,3 +1,4 @@
+use std::cmp::max;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
@@ -30,9 +31,9 @@ impl AddNewOrder {
         if let Some(day_enum) = order_flags.get_random_allowed_day(order, rng){
             let day = truck.get(day_enum);
             let (route, time_of_day_enum) = day.get_random(rng);
-            if route.capacity + capacity > 100_000{
-                return None;
-            }
+            // if route.capacity + capacity > 100_000{
+            //     return None;
+            // }
 
             let lv = &route.linked_vector;
             while let Some((index, _)) = lv.get_random(rng) {
@@ -102,7 +103,14 @@ impl NeighborMove for AddNewOrder {
             assert_eq!(time, old_time_calaculator);
         }
 
-        penalty + time
+        // let capacity_penalty:Time = max(
+        //     (((route.capacity + order.trash() - 100_000) * 1)/1_000) as Time,
+        //     0i32
+        // );
+
+        let capacity_penalty = 0;
+
+        penalty + time + capacity_penalty
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
