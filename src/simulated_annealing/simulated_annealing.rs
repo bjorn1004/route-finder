@@ -35,7 +35,7 @@ pub struct SimulatedAnnealing {
     q: u32,
     iterations_done: u32,
     a: f32,
-    score: i32,
+    pub score: i32,
 
     pub(crate) truck1: Week,
     pub(crate) truck2: Week,

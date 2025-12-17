@@ -6,6 +6,7 @@ use crate::simulated_annealing::neighbor_move::shift_in_route::ShiftInRoute;
 use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
 use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
+use crate::resource::MINUTE;
 use crate::simulated_annealing::neighbor_move::remove::RemoveOrder;
 use crate::simulated_annealing::route::OrderIndex;
 
@@ -16,7 +17,7 @@ impl SimulatedAnnealing {
             100000, // add new order
             100000, // shift inside of a route
             100000, // shift between days
-            1, // remove
+            if self.score <= 6000*MINUTE {1} else {0}, // remove
         ];
         let weights = WeightedIndex::new(&weights).unwrap();
         let mut order_to_add:Option<OrderIndex> = None;
