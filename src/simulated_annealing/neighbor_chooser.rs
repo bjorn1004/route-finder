@@ -14,9 +14,9 @@ impl SimulatedAnnealing {
     pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R) -> (Box<dyn NeighborMove>, Option<OrderIndex>) {
         // https://docs.rs/rand_distr/latest/rand_distr/weighted/struct.WeightedIndex.html
         let weights = [
-            100000, // add new order
-            100000, // shift inside of a route
-            100000, // shift between days
+            1000, // add new order
+            10000, // shift inside of a route
+            10000, // shift between days
             if self.score <= 6000*MINUTE {1} else {0}, // remove
         ];
         let weights = WeightedIndex::new(&weights).unwrap();
