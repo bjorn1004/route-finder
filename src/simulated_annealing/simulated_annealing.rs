@@ -211,6 +211,7 @@ impl SimulatedAnnealing {
             );
 
             if let Some(order_to_add_after_apply) = order_to_add_after_apply {
+                println!("put something back");
                 self.unfilled_orders.push_back(order_to_add_after_apply)
             }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
