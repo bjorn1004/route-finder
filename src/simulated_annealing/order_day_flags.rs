@@ -195,4 +195,29 @@ impl OrderFlags {
         debug_assert_ne!(self.orders[order_index], 0);
         self.orders[order_index] = 0;
     }
+
+    pub fn get_other_days_of_an_order(&self, order_index: OrderIndex, day_enum: DayEnum) -> Vec<DayEnum>{
+        let flags = self.orders[order_index];
+        let mut vec = Vec::new();
+
+        for i in 0..5{
+            let flag = flags & 1 << i;
+            if let Some(day) = flag_to_day(flag) && day != day_enum {
+                vec.push(day);
+            }
+        }
+
+        return vec;
+
+        fn flag_to_day(flag: u8) -> Option<DayEnum> {
+            match flag{
+                0b1_0000 => Some(DayEnum::Monday),
+                0b0_1000 => Some(DayEnum::Tuesday),
+                0b0_0100 => Some(DayEnum::Wednesday),
+                0b0_0010 => Some(DayEnum::Thursday),
+                0b0_0001 => Some(DayEnum::Friday),
+                _ => None
+            }
+        }
+    }
 }

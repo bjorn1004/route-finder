@@ -1,11 +1,11 @@
 use std::cmp::{max};
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
-use crate::get_orders;
+use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
 use crate::printer::print_solution;
 use crate::resource::Company;
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange};
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::{calcualte_starting_score, calculate_score};
 use flume::{Receiver, Sender, bounded};
@@ -239,16 +239,26 @@ impl SimulatedAnnealing {
     }
 
     fn fill_unfilled_orders_list<R: Rng + ?Sized>(_rng: &mut R) -> VecDeque<OrderIndex> {
-        let mut deliveries = Vec::new();
-        let orders = get_orders();
-        let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
-        list.sort_by_key(|(_, order)| order.frequency as u8);
-        for (index, order) in list.iter() {
-            for _ in 0..order.frequency as u8 {
-                deliveries.push(*index);
+        if MULTIPL_ADD_AND_REMOVE {
+            let mut deliveries = Vec::new();
+            let orders = get_orders();
+            
+            for (index, _) in orders.iter().enumerate() {
+                deliveries.push(index);
             }
-        }
+            VecDeque::from(deliveries)
+        } else {
+            let mut deliveries = Vec::new();
+            let orders = get_orders();
+            let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
+            list.sort_by_key(|(_, order)| order.frequency as u8);
+            for (index, order) in list.iter() {
+                for _ in 0..order.frequency as u8 {
+                    deliveries.push(*index);
+                }
+            }
 
-        VecDeque::from(deliveries)
+            VecDeque::from(deliveries)
+        }
     }
 }

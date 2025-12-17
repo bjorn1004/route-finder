@@ -102,6 +102,21 @@ impl Week {
         ]
         .into_iter()
     }
+    
+    pub fn get_all_as_mut(&mut self) -> Vec<&mut Route>{
+        vec![
+            &mut self.monday.morning,
+            &mut self.monday.afternoon,
+            &mut self.tuesday.morning,
+            &mut self.tuesday.afternoon,
+            &mut self.wednesday.morning,
+            &mut self.wednesday.afternoon,
+            &mut self.thursday.morning,
+            &mut self.thursday.afternoon,
+            &mut self.friday.morning,
+            &mut self.friday.afternoon,
+        ]
+    }
 }
 
 impl Default for Week {
