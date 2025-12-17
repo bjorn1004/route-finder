@@ -20,7 +20,7 @@ impl SimulatedAnnealing {
             10000, // add new order
             10000, // shift inside a route
             10000, // shift between days
-            if self.score <= 6000*MINUTE {1} else {0}, // remove
+            if self.score <= 9000*MINUTE {1} else {0}, // remove
         ];
         let weights = WeightedIndex::new(&weights).unwrap();
         let mut order_to_add:Option<OrderIndex> = None;
