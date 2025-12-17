@@ -107,11 +107,11 @@ impl RemoveMultipleOrders{
         None
     }
 
-    fn apply_on_one_route(&self, route: &mut Route, order_info: &RemoveOrderInfo) -> Time {
+    fn apply_on_one_route(&self, route: &mut Route, node_index: LVNodeIndex) -> Time {
 
-        let score = route.apply_remove_node(order_info.node_index);
+        let score = route.apply_remove_node(node_index);
 
-        if route.linked_vector.len() == 2{
+        if route.linked_vector.len() == 2 {
             return score - HALF_HOUR;
         };
 
@@ -138,30 +138,20 @@ impl NeighborMove for RemoveMultipleOrders {
             };
         }
 
-        let penalty = if order_flags.get_filled_count(self.order_index) == order.frequency as u32{
-            order.penalty()
-        } else {
-            0
-        };
-
-        total_change + penalty
+        total_change + order.penalty()
     }
 
     fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
 
         let mut total_change = 0;
+        let mut truck1 = truck1.get_all_as_mut();
+        let mut truck2 = truck2.get_all_as_mut();
         for order_info in &self.orders_to_remove{
-            let route = (if order_info.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
-                .get_mut(order_info.day_enum)
-                .get_mut(order_info.time_of_day);
-
-            total_change += route.apply_remove_node(order_info.node_index);
-
-            total_change += if route.linked_vector.len() == 2 {
-                -HALF_HOUR
+            if order_info.truck_enum == TruckEnum::Truck1 {
+                total_change += self.apply_on_one_route(truck1[order_info.day_enum as usize * 2 + order_info.time_of_day as usize], order_info.node_index);
             } else {
-                0
-            };
+                total_change += self.apply_on_one_route(truck2[order_info.day_enum as usize * 2 + order_info.time_of_day as usize], order_info.node_index);
+            }
 
         }
 

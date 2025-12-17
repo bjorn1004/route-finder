@@ -237,7 +237,7 @@ impl NeighborMove for ShiftBetweenDays {
         }
 
         let capacity_penalty = max(
-            (((target_day.get(self.target.time_of_day).capacity + get_orders()[self.target.order].trash() - 100_000) as i32 )*3)/100,
+            (((target_day.get(self.target.time_of_day).capacity as i32 + get_orders()[self.target.order].trash() as i32 - 100_000))*3)/100,
             0
         );
 
