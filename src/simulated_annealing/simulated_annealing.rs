@@ -3,7 +3,7 @@ use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
 use crate::printer::print_solution;
-use crate::resource::Company;
+use crate::resource::{Company, Time};
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
@@ -118,14 +118,18 @@ impl SimulatedAnnealing {
         )
     }
 
+    // Iterated Local Search (ILS)
+    pub fn insanely_large_stuffloop(&mut self) {
+
+    }
+
     pub fn biiiiiig_loop(&mut self) {
         let mut rng = SmallRng::from_os_rng();
         let now = Instant::now();
         // let mut rng = SmallRng::seed_from_u64(0);
         // this ic currently an infinite loop.
 
-        calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-
+        // main loop: gui stuff and do_step and thermostat
         loop {
             if self.stop_rec.try_recv().is_ok() {
                 break;
@@ -158,6 +162,20 @@ impl SimulatedAnnealing {
                 break;
             }
         }
+
+       // summarize run
+        println!("seconds:      {}", now.elapsed().as_secs());
+        println!("iterations:   {}", self.iterations_done);
+        println!(
+            "iter/sec:     {}",
+            self.iterations_done as u64 / max(now.elapsed().as_secs(), 1)
+        );
+
+        // cleanup
+        let after_recalc = self.cleanup();
+
+        println!("score: {}", after_recalc);
+
         // send final state before closing
         let _ = self.route_channel.1.drain().map(drop);
         self.route_channel
@@ -165,32 +183,7 @@ impl SimulatedAnnealing {
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
-        println!("seconds:      {}", now.elapsed().as_secs());
-        println!("iterations:   {}", self.iterations_done);
-        println!(
-            "iter/sec:     {}",
-            self.iterations_done as u64 / max(now.elapsed().as_secs(), 1)
-        );
-        let before_fixplzplzplzplzplz = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-        fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
 
-        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-        if before_fixplzplzplzplzplz != before_recalc {
-            println!("fixplzplzplzplz removed at least one order to get a correct answer")
-        }
-        self.truck1.recalculate_total_time();
-        self.truck2.recalculate_total_time();
-        let after_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-        if after_recalc != before_recalc {
-            println!("Incorrect score was stored");
-            println!();
-            println!(
-                "difference in minutes: {}",
-                (before_recalc - after_recalc) / 6000
-            );
-        }
-
-        println!("score: {}", after_recalc);
         print_solution(after_recalc, &self.truck1, &self.truck2).expect("failed to print the solution");
     }
 
@@ -250,5 +243,31 @@ impl SimulatedAnnealing {
         }
 
         VecDeque::from(deliveries)
+    }
+
+    fn cleanup(&mut self) -> Time {
+        // Cleanup: remove incomplete orders and recalculate scores
+        let before_fixplzplzplzplzplz = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+
+        fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
+
+        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        if before_fixplzplzplzplzplz != before_recalc {
+            println!("fixplzplzplzplz removed at least one order to get a correct answer")
+        }
+
+        self.truck1.recalculate_total_time();
+        self.truck2.recalculate_total_time();
+        let after_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        if after_recalc != before_recalc {
+            println!("Incorrect score was stored");
+            println!();
+            println!(
+                "difference in minutes: {}",
+                (before_recalc - after_recalc) / 6000
+            );
+        }
+
+        after_recalc
     }
 }
