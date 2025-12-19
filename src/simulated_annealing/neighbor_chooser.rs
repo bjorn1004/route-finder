@@ -10,16 +10,17 @@ use crate::MULTIPL_ADD_AND_REMOVE;
 use crate::resource::MINUTE;
 use crate::simulated_annealing::neighbor_move::add_multiple_at_once::AddMultipleNewOrders;
 use crate::simulated_annealing::neighbor_move::remove::RemoveOrder;
+use crate::simulated_annealing::neighbor_move::remove_multiple_at_once::RemoveMultipleOrders;
 use crate::simulated_annealing::route::OrderIndex;
 
 impl SimulatedAnnealing {
     pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R) -> (Box<dyn NeighborMove>, Option<OrderIndex>) {
         // https://docs.rs/rand_distr/latest/rand_distr/weighted/struct.WeightedIndex.html
         let weights = [
-            100000, // add new order
-            100000, // shift inside a route
-            100000, // shift between days
-            if self.score <= 6000*MINUTE {1} else {0}, // remove
+            10000, // add new order
+            10000, // shift inside a route
+            10000, // shift between days
+            if self.score <= 9000*MINUTE {1} else {0}, // remove
         ];
         let weights = WeightedIndex::new(&weights).unwrap();
         let mut order_to_add:Option<OrderIndex> = None;
@@ -88,10 +89,11 @@ impl SimulatedAnnealing {
                 }
                 3 => {
                     if MULTIPL_ADD_AND_REMOVE {
-                        if let Some((remove, _order_to_add)) = RemoveOrder::new(
+                        if let Some((remove, _order_to_add)) = RemoveMultipleOrders::new(
                             &self.truck1,
                             &self.truck2,
-                            rng
+                            rng,
+                            &self.order_flags,
                         ){
                             order_to_add = Some(_order_to_add);
                             Box::new(remove)

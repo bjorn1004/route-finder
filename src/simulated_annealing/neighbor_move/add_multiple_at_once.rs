@@ -118,9 +118,9 @@ impl NeighborMove for AddMultipleNewOrders {
         let mut total_score_change = 0;
         for order_info in &self.where_to_add_orders {
             if order_info.truck_enum == TruckEnum::Truck1{
-                total_score_change +=  self.apply_on_one_route(truck1[(order_info.day as usize * 2 + order_info.time_of_day as usize + 1)-1], order_info);
+                total_score_change +=  self.apply_on_one_route(truck1[order_info.day as usize * 2 + order_info.time_of_day as usize], order_info);
             } else {
-                total_score_change += self.apply_on_one_route(truck2[(order_info.day as usize * 2 + order_info.time_of_day as usize + 1)-1], order_info);
+                total_score_change += self.apply_on_one_route(truck2[order_info.day as usize * 2 + order_info.time_of_day as usize], order_info);
             }
             order_flags.add_order(self.order_index, order_info.day);
         }
