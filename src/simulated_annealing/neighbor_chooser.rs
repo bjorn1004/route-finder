@@ -17,7 +17,7 @@ impl SimulatedAnnealing {
             1000, // add new order
             10000, // shift inside of a route
             10000, // shift between days
-            if self.score <= 6000*MINUTE {1} else {0}, // remove
+            if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
         ];
         let weights = WeightedIndex::new(&weights).unwrap();
         let mut order_to_add:Option<OrderIndex> = None;
@@ -29,8 +29,7 @@ impl SimulatedAnnealing {
                 0 => {
                     if let Some(random_order) = self.unfilled_orders.pop_front() {
                         let new_order = AddNewOrder::new(
-                            &self.truck1,
-                            &self.truck2,
+                            &self.solution,
                             rng,
                             &self.order_flags,
                             random_order,
@@ -46,8 +45,7 @@ impl SimulatedAnnealing {
                 }
                 1 => {
                     let shift = ShiftInRoute::new(
-                        &self.truck1,
-                        &self.truck2,
+                        &self.solution,
                         rng
                     );
                     if shift.is_none() {
@@ -57,8 +55,7 @@ impl SimulatedAnnealing {
                 }
                 2 => {
                     let shift = ShiftBetweenDays::new(
-                        &self.truck1,
-                        &self.truck2,
+                        &self.solution,
                         rng,
                         &self.order_flags,
                     );
@@ -69,8 +66,7 @@ impl SimulatedAnnealing {
                 }
                 3 => {
                     if let Some((remove, _order_to_add)) = RemoveOrder::new(
-                        &self.truck1,
-                        &self.truck2,
+                        &self.solution,
                         rng
                     ){
                         order_to_add = Some(_order_to_add);

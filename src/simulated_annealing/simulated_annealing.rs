@@ -7,7 +7,7 @@ use crate::resource::{Company, Time};
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::score_calculator::{calcualte_starting_score, calculate_score};
+use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
 use flume::{Receiver, Sender, bounded};
 use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
@@ -16,6 +16,7 @@ use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::sync::Arc;
 use std::time::Instant;
+use crate::simulated_annealing::Solution::Solution;
 
 type RouteState = (Arc<Week>, Arc<Week>);
 
@@ -35,10 +36,8 @@ pub struct SimulatedAnnealing {
     q: u32,
     iterations_done: u32,
     a: f32,
-    pub score: i32,
 
-    pub(crate) truck1: Week,
-    pub(crate) truck2: Week,
+    pub solution: Solution,
     pub(crate) order_flags: OrderFlags,
     pub(crate) unfilled_orders: VecDeque<OrderIndex>,
     // We could store variables here which are needed for simulated annealing.
@@ -78,9 +77,12 @@ impl SimulatedAnnealing {
             q: config.q,
             iterations_done: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
-            score: calcualte_starting_score(),
-            truck1: Week::new(),
-            truck2: Week::new(),
+
+            solution: Solution{
+                truck1: Default::default(),
+                truck2: Default::default(),
+                score: calculate_starting_score(),
+            },
             order_flags: OrderFlags::new(orders.len()),
             unfilled_orders: Self::fill_unfilled_orders_list(rng),
             paused: false,
@@ -92,13 +94,6 @@ impl SimulatedAnnealing {
             temp_channel: bounded(1),
             route_channel: bounded(1),
         }
-    }
-
-    /// Set the trucks to be used in the simulated annealing process
-    pub fn with_trucks(&mut self, truck1: Week, truck2: Week) {
-        self.truck1 = truck1;
-        self.truck2 = truck2;
-        self.score = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
     }
 
     /// Get the channels for communicating with the GUI
@@ -141,7 +136,7 @@ impl SimulatedAnnealing {
                 // if paused, just send the latest state untill unpaused
                 self.route_channel
                     .0
-                    .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+                    .send((Arc::new(self.solution.truck1.clone()), Arc::new(self.solution.truck2.clone())))
                     .ok();
                 self.egui_ctx.request_repaint();
                 continue;
@@ -153,7 +148,7 @@ impl SimulatedAnnealing {
                 .0
                 .try_send(self.iterations_done % self.q)
                 .ok();
-            self.score_channel.0.try_send(self.score).ok();
+            self.score_channel.0.try_send(self.solution.score).ok();
             if self.iterations_done.is_multiple_of(self.q) {
                 self.temp *= self.a;
                 self.temp_channel.0.try_send(self.temp).ok();
@@ -180,26 +175,25 @@ impl SimulatedAnnealing {
         let _ = self.route_channel.1.drain().map(drop);
         self.route_channel
             .0
-            .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+            .send((Arc::new(self.solution.truck1.clone()), Arc::new(self.solution.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
 
-        print_solution(after_recalc, &self.truck1, &self.truck2).expect("failed to print the solution");
+        print_solution(after_recalc, &self.solution.truck1, &self.solution.truck2).expect("failed to print the solution");
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
         let (transactionthingy, order_to_add_after_apply) = self.choose_neighbor(rng);
         // get the change in capacity/time
 
-        let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
+        let cost = transactionthingy.evaluate(&self.solution, &self.order_flags);
 
         // if we want to go through with this thing
         if self.accept(cost, rng) {
             // change the route
 
-            self.score += transactionthingy.apply(
-                &mut self.truck1,
-                &mut self.truck2,
+            self.solution.score += transactionthingy.apply(
+                &mut self.solution,
                 &mut self.order_flags,
             );
 
@@ -212,7 +206,7 @@ impl SimulatedAnnealing {
             if !self.route_channel.0.is_full() {
                 self.route_channel
                     .0
-                    .try_send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+                    .try_send((Arc::new(self.solution.truck1.clone()), Arc::new(self.solution.truck2.clone())))
                     .ok();
                 self.egui_ctx.request_repaint();
             }
@@ -247,18 +241,18 @@ impl SimulatedAnnealing {
 
     fn cleanup(&mut self) -> Time {
         // Cleanup: remove incomplete orders and recalculate scores
-        let before_fixplzplzplzplzplz = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        let before_fixplzplzplzplzplz = calculate_score(&self.solution, &self.order_flags);
 
-        fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
+        fixplzplzplzpl(&mut self.solution, &mut self.order_flags);
 
-        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        let before_recalc = calculate_score(&self.solution, &self.order_flags);
         if before_fixplzplzplzplzplz != before_recalc {
             println!("fixplzplzplzplz removed at least one order to get a correct answer")
         }
 
-        self.truck1.recalculate_total_time();
-        self.truck2.recalculate_total_time();
-        let after_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        self.solution.truck1.recalculate_total_time();
+        self.solution.truck2.recalculate_total_time();
+        let after_recalc = calculate_score(&self.solution, &self.order_flags);
         if after_recalc != before_recalc {
             println!("Incorrect score was stored");
             println!();

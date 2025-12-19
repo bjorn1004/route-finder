@@ -7,7 +7,8 @@ use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange,
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
-use crate::simulated_annealing::week::{DayEnum, Week};
+use crate::simulated_annealing::Solution::Solution;
+use crate::simulated_annealing::week::{DayEnum};
 
 pub struct RemoveOrder{
     truck_enum: TruckEnum,
@@ -18,12 +19,12 @@ pub struct RemoveOrder{
 }
 
 impl RemoveOrder{
-    pub fn new<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R) -> Option<(Self, OrderIndex)>{
+    pub fn new<R: Rng + ?Sized>(solution: &Solution, rng: &mut R) -> Option<(Self, OrderIndex)>{
         let truck_enum: TruckEnum = rng.random();
         let day_enum: DayEnum = rng.random();
         let time_of_day: TimeOfDay = rng.random();
 
-        let route = (if truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+        let route = (if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2})
             .get(day_enum)
             .get(time_of_day);
 
@@ -52,8 +53,8 @@ impl RemoveOrder{
 }
 
 impl NeighborMove for RemoveOrder {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> CostChange {
-        let route = (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+    fn evaluate(&self, solution: &Solution, order_flags: &OrderFlags) -> CostChange {
+        let route = (if self.truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2})
             .get(self.day_enum)
             .get(self.time_of_day);
 
@@ -75,9 +76,9 @@ impl NeighborMove for RemoveOrder {
         diff + empty_route + penalty
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
+    fn apply(&self, solution: &mut Solution, order_flags: &mut OrderFlags) -> ScoreChange {
 
-        let route = (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+        let route = (if self.truck_enum == TruckEnum::Truck1 {&mut solution.truck1} else {&mut  solution.truck2})
             .get_mut(self.day_enum)
             .get_mut(self.time_of_day);
 

@@ -2,9 +2,11 @@ use crate::get_orders;
 use crate::resource::Time;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::Route;
-use crate::simulated_annealing::week::Week;
+use crate::simulated_annealing::Solution::Solution;
 
-pub fn calculate_score(truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> Time {
+pub fn calculate_score(solution: &Solution, order_flags: &OrderFlags) -> Time {
+    let truck1 = &solution.truck1;
+    let truck2 = &solution.truck2;
     let orders = get_orders();
     let mut order_count: Vec<usize> = vec![0; orders.len()];
 
@@ -51,6 +53,10 @@ pub fn add_orders(route: &Route, order_count: &mut [usize]) {
     }
 }
 
-pub fn calcualte_starting_score() -> Time {
-    calculate_score(&Week::new(), &Week::new(), &OrderFlags::new(get_orders().iter().count()))
+pub fn calculate_starting_score() -> Time {
+    calculate_score(&Solution{
+        truck1: Default::default(),
+        truck2: Default::default(),
+        score: 0, // this value is not used and does not matter in this function
+    }, &OrderFlags::new(get_orders().iter().count()))
 }
