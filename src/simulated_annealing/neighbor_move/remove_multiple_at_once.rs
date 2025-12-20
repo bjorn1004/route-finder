@@ -1,5 +1,3 @@
-use petgraph::csr::NodeIndex;
-use petgraph::graph::node_index;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::get_orders;
@@ -9,6 +7,7 @@ use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange,
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
+use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 pub struct RemoveMultipleOrders{
@@ -24,12 +23,12 @@ struct RemoveOrderInfo {
 }
 
 impl RemoveMultipleOrders{
-    pub fn new<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags) -> Option<(Self, OrderIndex)>{
+    pub fn new<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, order_flags: &OrderFlags) -> Option<(Self, OrderIndex)>{
         let truck_enum: TruckEnum = rng.random();
         let day_enum: DayEnum = rng.random();
         let time_of_day: TimeOfDay = rng.random();
 
-        let route = (if truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+        let route = (if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2})
             .get(day_enum)
             .get(time_of_day);
 
@@ -56,7 +55,7 @@ impl RemoveMultipleOrders{
             let unremoved_days = order_flags.get_other_days_of_an_order(*order_index, day_enum);
 
             for other_day in unremoved_days{
-                orders_to_remove.push(Self::find_other_day(truck1, truck2, other_day, *order_index))
+                orders_to_remove.push(Self::find_other_day(&solution, other_day, *order_index))
 
             }
             return Some((RemoveMultipleOrders{
@@ -67,15 +66,15 @@ impl RemoveMultipleOrders{
         panic!("The linkedvector was completely empty when trying to remove an order");
     }
 
-    fn find_other_day(truck1: &Week, truck2: &Week, day_enum: DayEnum, order_index: OrderIndex) -> RemoveOrderInfo{
-        if let Some((time_of_day, node_index)) = Self::find_other_day_in_truck(truck1, day_enum, order_index) {
+    fn find_other_day(solution: &Solution, day_enum: DayEnum, order_index: OrderIndex) -> RemoveOrderInfo{
+        if let Some((time_of_day, node_index)) = Self::find_other_day_in_truck(&solution.truck1, day_enum, order_index) {
             return RemoveOrderInfo{
                 truck_enum: TruckEnum::Truck1,
                 day_enum,
                 time_of_day,
                 node_index
             }
-        } else if let Some((time_of_day, node_index)) = Self::find_other_day_in_truck(truck2, day_enum, order_index) {
+        } else if let Some((time_of_day, node_index)) = Self::find_other_day_in_truck(&solution.truck2, day_enum, order_index) {
             return RemoveOrderInfo{
                 truck_enum: TruckEnum::Truck2,
                 day_enum,
@@ -120,12 +119,12 @@ impl RemoveMultipleOrders{
 }
 
 impl NeighborMove for RemoveMultipleOrders {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution) -> CostChange {
         let order = &get_orders()[self.order_index];
         let mut total_change = 0;
 
         for order_info in &self.orders_to_remove{
-            let route = (if order_info.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+            let route = (if order_info.truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2})
                 .get(order_info.day_enum)
                 .get(order_info.time_of_day);
 
@@ -141,11 +140,11 @@ impl NeighborMove for RemoveMultipleOrders {
         total_change + order.penalty()
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
+    fn apply(&self, solution: &mut Solution) -> ScoreChange {
 
         let mut total_change = 0;
-        let mut truck1 = truck1.get_all_as_mut();
-        let mut truck2 = truck2.get_all_as_mut();
+        let mut truck1 = solution.truck1.get_all_as_mut();
+        let mut truck2 = solution.truck2.get_all_as_mut();
         for order_info in &self.orders_to_remove{
             if order_info.truck_enum == TruckEnum::Truck1 {
                 total_change += self.apply_on_one_route(truck1[order_info.day_enum as usize * 2 + order_info.time_of_day as usize], order_info.node_index);
@@ -155,7 +154,7 @@ impl NeighborMove for RemoveMultipleOrders {
 
         }
 
-        order_flags.clear(self.order_index);
+        solution.order_flags.clear(self.order_index);
 
         total_change + get_orders()[self.order_index].penalty()
     }

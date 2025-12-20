@@ -3,13 +3,12 @@ use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
 use crate::resource::{Company, Time, HALF_HOUR};
 use crate::simulated_annealing::day::TimeOfDay;
-use crate::simulated_annealing::neighbor_move::add_new_order::AddNewOrder;
-use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove, ScoreChange};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
-use crate::simulated_annealing::week::{DayEnum, Week};
+use crate::simulated_annealing::solution::Solution;
+use crate::simulated_annealing::week::{DayEnum};
 
 /// This will add an order to a random route where it is allowed to add it to.
 /// If you try to add an order, that doesn't have any allowed routes, it panics
@@ -26,12 +25,12 @@ struct AddOrderInfo {
 }
 /// This cannot coexist with the normal Add operation.
 impl AddMultipleNewOrders {
-    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_index: OrderIndex) ->  Option<Self>{
+    pub fn new<R: Rng+?Sized>(solution: &Solution, rng: &mut R, order_index: OrderIndex) ->  Option<Self>{
         let order = &get_orders()[order_index];
         let mut orders_to_add: Vec<AddOrderInfo> = Vec::new();
         let mut flags = 0;
         for _ in 0..order.frequency as u8 {
-            if let Some(order_to_add) = Self::get_random_allowed_order(truck1, truck2, rng, flags, order) {
+            if let Some(order_to_add) = Self::get_random_allowed_order(solution, rng, flags, order) {
                 flags |= OrderFlags::day_to_flags(order_to_add.day);
                 orders_to_add.push(order_to_add);
             } else {
@@ -44,10 +43,10 @@ impl AddMultipleNewOrders {
         })
     }
 
-    fn get_random_allowed_order<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, flags: u8, order: &Company) -> Option<AddOrderInfo>{
+    fn get_random_allowed_order<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, flags: u8, order: &Company) -> Option<AddOrderInfo>{
 
         let truck_enum: TruckEnum = rng.random();
-        let truck = if truck_enum == TruckEnum::Truck1 {truck1} else {truck2};
+        let truck = if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2};
 
         // check if there is still an allowed day open
         if let Some(day_enum) = OrderFlags::_get_random_allowed_day(flags, order.frequency, rng){
@@ -79,10 +78,10 @@ impl AddMultipleNewOrders {
     }
 
 
-    fn calculate_time_difference(&self, truck1: &Week, truck2: &Week, order_to_add: &AddOrderInfo) -> Time{
+    fn calculate_time_difference(&self, solution: &Solution, order_to_add: &AddOrderInfo) -> Time{
         let orders = get_orders();
         let order = &orders[self.order_index];
-        let route = (if order_to_add.truck_enum == TruckEnum::Truck1 { truck1 } else {truck2}).get(order_to_add.day).get(order_to_add.time_of_day);
+        let route = (if order_to_add.truck_enum == TruckEnum::Truck1 { &solution.truck1 } else {&solution.truck2}).get(order_to_add.day).get(order_to_add.time_of_day);
 
         let time = route.calculate_add_order(order_to_add.insert_after_index, self.order_index);
         time + order.emptying_time
@@ -102,19 +101,19 @@ impl AddMultipleNewOrders {
 
 
 impl NeighborMove for AddMultipleNewOrders {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution) -> CostChange {
         self.where_to_add_orders
             .iter()
-            .map(|order_info| self.calculate_time_difference(truck1, truck2, order_info))
+            .map(|order_info| self.calculate_time_difference(solution, order_info))
             .sum::<Time>()
             // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
             - get_orders()[self.order_index].penalty()
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
+    fn apply(&self, solution: &mut Solution) -> ScoreChange {
 
-        let mut truck1 = truck1.get_all_as_mut();
-        let mut truck2 = truck2.get_all_as_mut();
+        let mut truck1 = solution.truck1.get_all_as_mut();
+        let mut truck2 = solution.truck2.get_all_as_mut();
         let mut total_score_change = 0;
         for order_info in &self.where_to_add_orders {
             if order_info.truck_enum == TruckEnum::Truck1{
@@ -122,7 +121,7 @@ impl NeighborMove for AddMultipleNewOrders {
             } else {
                 total_score_change += self.apply_on_one_route(truck2[order_info.day as usize * 2 + order_info.time_of_day as usize], order_info);
             }
-            order_flags.add_order(self.order_index, order_info.day);
+            solution.order_flags.add_order(self.order_index, order_info.day);
         }
 
         // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
