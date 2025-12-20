@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::solution::Solution;
 
-pub fn fixplzplzplzpl(solution: &mut Solution, order_flags: &mut OrderFlags) {
+pub fn fixplzplzplzpl(solution: &mut Solution) {
     let orders = get_orders();
     let mut order_count: HashMap<usize, usize> = HashMap::new();
 
@@ -24,7 +24,7 @@ pub fn fixplzplzplzpl(solution: &mut Solution, order_flags: &mut OrderFlags) {
     let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
 
     for bad_order in &good_bad{
-        order_flags.clear(*bad_order);
+        solution.order_flags.clear(*bad_order);
     }
 
     delete_bad_week(&mut solution.truck1, &good_bad);

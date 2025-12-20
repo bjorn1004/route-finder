@@ -53,7 +53,7 @@ impl RemoveOrder{
 }
 
 impl NeighborMove for RemoveOrder {
-    fn evaluate(&self, solution: &Solution, order_flags: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution) -> CostChange {
         let route = (if self.truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2})
             .get(self.day_enum)
             .get(self.time_of_day);
@@ -66,7 +66,7 @@ impl NeighborMove for RemoveOrder {
         };
 
         let order = &get_orders()[self.order_index];
-        let penalty = if order_flags.get_filled_count(self.order_index) == order.frequency as u32{
+        let penalty = if solution.order_flags.get_filled_count(self.order_index) == order.frequency as u32{
             order.penalty()
         } else {
             0
@@ -76,7 +76,7 @@ impl NeighborMove for RemoveOrder {
         diff + empty_route + penalty
     }
 
-    fn apply(&self, solution: &mut Solution, order_flags: &mut OrderFlags) -> ScoreChange {
+    fn apply(&self, solution: &mut Solution) -> ScoreChange {
 
         let route = (if self.truck_enum == TruckEnum::Truck1 {&mut solution.truck1} else {&mut  solution.truck2})
             .get_mut(self.day_enum)
@@ -91,12 +91,12 @@ impl NeighborMove for RemoveOrder {
         };
 
         let order = &get_orders()[self.order_index];
-        let penalty = if order_flags.get_filled_count(self.order_index) == order.frequency as u32{
+        let penalty = if solution.order_flags.get_filled_count(self.order_index) == order.frequency as u32{
             order.penalty()
         } else {
             0
         };
-        order_flags.remove_order(self.order_index, self.day_enum);
+        solution.order_flags.remove_order(self.order_index, self.day_enum);
         diff + empty_route + penalty
     }
 }

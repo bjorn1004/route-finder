@@ -31,7 +31,6 @@ impl ShiftBetweenDays {
     pub fn new<R: Rng + ?Sized>(
         solution: &Solution,
         rng: &mut R,
-        order_flags: &OrderFlags,
     ) -> Option<Self> {
         let shift = Self::get_random_truck_day_time_node(
             solution,
@@ -47,7 +46,7 @@ impl ShiftBetweenDays {
             solution,
             rng,
             |r: &Route, i: LVNodeIndex| r.linked_vector.get_tail_index().unwrap() != i,
-            Some((shift.order, shift.day, order_flags)),
+            Some((shift.order, shift.day, &solution.order_flags)),
         )?;
 
         if shift.truck == target.truck && // if same truck
@@ -217,7 +216,7 @@ impl ShiftBetweenDays {
 }
 
 impl NeighborMove for ShiftBetweenDays {
-    fn evaluate(&self, solution: &Solution, _: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution) -> CostChange {
         // this is the time difference
         let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(&solution);
 
@@ -241,7 +240,7 @@ impl NeighborMove for ShiftBetweenDays {
         shift_diff + target_diff + empty_shift + new_target + capacity_penalty
     }
 
-    fn apply(&self, solution: &mut Solution, order_flags: &mut OrderFlags) -> Time {
+    fn apply(&self, solution: &mut Solution) -> Time {
         let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(&solution);
         let (shift_route, target_route): (&mut Route, &mut Route) =
             match (self.shift.truck, self.target.truck) {
@@ -267,7 +266,7 @@ impl NeighborMove for ShiftBetweenDays {
                     } else {
                         &mut solution.truck2
                     };
-                    return self.apply_same_truck_case(truck, order_flags, shift_diff, target_diff, empty_shift, new_target);
+                    return self.apply_same_truck_case(truck, &mut solution.order_flags, shift_diff, target_diff, empty_shift, new_target);
                 }
                 _ => unreachable!(),
             };
@@ -275,8 +274,8 @@ impl NeighborMove for ShiftBetweenDays {
         shift_route.apply_remove_node(self.shift.node_index);
         target_route.apply_add_order(self.target.node_index, self.shift.order);
 
-        order_flags.remove_order(self.shift.order, self.shift.day);
-        order_flags.add_order(self.shift.order, self.target.day);
+        solution.order_flags.remove_order(self.shift.order, self.shift.day);
+        solution.order_flags.add_order(self.shift.order, self.target.day);
 
         shift_diff + target_diff + empty_shift + new_target
     }

@@ -77,11 +77,11 @@ impl ShiftInRoute {
     }
 }
 impl NeighborMove for ShiftInRoute {
-    fn evaluate(&self, solution: &Solution, _: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution) -> CostChange {
         self.time_difference(&solution)
     }
 
-    fn apply(&self, solution: &mut Solution, _: &mut OrderFlags) -> Time {
+    fn apply(&self, solution: &mut Solution) -> Time {
         // calculate the change in time after this operation
         let time_difference = self.time_difference(solution);
 

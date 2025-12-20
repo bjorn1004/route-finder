@@ -6,12 +6,11 @@ use crate::simulated_annealing::neighbor_move::shift_in_route::ShiftInRoute;
 use crate::simulated_annealing::simulated_annealing::{EndOfStepInfo, SimulatedAnnealing};
 use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
-use crate::resource::MINUTE;
 use crate::simulated_annealing::neighbor_move::remove::RemoveOrder;
-use crate::simulated_annealing::route::OrderIndex;
+use crate::simulated_annealing::solution::Solution;
 
 impl SimulatedAnnealing {
-    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R, weights:[i32;4]) -> (Box<dyn NeighborMove>, EndOfStepInfo) {
+    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R, weights:[i32;4], solution: &mut Solution) -> (Box<dyn NeighborMove>, EndOfStepInfo) {
         // https://docs.rs/rand_distr/latest/rand_distr/weighted/struct.WeightedIndex.html
         let weights = WeightedIndex::new(&weights).unwrap();
         let mut order_to_add: EndOfStepInfo = EndOfStepInfo::Nothing;
@@ -21,15 +20,14 @@ impl SimulatedAnnealing {
             // something to decide which thing to choose
             let transactionthingy: Box<dyn NeighborMove> = match a {
                 0 => {
-                    if let Some(random_order) = self.unfilled_orders.pop_front() {
+                    if let Some(random_order) = solution.unfilled_orders.pop_front() {
                         let new_order = AddNewOrder::new(
-                            &self.solution,
+                            &solution,
                             rng,
-                            &self.order_flags,
                             random_order,
                         );
                         if new_order.is_none() {
-                            self.unfilled_orders.push_back(random_order);
+                            solution.unfilled_orders.push_back(random_order);
                             continue;
                         }
                         order_to_add = EndOfStepInfo::Add(random_order);
@@ -40,7 +38,7 @@ impl SimulatedAnnealing {
                 }
                 1 => {
                     let shift = ShiftInRoute::new(
-                        &self.solution,
+                        &solution,
                         rng
                     );
                     if shift.is_none() {
@@ -50,9 +48,8 @@ impl SimulatedAnnealing {
                 }
                 2 => {
                     let shift = ShiftBetweenDays::new(
-                        &self.solution,
+                        &solution,
                         rng,
-                        &self.order_flags,
                     );
                     if shift.is_none() {
                         continue;
@@ -61,7 +58,7 @@ impl SimulatedAnnealing {
                 }
                 3 => {
                     if let Some((remove, _order_to_add)) = RemoveOrder::new(
-                        &self.solution,
+                        &solution,
                         rng
                     ){
                         order_to_add = EndOfStepInfo::Removed(_order_to_add);
