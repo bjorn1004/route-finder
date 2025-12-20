@@ -222,3 +222,9 @@ impl OrderFlags {
         }
     }
 }
+
+impl Default for OrderFlags{
+    fn default() -> Self {
+        Self::new(get_orders().len())
+    }
+}
