@@ -1,6 +1,6 @@
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
-use crate::get_orders;
+use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
 use crate::printer::print_solution;
 use crate::resource::{Company, Time};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange};
@@ -271,15 +271,23 @@ impl SimulatedAnnealing {
     fn fill_unfilled_orders_list<R: Rng + ?Sized>(_rng: &mut R) -> VecDeque<OrderIndex> {
         let mut deliveries = Vec::new();
         let orders = get_orders();
-        let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
-        list.sort_by_key(|(_, order)| order.frequency as u8);
-        for (index, order) in list.iter() {
-            for _ in 0..order.frequency as u8 {
-                deliveries.push(*index);
+        if MULTIPL_ADD_AND_REMOVE{
+            for i in 0..orders.len() - 1{
+                deliveries.push(i);
             }
-        }
+            VecDeque::from(deliveries)
+        } else {
+            let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
+            list.sort_by_key(|(_, order)| order.frequency as u8);
+            for (index, order) in list.iter() {
+                for _ in 0..order.frequency as u8 {
+                    deliveries.push(*index);
+                }
+            }
 
-        VecDeque::from(deliveries)
+            VecDeque::from(deliveries)
+
+        }
     }
 
     fn cleanup(&mut self, solution: &mut Solution) -> Time {
