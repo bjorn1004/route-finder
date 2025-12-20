@@ -3,11 +3,11 @@ use std::fs::{read_to_string, File};
 use rand::Rng;
 use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
 use crate::resource::Company;
-use crate::simulated_annealing::day::Day;
+use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::calculate_starting_score;
-use crate::simulated_annealing::week::Week;
+use crate::simulated_annealing::week::{DayEnum, Week};
 
 #[derive(Clone)]
 pub struct Solution{
@@ -65,10 +65,42 @@ impl Solution {
     pub fn from_file(path: &str) -> Solution{
         let solution_file = read_to_string(path)
             .expect("Could not read the solution file");
-        let lines = solution_file.lines();
-        let solution = Self::new();
+        let lines: Vec<Vec<&str>> = solution_file.lines().map(|line|line.split(";").collect()).collect();
+        let mut solution = Self::new();
 
+        let mut current_day = DayEnum::Monday;
+        let mut current_time = TimeOfDay::Morning;
+        let id_to_index = Self::order_id_to_index_dictionary();
 
+        for line in lines{
+            let mut truck = match line[0] {
+                "1" => &mut solution.truck1,
+                "2" => &mut solution.truck2,
+                _ => panic!("Invalid truck number")
+            };
+
+            let day = match line[1] {
+                "1" => DayEnum::Monday,
+                "2" => DayEnum::Tuesday,
+                "3" => DayEnum::Wednesday,
+                "4" => DayEnum::Thursday,
+                "5" => DayEnum::Friday,
+                _ => panic!("Invalid day number")
+            };
+
+            if day != current_day {
+                current_day = day;
+                current_time = TimeOfDay::Morning;
+            }
+
+            let day = truck.get_mut(day);
+
+            if line[3] == "0" {
+                current_time = TimeOfDay::Afternoon;
+                continue;
+            }
+
+        }
 
         todo!()
     }
