@@ -9,6 +9,7 @@ use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove, ScoreChange};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
+use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 /// This will add an order to a random route where it is allowed to add it to.
@@ -21,10 +22,10 @@ pub struct AddNewOrder {
     order: OrderIndex,
 }
 impl AddNewOrder {
-    pub fn new<R: Rng+?Sized>(truck1: &Week, truck2: &Week, rng: &mut R, order_flags: &OrderFlags, order: OrderIndex) ->  Option<Self>{
+    pub fn new<R: Rng+?Sized>(solution: &Solution, rng: &mut R, order_flags: &OrderFlags, order: OrderIndex) ->  Option<Self>{
 
         let truck_enum: TruckEnum = rng.random();
-        let truck = if truck_enum == TruckEnum::Truck1 {truck1} else {truck2};
+        let truck = if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2};
 
         let capacity = get_orders()[order].trash();
         // check if there is still an allowed day open
@@ -61,10 +62,10 @@ impl AddNewOrder {
 
 
     #[cfg(debug_assertions)]
-    fn calculate_time_difference(&self, truck1: &Week, truck2: &Week) -> Time{
+    fn calculate_time_difference(&self, solution: &Solution) -> Time{
         let orders = get_orders();
         let order = &orders[self.order];
-        let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else {truck2}).get(self.day).get(self.time_of_day);
+        let route = (if self.truck_enum == TruckEnum::Truck1 { &solution.truck1 } else {&solution.truck2}).get(self.day).get(self.time_of_day);
 
         let before_order_i = *route.linked_vector.get_value_unsafe(self.insert_after_index);
         let after_order_i = *route.linked_vector.get_next_value_unsafe(self.insert_after_index);
@@ -83,9 +84,9 @@ impl AddNewOrder {
 
 
 impl NeighborMove for AddNewOrder {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, order_flags: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution, order_flags: &OrderFlags) -> CostChange {
 
-        let route = (if self.truck_enum == TruckEnum::Truck1 { truck1 } else { truck2 }).get(self.day).get(self.time_of_day);
+        let route = (if self.truck_enum == TruckEnum::Truck1 { &solution.truck1 } else { &solution.truck2 }).get(self.day).get(self.time_of_day);
         let time = route.calculate_add_order(self.insert_after_index, self.order);
 
         let order = &get_orders()[self.order];
@@ -99,7 +100,7 @@ impl NeighborMove for AddNewOrder {
 
         #[cfg(debug_assertions)]
         {
-            let old_time_calaculator = self.calculate_time_difference(truck1, truck2);
+            let old_time_calaculator = self.calculate_time_difference(solution);
             assert_eq!(time, old_time_calaculator);
         }
 
@@ -113,11 +114,11 @@ impl NeighborMove for AddNewOrder {
         penalty + time + capacity_penalty
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> ScoreChange {
+    fn apply(&self, solution: &mut Solution, order_flags: &mut OrderFlags) -> ScoreChange {
         #[cfg(debug_assertions)]
-        let checker_time_diff = self.calculate_time_difference(truck1, truck2);
+        let checker_time_diff = self.calculate_time_difference(solution);
 
-        let route= (if self.truck_enum == TruckEnum::Truck1 {truck1} else {truck2})
+        let route= (if self.truck_enum == TruckEnum::Truck1 {&mut solution.truck1} else {&mut solution.truck2})
             .get_mut(self.day)
             .get_mut(self.time_of_day);
 

@@ -3,11 +3,12 @@ use crate::resource::Time;
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
-use crate::simulated_annealing::week::{DayEnum, Week};
+use crate::simulated_annealing::week::{DayEnum};
 use rand::Rng;
+use crate::simulated_annealing::solution::Solution;
 
 pub struct ShiftInRoute {
-    is_truck1: bool,
+    truck1: bool,
     day: DayEnum,
     time_of_day: TimeOfDay,
     shifting_node: LVNodeIndex,
@@ -15,9 +16,9 @@ pub struct ShiftInRoute {
 }
 
 impl ShiftInRoute {
-    pub fn new<R: Rng + ?Sized>(truck1: &Week, truck2: &Week, rng: &mut R) -> Option<Self> {
-        let is_truck1: bool = rng.random();
-        let truck = if is_truck1 { truck1 } else { truck2 };
+    pub fn new<R: Rng + ?Sized>(solution: &Solution, rng: &mut R) -> Option<Self> {
+        let truck1: bool = rng.random();
+        let truck = if truck1 { &solution.truck1 } else { &solution.truck2 };
 
         let day_enum: DayEnum = rng.random();
         let day = truck.get(day_enum);
@@ -57,7 +58,7 @@ impl ShiftInRoute {
         }
 
         Some(ShiftInRoute {
-            is_truck1,
+            truck1,
             day: day_enum,
             time_of_day,
             shifting_node,
@@ -65,9 +66,9 @@ impl ShiftInRoute {
         })
     }
 
-    pub fn time_difference(&self, truck1: &Week, truck2: &Week) -> Time {
+    pub fn time_difference(&self, solution: &Solution) -> Time {
 
-        let truck = if self.is_truck1 { truck1 } else { truck2 };
+        let truck = if self.truck1 { &solution.truck1 } else { &solution.truck2 };
         let route = truck.get(self.day).get(self.time_of_day);
         let lv = &route.linked_vector;
 
@@ -76,15 +77,15 @@ impl ShiftInRoute {
     }
 }
 impl NeighborMove for ShiftInRoute {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> CostChange {
-        self.time_difference(truck1, truck2)
+    fn evaluate(&self, solution: &Solution, _: &OrderFlags) -> CostChange {
+        self.time_difference(&solution)
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, _: &mut OrderFlags) -> Time {
+    fn apply(&self, solution: &mut Solution, _: &mut OrderFlags) -> Time {
         // calculate the change in time after this operation
-        let time_difference = self.time_difference(truck1, truck2);
+        let time_difference = self.time_difference(solution);
 
-        let truck = if self.is_truck1 { truck1 } else { truck2 };
+        let truck = if self.truck1 { &mut solution.truck1 } else { &mut solution.truck2 };
         let route = truck.get_mut(self.day).get_mut(self.time_of_day);
 
         route.time += time_difference;

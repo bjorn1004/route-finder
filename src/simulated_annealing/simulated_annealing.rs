@@ -2,11 +2,12 @@ use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
 use crate::printer::print_solution;
-use crate::resource::Company;
+use crate::resource::{Company, Time};
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::score_calculator::{calcualte_starting_score, calculate_score};
+use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
+use crate::simulated_annealing::solution::Solution;
 use flume::{Receiver, Sender, bounded};
 use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
@@ -14,8 +15,10 @@ use rand::{Rng, SeedableRng};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::f32::consts::E;
+use std::fs::create_dir;
 use std::sync::Arc;
 use std::time::Instant;
+use time::OffsetDateTime;
 
 type RouteState = (Arc<Week>, Arc<Week>);
 
@@ -38,13 +41,14 @@ pub struct SimulatedAnnealing {
     idx: usize,
     temp: f32,
     end_temp: f32,
+    reheating_temp: f32,
+    max_iterations: u32,
+    num_pertubations: u32,
     q: u32,
-    iterations_done: u32,
+    step_count: u32,
     a: f32,
-    pub score: i32,
 
-    pub(crate) truck1: Week,
-    pub(crate) truck2: Week,
+    pub solution: Solution,
     pub(crate) order_flags: OrderFlags,
     pub(crate) unfilled_orders: VecDeque<OrderIndex>,
     // We could store variables here which are needed for simulated annealing.
@@ -82,12 +86,18 @@ impl SimulatedAnnealing {
             idx: config.idx,
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
             end_temp: config.end_temp,
+            reheating_temp: 3000f32,
+            max_iterations: 2,
+            num_pertubations: 100,
             q: config.q,
-            iterations_done: 0,
+            step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
-            score: calcualte_starting_score(),
-            truck1: Week::new(),
-            truck2: Week::new(),
+
+            solution: Solution {
+                truck1: Default::default(),
+                truck2: Default::default(),
+                score: calculate_starting_score(),
+            },
             order_flags: OrderFlags::new(orders.len()),
             unfilled_orders: Self::fill_unfilled_orders_list(rng),
             paused: false,
@@ -101,21 +111,35 @@ impl SimulatedAnnealing {
         }
     }
 
-    /// Set the trucks to be used in the simulated annealing process
-    pub fn with_trucks(&mut self, truck1: Week, truck2: Week) {
-        self.truck1 = truck1;
-        self.truck2 = truck2;
-        self.score = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+    // Iterated Local Search (ILS)
+    pub fn insanely_large_stuffloop(&mut self) {
+        let mut rng = SmallRng::from_os_rng();
+        // let mut rng = SmallRng::seed_from_u64(0);
+
+        let now = OffsetDateTime::now_local().unwrap();
+        let output_dir = format!("output/{now}").replace(":", "_");
+        create_dir(&output_dir).expect("Could not create an output folder");
+
+        self.biiiiiig_loop(&mut rng);
+        print_solution(&self.solution, &output_dir, 0).expect("failed to print the solution");
+
+        for i in 1..=self.max_iterations {
+            self.temp = f32::MAX;
+            for _ in 0..self.num_pertubations {
+                self.do_step(&mut rng);
+            }
+
+            self.temp = self.reheating_temp;
+            self.biiiiiig_loop(&mut rng);
+            print_solution(&self.solution, &output_dir, i).expect("failed to print the solution");
+        }
     }
 
-    pub fn biiiiiig_loop(&mut self) {
-        let mut rng = SmallRng::from_os_rng();
+    pub fn biiiiiig_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) {
         let now = Instant::now();
-        // let mut rng = SmallRng::seed_from_u64(0);
         // this ic currently an infinite loop.
 
-        calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-
+        // main loop: gui stuff and do_step and thermostat
         loop {
             if self.stop_rec.try_recv().is_ok() {
                 break;
@@ -126,17 +150,20 @@ impl SimulatedAnnealing {
             if self.paused {
                 // if paused, just send the latest state untill unpaused
                 self.route_sender
-                    .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+                    .send((
+                        Arc::new(self.solution.truck1.clone()),
+                        Arc::new(self.solution.truck2.clone()),
+                    ))
                     .ok();
                 self.egui_ctx.request_repaint();
                 continue;
             }
-            self.do_step(&mut rng);
+            self.do_step(rng);
 
-            self.iterations_done += 1;
-            self.q_sender.try_send(self.iterations_done % self.q).ok();
-            self.score_sender.try_send(self.score).ok();
-            if self.iterations_done.is_multiple_of(self.q) {
+            self.step_count += 1;
+            self.q_sender.try_send(self.step_count % self.q).ok();
+            self.score_sender.try_send(self.solution.score).ok();
+            if self.step_count.is_multiple_of(self.q) {
                 self.temp *= self.a;
                 self.temp_sender.try_send(self.temp).ok();
             }
@@ -144,55 +171,62 @@ impl SimulatedAnnealing {
                 break;
             }
         }
+
+        // summarize run
+        println!("seconds:      {}", now.elapsed().as_secs());
+        println!("iterations:   {}", self.step_count);
+        println!(
+            "iter/sec:     {}",
+            self.step_count as u64 / max(now.elapsed().as_secs(), 1)
+        );
+
+        // cleanup
+        let after_recalc = self.cleanup();
+
+        println!("score: {}", after_recalc);
+
         // send final state before closing
         self.route_sender
-            .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+            .send((
+                Arc::new(self.solution.truck1.clone()),
+                Arc::new(self.solution.truck2.clone()),
+            ))
             .ok();
         self.egui_ctx.request_repaint();
         println!("idx:          {}", self.idx);
         println!("seconds:      {}", now.elapsed().as_secs());
-        println!("iterations:   {}", self.iterations_done);
+        println!("iterations:   {}", self.step_count);
         println!(
             "iter/sec:     {}",
-            self.iterations_done as u64 / max(now.elapsed().as_secs(), 1)
+            self.step_count as u64 / max(now.elapsed().as_secs(), 1)
         );
-        let before_fixplzplzplzplzplz =
-            calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-        fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
 
-        let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-        if before_fixplzplzplzplzplz != before_recalc {
-            println!("fixplzplzplzplz removed at least one order to get a correct answer")
-        }
-        self.truck1.recalculate_total_time();
-        self.truck2.recalculate_total_time();
-        let after_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-        if after_recalc != before_recalc {
-            println!("Incorrect score was stored");
-            println!();
-            println!(
-                "difference in minutes: {}",
-                (before_recalc - after_recalc) / 6000
-            );
-        }
+        // cleanup
+        let after_recalc = self.cleanup();
 
         println!("score: {}", after_recalc);
-        print_solution(after_recalc, &self.truck1, &self.truck2)
-            .expect("failed to print the solution");
+
+        // send final state before closing
+        self.route_sender
+            .send((
+                Arc::new(self.solution.truck1.clone()),
+                Arc::new(self.solution.truck2.clone()),
+            ))
+            .ok();
+        self.egui_ctx.request_repaint();
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let (transactionthingy, order_to_add_after_apply) = self.choose_neighbor(rng);
+        let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng);
         // get the change in capacity/time
 
-        let cost = transactionthingy.evaluate(&self.truck1, &self.truck2, &self.order_flags);
+        let cost = neighborhood.evaluate(&self.solution, &self.order_flags);
 
         // if we want to go through with this thing
         if self.accept(cost, rng) {
             // change the route
 
-            self.score +=
-                transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
+            self.solution.score += neighborhood.apply(&mut self.solution, &mut self.order_flags);
 
             if let Some(order_to_add_after_apply) = order_to_add_after_apply {
                 println!("put something back");
@@ -202,7 +236,10 @@ impl SimulatedAnnealing {
             // Future: It should only send a new route when it's faster, not just accepted
             if !self.route_sender.is_full() {
                 self.route_sender
-                    .try_send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
+                    .try_send((
+                        Arc::new(self.solution.truck1.clone()),
+                        Arc::new(self.solution.truck2.clone()),
+                    ))
                     .ok();
                 self.egui_ctx.request_repaint();
             }
@@ -233,5 +270,31 @@ impl SimulatedAnnealing {
         }
 
         VecDeque::from(deliveries)
+    }
+
+    fn cleanup(&mut self) -> Time {
+        // Cleanup: remove incomplete orders and recalculate scores
+        let before_fixplzplzplzplzplz = calculate_score(&self.solution, &self.order_flags);
+
+        fixplzplzplzpl(&mut self.solution, &mut self.order_flags);
+
+        let before_recalc = calculate_score(&self.solution, &self.order_flags);
+        if before_fixplzplzplzplzplz != before_recalc {
+            println!("fixplzplzplzplz removed at least one order to get a correct answer")
+        }
+
+        self.solution.truck1.recalculate_total_time();
+        self.solution.truck2.recalculate_total_time();
+        let after_recalc = calculate_score(&self.solution, &self.order_flags);
+        if after_recalc != before_recalc {
+            println!("Incorrect score was stored");
+            println!();
+            println!(
+                "difference in minutes: {}",
+                (before_recalc - after_recalc) / 6000
+            );
+        }
+
+        after_recalc
     }
 }

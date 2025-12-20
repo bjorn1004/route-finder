@@ -4,13 +4,14 @@ use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::week::{DayEnum, Week};
 use std::collections::HashMap;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
+use crate::simulated_annealing::solution::Solution;
 
-pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) {
+pub fn fixplzplzplzpl(solution: &mut Solution, order_flags: &mut OrderFlags) {
     let orders = get_orders();
     let mut order_count: HashMap<usize, usize> = HashMap::new();
 
-    count_per_week(truck1, &mut order_count);
-    count_per_week(truck2, &mut order_count);
+    count_per_week(&mut solution.truck1, &mut order_count);
+    count_per_week(&mut solution.truck2, &mut order_count);
 
     let a: Vec<(&usize, &usize)> = order_count
         .iter()
@@ -26,8 +27,8 @@ pub fn fixplzplzplzpl(truck1: &mut Week, truck2: &mut Week, order_flags: &mut Or
         order_flags.clear(*bad_order);
     }
 
-    delete_bad_week(truck1, &good_bad);
-    delete_bad_week(truck2, &good_bad);
+    delete_bad_week(&mut solution.truck1, &good_bad);
+    delete_bad_week(&mut solution.truck2, &good_bad);
 }
 
 fn count_per_week(truck: &Week, order_count: &mut HashMap<usize, usize>) {

@@ -72,10 +72,10 @@ impl GuiApp {
                 translation: -Vec2::new(min_x as f32, min_y as f32) * 0.0001,
             },
             route_selection: BTreeSet::new(),
-            temp: 1000000.0,
+            temp: 10_000_000.0,
             end_temp: 10.0,
-            q: 10_000,
-            alpha: 0.95,
+            q: 500_000,
+            alpha: 0.99,
             num_threads: std::thread::available_parallelism()
                 .map(|n| n.get())
                 .unwrap_or(4),

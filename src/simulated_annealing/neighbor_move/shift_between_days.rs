@@ -12,6 +12,7 @@ use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::week::{DayEnum, Week};
 use rand::Rng;
+use crate::simulated_annealing::solution::Solution;
 
 pub struct ShiftBetweenDays {
     shift: TruckDayTimeNode,
@@ -28,14 +29,12 @@ pub struct TruckDayTimeNode {
 
 impl ShiftBetweenDays {
     pub fn new<R: Rng + ?Sized>(
-        truck1: &Week,
-        truck2: &Week,
+        solution: &Solution,
         rng: &mut R,
         order_flags: &OrderFlags,
     ) -> Option<Self> {
         let shift = Self::get_random_truck_day_time_node(
-            truck1,
-            truck2,
+            solution,
             rng,
             |r: &Route, i: LVNodeIndex| {
                 r.linked_vector.get_tail_index().unwrap() != i
@@ -45,8 +44,7 @@ impl ShiftBetweenDays {
         )?;
 
         let target = Self::get_random_truck_day_time_node(
-            truck1,
-            truck2,
+            solution,
             rng,
             |r: &Route, i: LVNodeIndex| r.linked_vector.get_tail_index().unwrap() != i,
             Some((shift.order, shift.day, order_flags)),
@@ -64,17 +62,16 @@ impl ShiftBetweenDays {
     }
 
     fn get_random_truck_day_time_node<R: Rng + ?Sized>(
-        truck1: &Week,
-        truck2: &Week,
+        solution: &Solution,
         rng: &mut R,
         requirement: fn(&Route, LVNodeIndex) -> bool,
         shift: Option<(OrderIndex, DayEnum, &OrderFlags)>,
     ) -> Option<TruckDayTimeNode> {
         let truck_enum: TruckEnum = rng.random();
         let truck = if truck_enum == TruckEnum::Truck1 {
-            truck1
+            &solution.truck1
         } else {
-            truck2
+            &solution.truck2
         };
 
         // if this is the random day we want to shift to, check if there are options
@@ -110,12 +107,12 @@ impl ShiftBetweenDays {
     }
 
     /// returns a tuple where item1 contains change in time to shiftRoute, item2 contains change to targetRoute
-    fn evaluate_shift_neighbors(&self, truck1: &Week, truck2: &Week) -> (Time/*shift*/, Time/*target*/, Time /*empty_shift*/, Time /*new_target*/) {
+    fn evaluate_shift_neighbors(&self, solution: &Solution) -> (Time/*shift*/, Time/*target*/, Time /*empty_shift*/, Time /*new_target*/) {
 
         let shift_route = (if self.shift.truck == TruckEnum::Truck1 {
-            truck1
+            &solution.truck1
         } else {
-            truck2
+            &solution.truck2
         })
             .get(self.shift.day)
             .get(self.shift.time_of_day);
@@ -123,9 +120,9 @@ impl ShiftBetweenDays {
         let shift_diff = shift_route.calculate_remove_node(self.shift.node_index);
 
         let target_route = (if self.target.truck == TruckEnum::Truck1 {
-            truck1
+            &solution.truck1
         } else {
-            truck2
+            &solution.truck2
         })
             .get(self.target.day)
             .get(self.target.time_of_day);
@@ -135,9 +132,9 @@ impl ShiftBetweenDays {
         #[cfg(debug_assertions)]
         {
             let shift_lv = &(if self.shift.truck == TruckEnum::Truck1 {
-                truck1
+                &solution.truck1
             } else {
-                truck2
+                &solution.truck2
             })
                 .get(self.shift.day)
                 .get(self.shift.time_of_day)
@@ -152,9 +149,9 @@ impl ShiftBetweenDays {
             let after_shift = orders[*shift_lv.get_next_value_unsafe(self.shift.node_index)].matrix_id;
 
             let target_lv = &(if self.target.truck == TruckEnum::Truck1 {
-                truck1
+                &solution.truck1
             } else {
-                truck2
+                &solution.truck2
             })
                 .get(self.target.day)
                 .get(self.target.time_of_day)
@@ -220,14 +217,14 @@ impl ShiftBetweenDays {
 }
 
 impl NeighborMove for ShiftBetweenDays {
-    fn evaluate(&self, truck1: &Week, truck2: &Week, _: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution, _: &OrderFlags) -> CostChange {
         // this is the time difference
-        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(truck1, truck2);
+        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(&solution);
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {
-            truck1
+            &solution.truck1
         } else {
-            truck2
+            &solution.truck2
         })
         .get(self.target.day);
         if target_day.get_total_time() + target_diff > FULL_DAY {
@@ -237,38 +234,38 @@ impl NeighborMove for ShiftBetweenDays {
         }
 
         let capacity_penalty = max(
-            (((target_day.get(self.target.time_of_day).capacity + get_orders()[self.target.order].trash() - 100_000) as i32 )*3)/100,
+            (((target_day.get(self.target.time_of_day).capacity as i32 + get_orders()[self.target.order].trash() as i32 - 100_000))*3)/100,
             0
         );
 
         shift_diff + target_diff + empty_shift + new_target + capacity_penalty
     }
 
-    fn apply(&self, truck1: &mut Week, truck2: &mut Week, order_flags: &mut OrderFlags) -> Time {
-        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(truck1, truck2);
+    fn apply(&self, solution: &mut Solution, order_flags: &mut OrderFlags) -> Time {
+        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(&solution);
         let (shift_route, target_route): (&mut Route, &mut Route) =
             match (self.shift.truck, self.target.truck) {
                 (TruckEnum::Truck1, TruckEnum::Truck2) => (
-                    truck1
+                    solution.truck1
                         .get_mut(self.shift.day)
                         .get_mut(self.shift.time_of_day),
-                    truck2
+                    solution.truck2
                         .get_mut(self.target.day)
                         .get_mut(self.target.time_of_day),
                 ),
                 (TruckEnum::Truck2, TruckEnum::Truck1) => (
-                    truck2
+                    solution.truck2
                         .get_mut(self.shift.day)
                         .get_mut(self.shift.time_of_day),
-                    truck1
+                    solution.truck1
                         .get_mut(self.target.day)
                         .get_mut(self.target.time_of_day),
                 ),
                 (t1, t2) if t1 == t2 => {
                     let truck = if t1 == TruckEnum::Truck1 {
-                        truck1
+                        &mut solution.truck1
                     } else {
-                        truck2
+                        &mut solution.truck2
                     };
                     return self.apply_same_truck_case(truck, order_flags, shift_diff, target_diff, empty_shift, new_target);
                 }

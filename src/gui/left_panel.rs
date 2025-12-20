@@ -82,7 +82,7 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
                     },
                 );
                 app.search_handle.push(std::thread::spawn(move || {
-                    the_thing.biiiiiig_loop();
+                    the_thing.insanely_large_stuffloop();
                 }));
             }
         }
