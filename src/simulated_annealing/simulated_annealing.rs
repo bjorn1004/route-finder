@@ -138,11 +138,12 @@ impl SimulatedAnnealing {
             self.temp = self.reheating_temp;
             let next_iteration = self.biiiiiig_loop(&mut rng, next_iteration);
 
+            print_solution(&next_iteration, &output_dir, i)
+                .expect("failed to print the solution");
+
             if next_iteration.score < self.best_solution.score {
                 self.best_solution = next_iteration;
             }
-            print_solution(&self.best_solution, &output_dir, i)
-                .expect("failed to print the solution");
         }
     }
 
