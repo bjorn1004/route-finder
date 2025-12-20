@@ -24,6 +24,9 @@ pub fn fixplzplzplzpl(solution: &mut Solution) {
     let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
 
     for bad_order in &good_bad{
+        for _ in 0..solution.order_flags.get_filled_count(*bad_order){
+            solution.unfilled_orders.push_back(*bad_order);
+        }
         solution.order_flags.clear(*bad_order);
     }
 
@@ -48,7 +51,7 @@ fn count_per_route(route: &Route, order_count: &mut HashMap<usize, usize>) {
     }
 }
 
-fn delete_bad_week(truck: &mut Week, bad_list: &[usize]) {
+fn delete_bad_week(truck: &mut Week, bad_list: &[usize]){
     delete_bad_day(truck.get_mut(DayEnum::Monday), bad_list);
     delete_bad_day(truck.get_mut(DayEnum::Tuesday), bad_list);
     delete_bad_day(truck.get_mut(DayEnum::Wednesday), bad_list);
