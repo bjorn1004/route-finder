@@ -224,7 +224,7 @@ impl SimulatedAnnealing {
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R, weights: [i32;4], solution: &mut Solution) {
-        let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng,weights, solution);
+        let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng, weights, solution);
 
         // get the change in capacity/time
         let cost = neighborhood.evaluate(&solution);

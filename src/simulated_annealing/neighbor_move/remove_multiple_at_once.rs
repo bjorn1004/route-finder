@@ -23,7 +23,7 @@ struct RemoveOrderInfo {
 }
 
 impl RemoveMultipleOrders{
-    pub fn new<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, order_flags: &OrderFlags) -> Option<(Self, OrderIndex)>{
+    pub fn new<R: Rng + ?Sized>(solution: &Solution, rng: &mut R) -> Option<(Self, OrderIndex)>{
         let truck_enum: TruckEnum = rng.random();
         let day_enum: DayEnum = rng.random();
         let time_of_day: TimeOfDay = rng.random();
@@ -52,7 +52,7 @@ impl RemoveMultipleOrders{
                 }
             ];
 
-            let unremoved_days = order_flags.get_other_days_of_an_order(*order_index, day_enum);
+            let unremoved_days = solution.order_flags.get_other_days_of_an_order(*order_index, day_enum);
 
             for other_day in unremoved_days{
                 orders_to_remove.push(Self::find_other_day(&solution, other_day, *order_index))
