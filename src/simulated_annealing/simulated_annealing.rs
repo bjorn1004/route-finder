@@ -88,6 +88,7 @@ impl SimulatedAnnealing {
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
 
             best_solution: Solution::default(),
+            //best_solution: Solution::from_file("output/GUDSHIT"),
             paused: false,
             egui_ctx: config.egui_ctx,
             pause_rec: config.pause_rec,

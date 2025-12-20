@@ -1,12 +1,12 @@
 use std::collections::{HashMap, VecDeque};
-use std::fs::{read_to_string, File};
-use rand::Rng;
+use std::fs::{read_to_string};
 use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
+use crate::datastructures::linked_vectors::LinkedVector;
 use crate::resource::Company;
-use crate::simulated_annealing::day::{Day, TimeOfDay};
+use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::score_calculator::calculate_starting_score;
+use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 #[derive(Clone)]
@@ -31,25 +31,25 @@ impl Solution {
     }
 
     fn fill_unfilled_orders_list() -> VecDeque<OrderIndex> {
-    let mut deliveries = Vec::new();
-    let orders = get_orders();
-    if MULTIPL_ADD_AND_REMOVE{
-    for i in 0..orders.len() - 1{
-    deliveries.push(i);
-    }
-    VecDeque::from(deliveries)
-    } else {
-    let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
-    list.sort_by_key(|(_, order)| order.frequency as u8);
-    for (index, order) in list.iter() {
-    for _ in 0..order.frequency as u8 {
-    deliveries.push(*index);
-    }
-    }
+        let mut deliveries = Vec::new();
+        let orders = get_orders();
+        if MULTIPL_ADD_AND_REMOVE{
+            for i in 0..orders.len() - 1{
+            deliveries.push(i);
+            }
+        VecDeque::from(deliveries)
+        } else {
+            let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
+            list.sort_by_key(|(_, order)| order.frequency as u8);
+            for (index, order) in list.iter() {
+            for _ in 0..order.frequency as u8 {
+            deliveries.push(*index);
+            }
+        }
 
-    VecDeque::from(deliveries)
+        VecDeque::from(deliveries)
 
-    }
+        }
     }
 
 
@@ -63,23 +63,26 @@ impl Solution {
     }
 
     pub fn from_file(path: &str) -> Solution{
-        let solution_file = read_to_string(path)
-            .expect("Could not read the solution file");
-        let lines: Vec<Vec<&str>> = solution_file.lines().map(|line|line.split(";").collect()).collect();
+        // let solution_file = read_to_string(path)
+        //     .expect("Could not read the solution file");
+        let solution_file = read_to_string("output/GUDSHIT.txt").expect("f");
+        let mut lines: Vec<Vec<&str>> = solution_file.lines().map(|line|line.split(";").collect()).collect();
+        lines.pop(); // remove the empty line at the end
+        lines.pop(); // remove the empty line at the end
         let mut solution = Self::new();
 
         let mut current_day = DayEnum::Monday;
         let mut current_time = TimeOfDay::Morning;
-        let id_to_index = Self::order_id_to_index_dictionary();
+        let id_to_index = Self::order_id_to_index_hash_map();
 
         for line in lines{
-            let mut truck = match line[0] {
+            let truck = match line[0].trim() {
                 "1" => &mut solution.truck1,
                 "2" => &mut solution.truck2,
                 _ => panic!("Invalid truck number")
             };
 
-            let day = match line[1] {
+            let day_enum = match line[1].trim() {
                 "1" => DayEnum::Monday,
                 "2" => DayEnum::Tuesday,
                 "3" => DayEnum::Wednesday,
@@ -88,28 +91,65 @@ impl Solution {
                 _ => panic!("Invalid day number")
             };
 
-            if day != current_day {
-                current_day = day;
+            if day_enum != current_day {
+                current_day = day_enum;
                 current_time = TimeOfDay::Morning;
             }
 
-            let day = truck.get_mut(day);
+            let day = truck.get_mut(day_enum);
 
-            if line[3] == "0" {
+            if line[3].trim() == "0" {
                 current_time = TimeOfDay::Afternoon;
                 continue;
             }
 
+            let order_index = id_to_index[&line[3].trim().parse::<u16>().unwrap()];
+            let route = match current_time {
+                TimeOfDay::Morning   => &mut day.morning,
+                TimeOfDay::Afternoon => &mut day.afternoon,
+            };
+
+            let end = route.linked_vector.get_tail_index().unwrap();
+            let before_end = route.linked_vector.get_prev_index(end).unwrap();
+            solution.score += route.apply_add_order(before_end, order_index);
+            solution.order_flags.add_order(order_index, day_enum);
         }
 
-        todo!()
+        let unfilled_order_counts: Vec<u32>=
+            solution.order_flags
+            .get_counts().iter()
+                .zip(get_orders().iter())
+                .map(|(amount_done, order)| order.frequency as u32 - *amount_done)
+                .collect();
+
+        let mut new_unfilled_orders = Vec::new();
+        for (order_index, count) in unfilled_order_counts.iter().enumerate() {
+            for _ in 0..*count{
+                new_unfilled_orders.push(order_index as OrderIndex);
+            }
+        }
+
+        let orders = get_orders();
+        solution.score -= unfilled_order_counts
+            .iter()
+            .enumerate()
+            .map(|(order_index, count)| if *count > 0 {orders[order_index].trash()} else {0})
+            .sum::<u32>() as i32;
+
+        solution.truck1.recalculate_total_time();
+        solution.truck2.recalculate_total_time();
+        solution.score = calculate_score(&solution, &solution.order_flags);
+
+        solution.unfilled_orders = VecDeque::from(new_unfilled_orders);
+        solution
     }
 
-    fn order_id_to_index_dictionary() -> HashMap<u16, OrderIndex> {
+    fn order_id_to_index_hash_map() -> HashMap<u16, OrderIndex> {
         let mut map: HashMap<u16, OrderIndex> = HashMap::new();
         let orders = get_orders();
         for (order_index, order) in orders.iter().enumerate() {
             map.insert(order.order, order_index as OrderIndex);
+            assert_eq!(orders[order_index].order, order.order);
         }
         map
     }
