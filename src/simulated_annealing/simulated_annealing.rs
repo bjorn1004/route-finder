@@ -1,11 +1,9 @@
-use super::order_day_flags::OrderFlags;
 use super::week::Week;
-use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
 use crate::printer::print_solution;
-use crate::resource::{Company, Time};
+use crate::resource::Time;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::CostChange;
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
+use crate::simulated_annealing::score_calculator::calculate_score;
 use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use flume::{Receiver, Sender};
@@ -13,7 +11,6 @@ use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
 use std::cmp::max;
-use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::fs::create_dir;
 use std::sync::Arc;
@@ -79,7 +76,6 @@ impl Distribution<TruckEnum> for StandardUniform {
 impl SimulatedAnnealing {
     pub fn new<R: Rng + ?Sized>(rng: &mut R, config: SimulatedAnnealingConfig) -> Self {
         // intializationthings
-        let orders = get_orders();
         SimulatedAnnealing {
             idx: config.idx,
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
@@ -91,13 +87,8 @@ impl SimulatedAnnealing {
             step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
 
-            best_solution: Solution {
-                truck1: Default::default(),
-                truck2: Default::default(),
-                score: calculate_starting_score(),
-                unfilled_orders: Self::fill_unfilled_orders_list(rng),
-                order_flags: OrderFlags::new(orders.len()),
-            },
+            best_solution: Solution::default(),
+            //best_solution: Solution::from_file("output/GUDSHIT"),
             paused: false,
             egui_ctx: config.egui_ctx,
             pause_rec: config.pause_rec,
@@ -269,28 +260,6 @@ impl SimulatedAnnealing {
             return true;
         }
         false
-    }
-
-    fn fill_unfilled_orders_list<R: Rng + ?Sized>(_rng: &mut R) -> VecDeque<OrderIndex> {
-        let mut deliveries = Vec::new();
-        let orders = get_orders();
-        if MULTIPL_ADD_AND_REMOVE{
-            for i in 0..orders.len() - 1{
-                deliveries.push(i);
-            }
-            VecDeque::from(deliveries)
-        } else {
-            let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
-            list.sort_by_key(|(_, order)| order.frequency as u8);
-            for (index, order) in list.iter() {
-                for _ in 0..order.frequency as u8 {
-                    deliveries.push(*index);
-                }
-            }
-
-            VecDeque::from(deliveries)
-
-        }
     }
 
     fn cleanup(&mut self, solution: &mut Solution) -> Time {
