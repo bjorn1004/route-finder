@@ -1,24 +1,24 @@
-use std::cmp::{max};
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
 use crate::printer::print_solution;
 use crate::resource::{Company, Time};
-use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange};
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
-use flume::{Receiver, Sender, bounded};
+use crate::simulated_annealing::solution::Solution;
+use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
+use flume::{bounded, Receiver, Sender};
 use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
+use std::cmp::max;
 use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::fs::create_dir;
 use std::sync::Arc;
 use std::time::Instant;
 use time::OffsetDateTime;
-use crate::simulated_annealing::solution::Solution;
 
 type RouteState = (Arc<Week>, Arc<Week>);
 
@@ -37,7 +37,7 @@ pub struct SimulatedAnnealing {
     end_temp: f32,
     reheating_temp: f32,
     max_iterations: u32,
-    num_pertubations: u32,
+    num_perturbations: u32,
     q: u32,
     step_count: u32,
     a: f32,
@@ -79,7 +79,7 @@ impl SimulatedAnnealing {
             end_temp: config.end_temp,
             reheating_temp: 6000f32,
             max_iterations: 100,
-            num_pertubations: 80,
+            num_perturbations: 80,
             q: config.q,
             step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
@@ -134,10 +134,10 @@ impl SimulatedAnnealing {
         for i in 1..=self.max_iterations {
             let mut next_iteration = self.best_solution.clone();
             self.temp = f32::MAX;
-            for _ in 0..self.num_pertubations{
+            for _ in 0..self.num_perturbations {
                 self.do_step(&mut rng, [
                     1, // add new order
-                    10, // shift inside a route
+                    10, // shift within a route
                     10, // shift between days
                     1
                     // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
@@ -178,7 +178,7 @@ impl SimulatedAnnealing {
             }
             self.do_step(rng, [
                 100, // add new order
-                1000, // shift inside a route
+                1000, // within a route
                 1000, // shift between days
                 1
                 // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove

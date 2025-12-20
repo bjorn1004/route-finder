@@ -1,13 +1,11 @@
-use std::fs::File;
-use std::io::Write;
-use time::OffsetDateTime;
 use crate::get_orders;
-use crate::resource::Time;
 use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
-use crate::simulated_annealing::week::{DayEnum, Week};
 use crate::simulated_annealing::solution::Solution;
+use crate::simulated_annealing::week::{DayEnum, Week};
+use std::fs::File;
+use std::io::Write;
 
 pub fn print_solution(solution: &Solution, dir: &String, iteration: u32) -> std::io::Result<()>
 {
