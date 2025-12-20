@@ -16,6 +16,8 @@ use std::fs::create_dir;
 use std::sync::Arc;
 use std::time::Instant;
 use time::OffsetDateTime;
+use crate::datastructures::linked_vectors::LinkedVector;
+use crate::simulated_annealing::week::DayEnum::Monday;
 
 type RouteState = (Arc<Week>, Arc<Week>);
 
@@ -119,8 +121,8 @@ impl SimulatedAnnealing {
                 self.do_step(&mut rng, [
                     1, // add new order
                     10, // shift within a route
-                        10, // shift between days
-                        1,  // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                    10, // shift between days
+                    1,  // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
                     ],
                     &mut next_iteration,
                 );
@@ -189,12 +191,12 @@ impl SimulatedAnnealing {
         }
 
         // summarize run
-        println!("seconds:      {}", now.elapsed().as_secs());
-        println!("iterations:   {}", self.step_count);
-        println!(
-            "iter/sec:     {}",
-            self.step_count as u64 / max(now.elapsed().as_secs(), 1)
-        );
+        // println!("seconds:      {}", now.elapsed().as_secs());
+        // println!("iterations:   {}", self.step_count);
+        // println!(
+        //     "iter/sec:     {}",
+        //     self.step_count as u64 / max(now.elapsed().as_secs(), 1)
+        // );
 
         // cleanup
         let after_recalc = self.cleanup(&mut solution);
