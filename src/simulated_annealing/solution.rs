@@ -63,9 +63,8 @@ impl Solution {
     }
 
     pub fn from_file(path: &str) -> Solution{
-        // let solution_file = read_to_string(path)
-        //     .expect("Could not read the solution file");
-        let solution_file = read_to_string("output/GUDSHIT.txt").expect("f");
+         let solution_file = read_to_string(path)
+             .expect("Could not read the solution file");
         let mut lines: Vec<Vec<&str>> = solution_file.lines().map(|line|line.split(";").collect()).collect();
         lines.pop(); // remove the empty line at the end
         lines.pop(); // remove the empty line at the end
