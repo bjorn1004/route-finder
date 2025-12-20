@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fs::{read_to_string, File};
 use rand::Rng;
 use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
@@ -71,6 +71,15 @@ impl Solution {
 
 
         todo!()
+    }
+
+    fn order_id_to_index_dictionary() -> HashMap<u16, OrderIndex> {
+        let mut map: HashMap<u16, OrderIndex> = HashMap::new();
+        let orders = get_orders();
+        for (order_index, order) in orders.iter().enumerate() {
+            map.insert(order.order, order_index as OrderIndex);
+        }
+        map
     }
 }
 
