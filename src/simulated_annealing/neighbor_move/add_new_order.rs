@@ -22,14 +22,14 @@ pub struct AddNewOrder {
     order: OrderIndex,
 }
 impl AddNewOrder {
-    pub fn new<R: Rng+?Sized>(solution: &Solution, rng: &mut R, order_flags: &OrderFlags, order: OrderIndex) ->  Option<Self>{
+    pub fn new<R: Rng+?Sized>(solution: &Solution, rng: &mut R, order: OrderIndex) ->  Option<Self>{
 
         let truck_enum: TruckEnum = rng.random();
         let truck = if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2};
 
         let capacity = get_orders()[order].trash();
         // check if there is still an allowed day open
-        if let Some(day_enum) = order_flags.get_random_allowed_day(order, rng){
+        if let Some(day_enum) = solution.order_flags.get_random_allowed_day(order, rng){
             let day = truck.get(day_enum);
             let (route, time_of_day_enum) = day.get_random(rng);
             // if route.capacity + capacity > 100_000{
@@ -84,7 +84,7 @@ impl AddNewOrder {
 
 
 impl NeighborMove for AddNewOrder {
-    fn evaluate(&self, solution: &Solution, order_flags: &OrderFlags) -> CostChange {
+    fn evaluate(&self, solution: &Solution) -> CostChange {
 
         let route = (if self.truck_enum == TruckEnum::Truck1 { &solution.truck1 } else { &solution.truck2 }).get(self.day).get(self.time_of_day);
         let time = route.calculate_add_order(self.insert_after_index, self.order);
@@ -92,7 +92,7 @@ impl NeighborMove for AddNewOrder {
         let order = &get_orders()[self.order];
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
-        let penalty = if order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
+        let penalty = if solution.order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
             -order.penalty()
         } else {
             0
@@ -114,7 +114,7 @@ impl NeighborMove for AddNewOrder {
         penalty + time + capacity_penalty
     }
 
-    fn apply(&self, solution: &mut Solution, order_flags: &mut OrderFlags) -> ScoreChange {
+    fn apply(&self, solution: &mut Solution) -> ScoreChange {
         #[cfg(debug_assertions)]
         let checker_time_diff = self.calculate_time_difference(solution);
 
@@ -123,14 +123,14 @@ impl NeighborMove for AddNewOrder {
             .get_mut(self.time_of_day);
 
         let time_difference = route.apply_add_order(self.insert_after_index, self.order);
-        order_flags.add_order(self.order, self.day);
+        solution.order_flags.add_order(self.order, self.day);
         #[cfg(debug_assertions)]
         assert_eq!(time_difference, checker_time_diff);
 
         let order = &get_orders()[self.order];
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
-        let penalty = if order_flags.get_filled_count(self.order) == order.frequency as u32{
+        let penalty = if solution.order_flags.get_filled_count(self.order) == order.frequency as u32{
             -3 * order.emptying_time * order.frequency as Time
         } else {
             0

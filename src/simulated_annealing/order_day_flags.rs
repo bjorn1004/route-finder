@@ -3,6 +3,7 @@ use crate::get_orders;
 use crate::resource::{Company, Frequency};
 use crate::simulated_annealing::route::OrderIndex;
 use rand::Rng;
+#[derive(Clone)]
 pub struct OrderFlags {
     orders: Vec<u8>,
 }

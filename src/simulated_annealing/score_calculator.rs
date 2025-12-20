@@ -58,5 +58,7 @@ pub fn calculate_starting_score() -> Time {
         truck1: Default::default(),
         truck2: Default::default(),
         score: 0, // this value is not used and does not matter in this function
+        unfilled_orders: Default::default(), // does not matter
+        order_flags: OrderFlags::new(0),// does not matter
     }, &OrderFlags::new(get_orders().iter().count()))
 }
