@@ -14,9 +14,11 @@ use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
 use std::f32::consts::E;
+use std::fs::create_dir;
 use std::sync::Arc;
 use std::time::Instant;
-use crate::simulated_annealing::Solution::Solution;
+use time::OffsetDateTime;
+use crate::simulated_annealing::solution::Solution;
 
 type RouteState = (Arc<Week>, Arc<Week>);
 
@@ -33,8 +35,11 @@ pub struct SimulatedAnnealingConfig {
 pub struct SimulatedAnnealing {
     temp: f32,
     end_temp: f32,
+    reheating_temp: f32,
+    max_iterations: u32,
+    num_pertubations: u32,
     q: u32,
-    iterations_done: u32,
+    step_count: u32,
     a: f32,
 
     pub solution: Solution,
@@ -74,8 +79,11 @@ impl SimulatedAnnealing {
         SimulatedAnnealing {
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
             end_temp: config.end_temp,
+            reheating_temp: 3000f32,
+            max_iterations: 2,
+            num_pertubations: 100,
             q: config.q,
-            iterations_done: 0,
+            step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
 
             solution: Solution{
@@ -115,13 +123,30 @@ impl SimulatedAnnealing {
 
     // Iterated Local Search (ILS)
     pub fn insanely_large_stuffloop(&mut self) {
+        let mut rng = SmallRng::from_os_rng();
+        // let mut rng = SmallRng::seed_from_u64(0);
 
+        let now = OffsetDateTime::now_local().unwrap();
+        let output_dir = format!("output/{now}").replace(":","_");
+        create_dir(&output_dir).expect("Could not create an output folder");
+
+        self.biiiiiig_loop(&mut rng);
+        print_solution(&self.solution, &output_dir, 0).expect("failed to print the solution");
+
+        for i in 1..=self.max_iterations {
+            self.temp = f32::MAX;
+            for _ in 0..self.num_pertubations{
+                self.do_step(&mut rng);
+            }
+
+            self.temp = self.reheating_temp;
+            self.biiiiiig_loop(&mut rng);
+            print_solution(&self.solution, &output_dir, i).expect("failed to print the solution");
+        }
     }
 
-    pub fn biiiiiig_loop(&mut self) {
-        let mut rng = SmallRng::from_os_rng();
+    pub fn biiiiiig_loop<R: Rng + ?Sized>(&mut self, rng: &mut R){
         let now = Instant::now();
-        // let mut rng = SmallRng::seed_from_u64(0);
         // this ic currently an infinite loop.
 
         // main loop: gui stuff and do_step and thermostat
@@ -141,15 +166,15 @@ impl SimulatedAnnealing {
                 self.egui_ctx.request_repaint();
                 continue;
             }
-            self.do_step(&mut rng);
+            self.do_step(rng);
 
-            self.iterations_done += 1;
+            self.step_count += 1;
             self.q_channel
                 .0
-                .try_send(self.iterations_done % self.q)
+                .try_send(self.step_count % self.q)
                 .ok();
             self.score_channel.0.try_send(self.solution.score).ok();
-            if self.iterations_done.is_multiple_of(self.q) {
+            if self.step_count.is_multiple_of(self.q) {
                 self.temp *= self.a;
                 self.temp_channel.0.try_send(self.temp).ok();
             }
@@ -160,10 +185,10 @@ impl SimulatedAnnealing {
 
        // summarize run
         println!("seconds:      {}", now.elapsed().as_secs());
-        println!("iterations:   {}", self.iterations_done);
+        println!("iterations:   {}", self.step_count);
         println!(
             "iter/sec:     {}",
-            self.iterations_done as u64 / max(now.elapsed().as_secs(), 1)
+            self.step_count as u64 / max(now.elapsed().as_secs(), 1)
         );
 
         // cleanup
@@ -178,21 +203,19 @@ impl SimulatedAnnealing {
             .send((Arc::new(self.solution.truck1.clone()), Arc::new(self.solution.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
-
-        print_solution(after_recalc, &self.solution.truck1, &self.solution.truck2).expect("failed to print the solution");
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let (transactionthingy, order_to_add_after_apply) = self.choose_neighbor(rng);
+        let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng);
         // get the change in capacity/time
 
-        let cost = transactionthingy.evaluate(&self.solution, &self.order_flags);
+        let cost = neighborhood.evaluate(&self.solution, &self.order_flags);
 
         // if we want to go through with this thing
         if self.accept(cost, rng) {
             // change the route
 
-            self.solution.score += transactionthingy.apply(
+            self.solution.score += neighborhood.apply(
                 &mut self.solution,
                 &mut self.order_flags,
             );

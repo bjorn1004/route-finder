@@ -4,7 +4,7 @@ use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::week::{DayEnum, Week};
 use std::collections::HashMap;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
-use crate::simulated_annealing::Solution::Solution;
+use crate::simulated_annealing::solution::Solution;
 
 pub fn fixplzplzplzpl(solution: &mut Solution, order_flags: &mut OrderFlags) {
     let orders = get_orders();

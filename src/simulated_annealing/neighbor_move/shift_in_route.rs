@@ -5,7 +5,7 @@ use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange,
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::week::{DayEnum};
 use rand::Rng;
-use crate::simulated_annealing::Solution::Solution;
+use crate::simulated_annealing::solution::Solution;
 
 pub struct ShiftInRoute {
     truck1: bool,

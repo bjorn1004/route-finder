@@ -9,7 +9,7 @@ use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove, ScoreChange};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
-use crate::simulated_annealing::Solution::Solution;
+use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 /// This will add an order to a random route where it is allowed to add it to.

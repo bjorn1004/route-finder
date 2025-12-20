@@ -1,6 +1,6 @@
 use crate::resource::Time;
 use crate::simulated_annealing::order_day_flags::OrderFlags;
-use crate::simulated_annealing::Solution::Solution;
+use crate::simulated_annealing::solution::Solution;
 use super::super::week::Week;
 
 pub trait NeighborMove {

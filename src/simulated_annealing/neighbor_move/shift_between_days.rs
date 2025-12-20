@@ -12,7 +12,7 @@ use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::week::{DayEnum, Week};
 use rand::Rng;
-use crate::simulated_annealing::Solution::Solution;
+use crate::simulated_annealing::solution::Solution;
 
 pub struct ShiftBetweenDays {
     shift: TruckDayTimeNode,

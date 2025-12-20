@@ -43,7 +43,7 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
             app.q_rec = Some(q);
             app.temp_rec = Some(temp);
             app.route_rec = Some(route);
-            app.search_handle = Some(std::thread::spawn(move || the_thing.biiiiiig_loop()));
+            app.search_handle = Some(std::thread::spawn(move || the_thing.insanely_large_stuffloop()));
         }
         if ui.button("Pause search").clicked() {
             let _ = app.pause_channel.0.try_send(());
