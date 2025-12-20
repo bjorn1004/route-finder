@@ -7,7 +7,7 @@ use crate::resource::{Company, Time};
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
 use crate::simulated_annealing::route::OrderIndex;
-use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
+use crate::simulated_annealing::score_calculator::{add_orders, calculate_score, calculate_starting_score};
 use flume::{Receiver, Sender, bounded};
 use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
@@ -18,6 +18,7 @@ use std::fs::create_dir;
 use std::sync::Arc;
 use std::time::Instant;
 use time::OffsetDateTime;
+use crate::simulated_annealing::neighbor_move::add_new_order::AddNewOrder;
 use crate::simulated_annealing::solution::Solution;
 
 type RouteState = (Arc<Week>, Arc<Week>);
@@ -79,8 +80,8 @@ impl SimulatedAnnealing {
         SimulatedAnnealing {
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
             end_temp: config.end_temp,
-            reheating_temp: 3000f32,
-            max_iterations: 2,
+            reheating_temp: 5000f32,
+            max_iterations: 100,
             num_pertubations: 100,
             q: config.q,
             step_count: 0,
@@ -128,15 +129,21 @@ impl SimulatedAnnealing {
 
         let now = OffsetDateTime::now_local().unwrap();
         let output_dir = format!("output/{now}").replace(":","_");
-        create_dir(&output_dir).expect("Could not create an output folder");
 
         self.biiiiiig_loop(&mut rng);
+        create_dir(&output_dir).expect("Could not create an output folder");
         print_solution(&self.solution, &output_dir, 0).expect("failed to print the solution");
 
         for i in 1..=self.max_iterations {
             self.temp = f32::MAX;
             for _ in 0..self.num_pertubations{
-                self.do_step(&mut rng);
+                self.do_step(&mut rng, [
+                    1, // add new order
+                    10, // shift inside of a route
+                    10, // shift between days
+                    1
+                    // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                ]);
             }
 
             self.temp = self.reheating_temp;
@@ -166,7 +173,13 @@ impl SimulatedAnnealing {
                 self.egui_ctx.request_repaint();
                 continue;
             }
-            self.do_step(rng);
+            self.do_step(rng, [
+                100, // add new order
+                1000, // shift inside of a route
+                1000, // shift between days
+                1
+                // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+            ]);
 
             self.step_count += 1;
             self.q_channel
@@ -194,7 +207,7 @@ impl SimulatedAnnealing {
         // cleanup
         let after_recalc = self.cleanup();
 
-        println!("score: {}", after_recalc);
+        println!("score: {}", after_recalc as f32 / 6000f32);
 
         // send final state before closing
         let _ = self.route_channel.1.drain().map(drop);
@@ -205,10 +218,10 @@ impl SimulatedAnnealing {
         self.egui_ctx.request_repaint();
     }
 
-    fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng);
-        // get the change in capacity/time
+    fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R, weights: [i32;4]) {
+        let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng,weights);
 
+        // get the change in capacity/time
         let cost = neighborhood.evaluate(&self.solution, &self.order_flags);
 
         // if we want to go through with this thing
@@ -220,8 +233,7 @@ impl SimulatedAnnealing {
                 &mut self.order_flags,
             );
 
-            if let Some(order_to_add_after_apply) = order_to_add_after_apply {
-                println!("put something back");
+            if let EndOfStepInfo::Removed(order_to_add_after_apply) = order_to_add_after_apply {
                 self.unfilled_orders.push_back(order_to_add_after_apply)
             }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
@@ -233,6 +245,10 @@ impl SimulatedAnnealing {
                     .ok();
                 self.egui_ctx.request_repaint();
             }
+            return;
+        }
+        if let EndOfStepInfo::Add(order_to_add_after_apply) = order_to_add_after_apply {
+            self.unfilled_orders.push_back(order_to_add_after_apply)
         }
     }
 
@@ -287,4 +303,10 @@ impl SimulatedAnnealing {
 
         after_recalc
     }
+}
+
+pub enum EndOfStepInfo{
+    Nothing,
+    Removed(OrderIndex),
+    Add(OrderIndex),
 }

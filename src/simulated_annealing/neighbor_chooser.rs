@@ -3,7 +3,7 @@ use crate::simulated_annealing::neighbor_move::add_new_order::AddNewOrder;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
 use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 use crate::simulated_annealing::neighbor_move::shift_in_route::ShiftInRoute;
-use crate::simulated_annealing::simulated_annealing::SimulatedAnnealing;
+use crate::simulated_annealing::simulated_annealing::{EndOfStepInfo, SimulatedAnnealing};
 use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
 use crate::resource::MINUTE;
@@ -11,16 +11,10 @@ use crate::simulated_annealing::neighbor_move::remove::RemoveOrder;
 use crate::simulated_annealing::route::OrderIndex;
 
 impl SimulatedAnnealing {
-    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R) -> (Box<dyn NeighborMove>, Option<OrderIndex>) {
+    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R, weights:[i32;4]) -> (Box<dyn NeighborMove>, EndOfStepInfo) {
         // https://docs.rs/rand_distr/latest/rand_distr/weighted/struct.WeightedIndex.html
-        let weights = [
-            1000, // add new order
-            10000, // shift inside of a route
-            10000, // shift between days
-            if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
-        ];
         let weights = WeightedIndex::new(&weights).unwrap();
-        let mut order_to_add:Option<OrderIndex> = None;
+        let mut order_to_add: EndOfStepInfo = EndOfStepInfo::Nothing;
         loop {
             let a = weights.sample(rng);
 
@@ -38,6 +32,7 @@ impl SimulatedAnnealing {
                             self.unfilled_orders.push_back(random_order);
                             continue;
                         }
+                        order_to_add = EndOfStepInfo::Add(random_order);
                         Box::new(new_order.unwrap())
                     } else {
                         continue; // queue is empty, try something else
@@ -69,7 +64,7 @@ impl SimulatedAnnealing {
                         &self.solution,
                         rng
                     ){
-                        order_to_add = Some(_order_to_add);
+                        order_to_add = EndOfStepInfo::Removed(_order_to_add);
                         Box::new(remove)
                     } else {
                         continue;
