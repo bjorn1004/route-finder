@@ -3,12 +3,14 @@ use super::week::Week;
 use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
 use crate::printer::print_solution;
 use crate::resource::{Company, Time};
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::CostChange;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
 use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::FIXTHISSHITANDWEAREDONE::fixplzplzplzpl;
 use flume::{bounded, Receiver, Sender};
+use crate::simulated_annealing::solution::Solution;
+use flume::{Receiver, Sender, bounded};
 use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
@@ -23,6 +25,7 @@ use time::OffsetDateTime;
 type RouteState = (Arc<Week>, Arc<Week>);
 
 pub struct SimulatedAnnealingConfig {
+    pub idx: usize,
     pub temp: f32,
     pub end_temp: f32,
     pub q: u32,
@@ -30,9 +33,14 @@ pub struct SimulatedAnnealingConfig {
     pub egui_ctx: egui::Context,
     pub pause_rec: Receiver<()>,
     pub stop_rec: Receiver<()>,
+    pub score_sender: Sender<i32>,
+    pub q_sender: Sender<u32>,
+    pub temp_sender: Sender<f32>,
+    pub route_sender: Sender<RouteState>,
 }
 
 pub struct SimulatedAnnealing {
+    idx: usize,
     temp: f32,
     end_temp: f32,
     reheating_temp: f32,
@@ -50,10 +58,10 @@ pub struct SimulatedAnnealing {
     egui_ctx: egui::Context,
     pause_rec: Receiver<()>,
     stop_rec: Receiver<()>,
-    score_channel: (Sender<i32>, Receiver<i32>),
-    q_channel: (Sender<u32>, Receiver<u32>),
-    temp_channel: (Sender<f32>, Receiver<f32>),
-    route_channel: (Sender<RouteState>, Receiver<RouteState>),
+    score_sender: Sender<i32>,
+    q_sender: Sender<u32>,
+    temp_sender: Sender<f32>,
+    route_sender: Sender<RouteState>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
@@ -75,6 +83,7 @@ impl SimulatedAnnealing {
         // intializationthings
         let orders = get_orders();
         SimulatedAnnealing {
+            idx: config.idx,
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
             end_temp: config.end_temp,
             reheating_temp: 6000f32,
@@ -84,7 +93,7 @@ impl SimulatedAnnealing {
             step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
 
-            best_solution: Solution{
+            best_solution: Solution {
                 truck1: Default::default(),
                 truck2: Default::default(),
                 score: calculate_starting_score(),
@@ -95,28 +104,11 @@ impl SimulatedAnnealing {
             egui_ctx: config.egui_ctx,
             pause_rec: config.pause_rec,
             stop_rec: config.stop_rec,
-            score_channel: bounded(1),
-            q_channel: bounded(1),
-            temp_channel: bounded(1),
-            route_channel: bounded(1),
+            score_sender: config.score_sender,
+            q_sender: config.q_sender,
+            temp_sender: config.temp_sender,
+            route_sender: config.route_sender,
         }
-    }
-
-    /// Get the channels for communicating with the GUI
-    pub fn get_channels(
-        &self,
-    ) -> (
-        Receiver<i32>,
-        Receiver<u32>,
-        Receiver<f32>,
-        Receiver<RouteState>,
-    ) {
-        (
-            self.score_channel.1.clone(),
-            self.q_channel.1.clone(),
-            self.temp_channel.1.clone(),
-            self.route_channel.1.clone(),
-        )
     }
 
     // Iterated Local Search (ILS)
@@ -125,7 +117,7 @@ impl SimulatedAnnealing {
         // let mut rng = SmallRng::seed_from_u64(0);
 
         let now = OffsetDateTime::now_local().unwrap();
-        let output_dir = format!("output/{now}").replace(":","_");
+        let output_dir = format!("output/{now}").replace(":", "_");
 
         self.best_solution = self.biiiiiig_loop(&mut rng, self.best_solution.clone());
         create_dir(&output_dir).expect("Could not create an output folder");
@@ -138,24 +130,29 @@ impl SimulatedAnnealing {
                 self.do_step(&mut rng, [
                     1, // add new order
                     10, // shift within a route
-                    10, // shift between days
-                    1
-                    // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
-                ],
-                &mut next_iteration);
+                        10, // shift between days
+                        1,  // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                    ],
+                    &mut next_iteration,
+                );
             }
 
             self.temp = self.reheating_temp;
             let next_iteration = self.biiiiiig_loop(&mut rng, next_iteration);
 
-            if next_iteration.score < self.best_solution.score{
+            if next_iteration.score < self.best_solution.score {
                 self.best_solution = next_iteration;
             }
-            print_solution(&self.best_solution, &output_dir, i).expect("failed to print the solution");
+            print_solution(&self.best_solution, &output_dir, i)
+                .expect("failed to print the solution");
         }
     }
 
-    pub fn biiiiiig_loop<R: Rng + ?Sized>(&mut self, rng: &mut R, mut solution: Solution) -> Solution{
+    pub fn biiiiiig_loop<R: Rng + ?Sized>(
+        &mut self,
+        rng: &mut R,
+        mut solution: Solution,
+    ) -> Solution {
         let now = Instant::now();
         // this ic currently an infinite loop.
 
@@ -169,38 +166,39 @@ impl SimulatedAnnealing {
             }
             if self.paused {
                 // if paused, just send the latest state untill unpaused
-                self.route_channel
-                    .0
-                    .send((Arc::new(solution.truck1.clone()), Arc::new(solution.truck2.clone())))
+                self.route_sender
+                    .send((
+                        Arc::new(solution.truck1.clone()),
+                        Arc::new(solution.truck2.clone()),
+                    ))
                     .ok();
                 self.egui_ctx.request_repaint();
                 continue;
             }
-            self.do_step(rng, [
-                100, // add new order
-                1000, // within a route
-                1000, // shift between days
-                1
-                // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
-            ],
-            &mut solution);
+            self.do_step(
+                rng,
+                [
+                    100,  // add new order
+                    1000, // within a route
+                    1000, // shift between days
+                    1,    // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                ],
+                &mut solution,
+            );
 
             self.step_count += 1;
-            self.q_channel
-                .0
-                .try_send(self.step_count % self.q)
-                .ok();
-            self.score_channel.0.try_send(solution.score).ok();
+            self.q_sender.try_send(self.step_count % self.q).ok();
+            self.score_sender.try_send(solution.score).ok();
             if self.step_count.is_multiple_of(self.q) {
                 self.temp *= self.a;
-                self.temp_channel.0.try_send(self.temp).ok();
+                self.temp_sender.try_send(self.temp).ok();
             }
             if self.temp <= self.end_temp {
                 break;
             }
         }
 
-       // summarize run
+        // summarize run
         println!("seconds:      {}", now.elapsed().as_secs());
         println!("iterations:   {}", self.step_count);
         println!(
@@ -214,16 +212,22 @@ impl SimulatedAnnealing {
         println!("score: {}", after_recalc as f32 / 6000f32);
 
         // send final state before closing
-        let _ = self.route_channel.1.drain().map(drop);
-        self.route_channel
-            .0
-            .send((Arc::new(solution.truck1.clone()), Arc::new(solution.truck2.clone())))
+        self.route_sender
+            .send((
+                Arc::new(solution.truck1.clone()),
+                Arc::new(solution.truck2.clone()),
+            ))
             .ok();
         self.egui_ctx.request_repaint();
         solution
     }
 
-    fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R, weights: [i32;4], solution: &mut Solution) {
+    fn do_step<R: Rng + ?Sized>(
+        &mut self,
+        rng: &mut R,
+        weights: [i32; 4],
+        solution: &mut Solution,
+    ) {
         let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng, weights, solution);
 
         // get the change in capacity/time
@@ -233,19 +237,19 @@ impl SimulatedAnnealing {
         if self.accept(cost, rng) {
             // change the route
 
-            solution.score += neighborhood.apply(
-                solution,
-            );
+            solution.score += neighborhood.apply(solution);
 
             if let EndOfStepInfo::Removed(order_to_add_after_apply) = order_to_add_after_apply {
                 solution.unfilled_orders.push_back(order_to_add_after_apply)
             }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
             // Future: It should only send a new route when it's faster, not just accepted
-            if !self.route_channel.0.is_full() {
-                self.route_channel
-                    .0
-                    .try_send((Arc::new(solution.truck1.clone()), Arc::new(solution.truck2.clone())))
+            if !self.route_sender.is_full() {
+                self.route_sender
+                    .try_send((
+                        Arc::new(solution.truck1.clone()),
+                        Arc::new(solution.truck2.clone()),
+                    ))
                     .ok();
                 self.egui_ctx.request_repaint();
             }
@@ -318,7 +322,7 @@ impl SimulatedAnnealing {
     }
 }
 
-pub enum EndOfStepInfo{
+pub enum EndOfStepInfo {
     Nothing,
     Removed(OrderIndex),
     Add(OrderIndex),

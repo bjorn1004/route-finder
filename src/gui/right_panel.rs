@@ -52,7 +52,7 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
             });
         });
         ui.collapsing("Selected routes", |ui| {
-            if let Some(routes) = &app.cur_route {
+            if let Some(routes) = &app.cur_route.get(app.drawn_thread) {
                 for selection in app.route_selection.iter() {
                     ui.collapsing(
                         format!(
@@ -95,7 +95,7 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
         });
         ui.separator();
         ui.collapsing("Week", |ui| {
-            if let Some(routes) = &app.cur_route {
+            if let Some(routes) = &app.cur_route.get(app.drawn_thread) {
                 egui::Grid::new("week_overview")
                     .num_columns(2)
                     .show(ui, |ui| {
@@ -139,12 +139,12 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
             }
         });
         ui.collapsing("Days", |ui| {
-            if let Some(routes) = &app.cur_route {
+            if let Some(routes) = &app.cur_route.get(app.drawn_thread) {
                 let day_overview = |ui: &mut Ui, day: DayEnum| {
                     ui.collapsing(format!("{:?}", day), |ui| {
                         for &truck in &[TruckEnum::Truck1, TruckEnum::Truck2] {
                             ui.collapsing(format!("{:?}", truck), |ui| {
-                                let summary_route = {
+                                let (summary_route, has_overflow) = {
                                     let selection_morning = super::RouteSelection {
                                         truck,
                                         day,
@@ -175,13 +175,17 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
                                     combined_route.capacity =
                                         morning_route.capacity + afternoon_route.capacity;
                                     combined_route.time = morning_route.time + afternoon_route.time;
-                                    combined_route
+                                    (
+                                        combined_route,
+                                        morning_route.capacity > 100_000
+                                            || afternoon_route.capacity > 100_000,
+                                    )
                                 };
                                 egui::Grid::new(format!("day_overview_{:?}_{:?}", truck, day))
                                     .num_columns(2)
                                     .show(ui, |ui| {
                                         ui.label("Trash collected:");
-                                        if summary_route.capacity > 200_000 {
+                                        if has_overflow {
                                             ui.colored_label(
                                                 Color32::RED,
                                                 format!("{}L, (OVERFLOW)", summary_route.capacity),

@@ -8,12 +8,14 @@ use crate::simulated_annealing::week::Week;
 use crate::simulated_annealing::{day::TimeOfDay, simulated_annealing::TruckEnum, week::DayEnum};
 use egui::Vec2;
 use egui::emath::TSTransform;
-use flume::{Receiver, Sender, bounded};
+use flume::{Receiver, Sender};
 
+mod bottom_panel;
 mod center_panel;
 mod left_panel;
 mod right_panel;
 
+pub use bottom_panel::show_bottom_panel;
 pub use center_panel::show_center_panel;
 pub use left_panel::show_left_panel;
 pub use right_panel::show_right_panel;
@@ -36,18 +38,23 @@ pub struct GuiApp {
     pub q: u32,
     pub alpha: f32,
 
+    // Multithreading parameters
+    pub num_threads: usize,
+    pub drawn_thread: usize,
+
     // Search thread communication
-    pub search_handle: Option<JoinHandle<()>>,
-    pub pause_channel: (Sender<()>, Receiver<()>),
-    pub stop_channel: (Sender<()>, Receiver<()>),
-    pub score_rec: Option<Receiver<i32>>,
-    pub cur_score: f32,
-    pub q_rec: Option<Receiver<u32>>,
-    pub cur_q: u32,
-    pub temp_rec: Option<Receiver<f32>>,
-    pub cur_temp: f32,
-    pub route_rec: Option<Receiver<(Arc<Week>, Arc<Week>)>>,
-    pub cur_route: Option<(Arc<Week>, Arc<Week>)>,
+    pub search_handle: Vec<JoinHandle<()>>,
+    pub pause_channel: Vec<(Sender<()>, Receiver<()>)>,
+    pub stop_channel: Vec<(Sender<()>, Receiver<()>)>,
+    pub score_rec: Vec<Receiver<i32>>,
+    pub cur_score: Vec<f32>,
+    pub q_rec: Vec<Receiver<u32>>,
+    pub cur_q: Vec<u32>,
+    pub temp_rec: Vec<Receiver<f32>>,
+    pub cur_temp: Vec<f32>,
+    pub route_rec: Vec<Receiver<(Arc<Week>, Arc<Week>)>>,
+    // The currently displayed route
+    pub cur_route: Vec<(Arc<Week>, Arc<Week>)>,
 }
 
 impl GuiApp {
@@ -69,17 +76,21 @@ impl GuiApp {
             end_temp: 10.0,
             q: 500_000,
             alpha: 0.99,
-            search_handle: None,
-            pause_channel: bounded(1),
-            stop_channel: bounded(1),
-            score_rec: None,
-            cur_score: 0.0,
-            q_rec: None,
-            cur_q: 0,
-            temp_rec: None,
-            cur_temp: 0.0,
-            route_rec: None,
-            cur_route: None,
+            num_threads: std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(4),
+            drawn_thread: 0,
+            search_handle: vec![],
+            pause_channel: vec![],
+            stop_channel: vec![],
+            score_rec: vec![],
+            cur_score: vec![],
+            q_rec: vec![],
+            cur_q: vec![],
+            temp_rec: vec![],
+            cur_temp: vec![],
+            route_rec: vec![],
+            cur_route: vec![],
         }
     }
 }
@@ -96,6 +107,10 @@ impl eframe::App for GuiApp {
 
         egui::SidePanel::right("inspector").show(ctx, |ui| {
             show_right_panel(ui, self);
+        });
+
+        egui::TopBottomPanel::bottom("multithreading_info").show(ctx, |ui| {
+            show_bottom_panel(ui, self);
         });
     }
 }
