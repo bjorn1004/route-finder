@@ -38,14 +38,14 @@ pub fn show_center_panel(ctx: &egui::Context, ui: &mut Ui, app: &mut GuiApp) {
         }
     }
 
-    if let Some(route_rec) = &app.route_rec
-        && let Ok(cur_route) = route_rec.try_recv()
-    {
-        app.cur_route = Some(cur_route);
+    for (idx, route_rec) in app.route_rec.iter_mut().enumerate() {
+        if let Ok(cur_route) = route_rec.try_recv() {
+            app.cur_route[idx] = cur_route;
+        }
     }
 
     let mut routes = vec![];
-    if let Some(route) = &app.cur_route {
+    if let Some(route) = &app.cur_route.get(app.drawn_thread) {
         for selection in app.route_selection.iter() {
             let sel_route = super::route_selection_to_route(route, selection);
             routes.push(sel_route);

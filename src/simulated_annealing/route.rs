@@ -215,10 +215,6 @@ mod tests {
         DISTANCE_MATRIX.set(distance_matrix).ok();
     }
 
-    fn calculate_score_for_single_route(){
-
-    }
-
     #[test]
     fn initialization_check(){
         let orders = get_orders();

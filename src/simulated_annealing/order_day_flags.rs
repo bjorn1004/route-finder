@@ -1,6 +1,6 @@
 use super::week::DayEnum;
 use crate::get_orders;
-use crate::resource::{Company, Frequency};
+use crate::resource::{Frequency};
 use crate::simulated_annealing::route::OrderIndex;
 use rand::Rng;
 #[derive(Clone)]
@@ -52,7 +52,7 @@ impl OrderFlags {
     ) -> Option<DayEnum> {
         let order = &get_orders()[order_index];
         let flags = self.orders[order_index] & 0b1_1111;
-        self._get_random_allowed_day(flags, order, rng)
+        OrderFlags::_get_random_allowed_day(flags, order.frequency, rng)
     }
 
     pub fn get_random_day_to_shift_to<R: Rng + ?Sized>(
@@ -66,16 +66,15 @@ impl OrderFlags {
 
         debug_assert!(self.orders[order_index] & 0b1_1111 > flags); // assert that a one has been flipped to 0
 
-        self._get_random_allowed_day(flags, order, rng)
+        OrderFlags::_get_random_allowed_day(flags, order.frequency, rng)
     }
 
-    fn _get_random_allowed_day<R: Rng + ?Sized>(
-        &self,
+    pub fn _get_random_allowed_day<R: Rng + ?Sized>(
         flags: u8,
-        order: &Company,
+        frequency: Frequency,
         rng: &mut R,
     ) -> Option<DayEnum> {
-        match order.frequency {
+        match frequency {
             Frequency::None => panic!(
                 "Tried to add something with frequency 0 to a route. \
             Frequency 0 is preserved for the dropoff locations"
@@ -173,7 +172,7 @@ impl OrderFlags {
             }
         }
     }
-    fn day_to_flags(day: DayEnum) -> u8 {
+    pub fn day_to_flags(day: DayEnum) -> u8 {
         match day {
             DayEnum::Monday => 0b1_0000,
             DayEnum::Tuesday => 0b0_1000,
@@ -196,5 +195,30 @@ impl OrderFlags {
         // check if we are actually clearing something here.
         debug_assert_ne!(self.orders[order_index], 0);
         self.orders[order_index] = 0;
+    }
+
+    pub fn get_other_days_of_an_order(&self, order_index: OrderIndex, day_enum: DayEnum) -> Vec<DayEnum>{
+        let flags = self.orders[order_index];
+        let mut vec = Vec::new();
+
+        for i in 0..5{
+            let flag = flags & 1 << i;
+            if let Some(day) = flag_to_day(flag) && day != day_enum {
+                vec.push(day);
+            }
+        }
+
+        return vec;
+
+        fn flag_to_day(flag: u8) -> Option<DayEnum> {
+            match flag{
+                0b1_0000 => Some(DayEnum::Monday),
+                0b0_1000 => Some(DayEnum::Tuesday),
+                0b0_0100 => Some(DayEnum::Wednesday),
+                0b0_0010 => Some(DayEnum::Thursday),
+                0b0_0001 => Some(DayEnum::Friday),
+                _ => None
+            }
+        }
     }
 }
