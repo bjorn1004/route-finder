@@ -1,4 +1,3 @@
-use std::cmp::{max};
 use super::order_day_flags::OrderFlags;
 use super::week::Week;
 use crate::get_orders;
@@ -12,6 +11,7 @@ use flume::{Receiver, Sender, bounded};
 use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
+use std::cmp::max;
 use std::collections::VecDeque;
 use std::f32::consts::E;
 use std::sync::Arc;
@@ -20,6 +20,7 @@ use std::time::Instant;
 type RouteState = (Arc<Week>, Arc<Week>);
 
 pub struct SimulatedAnnealingConfig {
+    pub idx: usize,
     pub temp: f32,
     pub end_temp: f32,
     pub q: u32,
@@ -27,9 +28,14 @@ pub struct SimulatedAnnealingConfig {
     pub egui_ctx: egui::Context,
     pub pause_rec: Receiver<()>,
     pub stop_rec: Receiver<()>,
+    pub score_sender: Sender<i32>,
+    pub q_sender: Sender<u32>,
+    pub temp_sender: Sender<f32>,
+    pub route_sender: Sender<RouteState>,
 }
 
 pub struct SimulatedAnnealing {
+    idx: usize,
     temp: f32,
     end_temp: f32,
     q: u32,
@@ -48,10 +54,10 @@ pub struct SimulatedAnnealing {
     egui_ctx: egui::Context,
     pause_rec: Receiver<()>,
     stop_rec: Receiver<()>,
-    score_channel: (Sender<i32>, Receiver<i32>),
-    q_channel: (Sender<u32>, Receiver<u32>),
-    temp_channel: (Sender<f32>, Receiver<f32>),
-    route_channel: (Sender<RouteState>, Receiver<RouteState>),
+    score_sender: Sender<i32>,
+    q_sender: Sender<u32>,
+    temp_sender: Sender<f32>,
+    route_sender: Sender<RouteState>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
@@ -73,6 +79,7 @@ impl SimulatedAnnealing {
         // intializationthings
         let orders = get_orders();
         SimulatedAnnealing {
+            idx: config.idx,
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
             end_temp: config.end_temp,
             q: config.q,
@@ -87,10 +94,10 @@ impl SimulatedAnnealing {
             egui_ctx: config.egui_ctx,
             pause_rec: config.pause_rec,
             stop_rec: config.stop_rec,
-            score_channel: bounded(1),
-            q_channel: bounded(1),
-            temp_channel: bounded(1),
-            route_channel: bounded(1),
+            score_sender: config.score_sender,
+            q_sender: config.q_sender,
+            temp_sender: config.temp_sender,
+            route_sender: config.route_sender,
         }
     }
 
@@ -99,23 +106,6 @@ impl SimulatedAnnealing {
         self.truck1 = truck1;
         self.truck2 = truck2;
         self.score = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
-    }
-
-    /// Get the channels for communicating with the GUI
-    pub fn get_channels(
-        &self,
-    ) -> (
-        Receiver<i32>,
-        Receiver<u32>,
-        Receiver<f32>,
-        Receiver<RouteState>,
-    ) {
-        (
-            self.score_channel.1.clone(),
-            self.q_channel.1.clone(),
-            self.temp_channel.1.clone(),
-            self.route_channel.1.clone(),
-        )
     }
 
     pub fn biiiiiig_loop(&mut self) {
@@ -135,8 +125,7 @@ impl SimulatedAnnealing {
             }
             if self.paused {
                 // if paused, just send the latest state untill unpaused
-                self.route_channel
-                    .0
+                self.route_sender
                     .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
                     .ok();
                 self.egui_ctx.request_repaint();
@@ -145,33 +134,30 @@ impl SimulatedAnnealing {
             self.do_step(&mut rng);
 
             self.iterations_done += 1;
-            self.q_channel
-                .0
-                .try_send(self.iterations_done % self.q)
-                .ok();
-            self.score_channel.0.try_send(self.score).ok();
+            self.q_sender.try_send(self.iterations_done % self.q).ok();
+            self.score_sender.try_send(self.score).ok();
             if self.iterations_done.is_multiple_of(self.q) {
                 self.temp *= self.a;
-                self.temp_channel.0.try_send(self.temp).ok();
+                self.temp_sender.try_send(self.temp).ok();
             }
             if self.temp <= self.end_temp {
                 break;
             }
         }
         // send final state before closing
-        let _ = self.route_channel.1.drain().map(drop);
-        self.route_channel
-            .0
+        self.route_sender
             .send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
             .ok();
         self.egui_ctx.request_repaint();
+        println!("idx:          {}", self.idx);
         println!("seconds:      {}", now.elapsed().as_secs());
         println!("iterations:   {}", self.iterations_done);
         println!(
             "iter/sec:     {}",
             self.iterations_done as u64 / max(now.elapsed().as_secs(), 1)
         );
-        let before_fixplzplzplzplzplz = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
+        let before_fixplzplzplzplzplz =
+            calculate_score(&self.truck1, &self.truck2, &self.order_flags);
         fixplzplzplzpl(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
 
         let before_recalc = calculate_score(&self.truck1, &self.truck2, &self.order_flags);
@@ -191,7 +177,8 @@ impl SimulatedAnnealing {
         }
 
         println!("score: {}", after_recalc);
-        print_solution(after_recalc, &self.truck1, &self.truck2).expect("failed to print the solution");
+        print_solution(after_recalc, &self.truck1, &self.truck2)
+            .expect("failed to print the solution");
     }
 
     fn do_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
@@ -204,11 +191,8 @@ impl SimulatedAnnealing {
         if self.accept(cost, rng) {
             // change the route
 
-            self.score += transactionthingy.apply(
-                &mut self.truck1,
-                &mut self.truck2,
-                &mut self.order_flags,
-            );
+            self.score +=
+                transactionthingy.apply(&mut self.truck1, &mut self.truck2, &mut self.order_flags);
 
             if let Some(order_to_add_after_apply) = order_to_add_after_apply {
                 println!("put something back");
@@ -216,9 +200,8 @@ impl SimulatedAnnealing {
             }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
             // Future: It should only send a new route when it's faster, not just accepted
-            if !self.route_channel.0.is_full() {
-                self.route_channel
-                    .0
+            if !self.route_sender.is_full() {
+                self.route_sender
                     .try_send((Arc::new(self.truck1.clone()), Arc::new(self.truck2.clone())))
                     .ok();
                 self.egui_ctx.request_repaint();
