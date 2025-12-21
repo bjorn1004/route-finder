@@ -110,9 +110,10 @@ impl SimulatedAnnealing {
         let now = OffsetDateTime::now_local().unwrap();
         let output_dir = format!("output/{now}").replace(":", "_");
 
-        self.best_solution = self.biiiiiig_loop(&mut rng, self.best_solution.clone());
+        let start_solution = self.biiiiiig_loop(&mut rng, self.best_solution.clone());
         create_dir(&output_dir).expect("Could not create an output folder");
-        print_solution(&self.best_solution, &output_dir, 0).expect("failed to print the solution");
+        print_solution(&start_solution, &output_dir, 0).expect("failed to print the solution");
+        if start_solution.score <= self.best_solution.score {self.best_solution = start_solution}
 
         for i in 1..=self.max_iterations {
             let mut next_iteration = self.best_solution.clone();
@@ -134,7 +135,7 @@ impl SimulatedAnnealing {
             print_solution(&next_iteration, &output_dir, i)
                 .expect("failed to print the solution");
 
-            if next_iteration.score < self.best_solution.score {
+            if next_iteration.score <= self.best_solution.score {
                 self.best_solution = next_iteration;
             }
         }
