@@ -13,6 +13,26 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
             if ui.button("Deselect all").clicked() {
                 app.route_selection.clear();
             }
+            if ui.button("Select all").clicked() {
+                for truck in [TruckEnum::Truck1, TruckEnum::Truck2].iter() {
+                    for day in
+                        [
+                            DayEnum::Monday,
+                            DayEnum::Tuesday,
+                            DayEnum::Wednesday,
+                            DayEnum::Thursday,
+                            DayEnum::Friday,
+                        ].iter() {
+                        for shift in
+                            [TimeOfDay::Morning, TimeOfDay::Afternoon].iter()
+                        {
+                            let selection =
+                                super::RouteSelection { truck: *truck, day: *day, shift: *shift };
+                            app.route_selection.insert(selection);
+                        }
+                    }
+                }
+            }
             let mut shift_ui = |ui: &mut Ui, shift: TimeOfDay, day: DayEnum, truck: TruckEnum| {
                 let selection = super::RouteSelection { truck, day, shift };
                 let selected = &mut app.route_selection.contains(&selection);
