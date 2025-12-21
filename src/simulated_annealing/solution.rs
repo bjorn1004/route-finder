@@ -65,9 +65,7 @@ impl Solution {
     pub fn from_file(path: &str) -> Solution{
          let solution_file = read_to_string(path)
              .expect("Could not read the solution file");
-        let mut lines: Vec<Vec<&str>> = solution_file.lines().map(|line|line.split(";").collect()).collect();
-        lines.pop(); // remove the empty line at the end
-        lines.pop(); // remove the empty line at the end
+        let lines: Vec<Vec<&str>> = solution_file.lines().map(|line|line.split(";").collect()).collect();
         let mut solution = Self::new();
 
         let mut current_day = DayEnum::Monday;
@@ -146,7 +144,7 @@ impl Solution {
     fn order_id_to_index_hash_map() -> HashMap<u16, OrderIndex> {
         let mut map: HashMap<u16, OrderIndex> = HashMap::new();
         let orders = get_orders();
-        for (order_index, order) in orders.iter().enumerate() {
+        for (order_index, order) in orders.iter().enumerate().rev().skip(1).rev() {
             map.insert(order.order, order_index as OrderIndex);
             assert_eq!(orders[order_index].order, order.order);
         }
