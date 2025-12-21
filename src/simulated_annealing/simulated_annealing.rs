@@ -14,7 +14,6 @@ use rand::{Rng, SeedableRng};
 use std::f32::consts::E;
 use std::fs::create_dir;
 use std::sync::Arc;
-use std::time::Instant;
 use time::OffsetDateTime;
 
 type RouteState = (Arc<Week>, Arc<Week>);
