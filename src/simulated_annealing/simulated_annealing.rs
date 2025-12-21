@@ -1,4 +1,5 @@
 use super::week::Week;
+use crate::datastructures::linked_vectors::LinkedVector;
 use crate::printer::print_solution;
 use crate::resource::Time;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::CostChange;
@@ -10,14 +11,11 @@ use flume::{Receiver, Sender};
 use rand::distr::{Distribution, StandardUniform};
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
-use std::cmp::max;
 use std::f32::consts::E;
 use std::fs::create_dir;
 use std::sync::Arc;
 use std::time::Instant;
 use time::OffsetDateTime;
-use crate::datastructures::linked_vectors::LinkedVector;
-use crate::simulated_annealing::week::DayEnum::Monday;
 
 type RouteState = (Arc<Week>, Arc<Week>);
 
@@ -146,7 +144,7 @@ impl SimulatedAnnealing {
         rng: &mut R,
         mut solution: Solution,
     ) -> Solution {
-        let now = Instant::now();
+        // let now = Instant::now();
         // this ic currently an infinite loop.
 
         // main loop: gui stuff and do_step and thermostat
