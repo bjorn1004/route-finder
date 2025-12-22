@@ -108,6 +108,10 @@ impl SimulatedAnnealing {
         let output_dir = format!("output/{now}").replace(":", "_");
 
         let start_solution = self.biiiiiig_loop(&mut rng, self.best_solution.clone());
+        if start_solution.is_none(){
+            return;
+        }
+        let start_solution = start_solution.unwrap();
         create_dir(&output_dir).expect("Could not create an output folder");
         print_solution(&start_solution, &output_dir, 0).expect("failed to print the solution");
         if start_solution.score <= self.best_solution.score {self.best_solution = start_solution}
@@ -129,6 +133,11 @@ impl SimulatedAnnealing {
             self.temp = self.reheating_temp;
             let next_iteration = self.biiiiiig_loop(&mut rng, next_iteration);
 
+            if next_iteration.is_none(){
+                return;
+            }
+            let next_iteration = next_iteration.unwrap();
+
             print_solution(&next_iteration, &output_dir, i)
                 .expect("failed to print the solution");
 
@@ -142,13 +151,14 @@ impl SimulatedAnnealing {
         &mut self,
         rng: &mut R,
         mut solution: Solution,
-    ) -> Solution {
+    ) -> Option<Solution> {
         // let now = Instant::now();
         // this ic currently an infinite loop.
 
         // main loop: gui stuff and do_step and thermostat
         loop {
             if self.stop_rec.try_recv().is_ok() {
+                return None;
                 break;
             }
             if self.pause_rec.try_recv().is_ok() {
@@ -209,7 +219,7 @@ impl SimulatedAnnealing {
             ))
             .ok();
         self.egui_ctx.request_repaint();
-        solution
+        Some(solution)
     }
 
     fn do_step<R: Rng + ?Sized>(
