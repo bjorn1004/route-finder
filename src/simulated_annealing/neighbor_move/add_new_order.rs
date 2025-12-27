@@ -90,7 +90,7 @@ impl NeighborMove for AddNewOrder {
 
         // stel dit is de laatste van een order, 3x ledigingsduur weghalen
         let penalty = if solution.order_flags.get_filled_count(self.order) + 1 == order.frequency as u32{
-            -order.penalty()
+            -order.penalty
         } else {
             0
         };

@@ -67,7 +67,7 @@ impl NeighborMove for RemoveOrder {
 
         let order = &get_orders()[self.order_index];
         let penalty = if solution.order_flags.get_filled_count(self.order_index) == order.frequency as u32{
-            order.penalty()
+            order.penalty
         } else {
             0
         };
@@ -92,7 +92,7 @@ impl NeighborMove for RemoveOrder {
 
         let order = &get_orders()[self.order_index];
         let penalty = if solution.order_flags.get_filled_count(self.order_index) == order.frequency as u32{
-            order.penalty()
+            order.penalty
         } else {
             0
         };

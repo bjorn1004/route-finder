@@ -130,7 +130,7 @@ impl Solution {
         solution.score -= unfilled_order_counts
             .iter()
             .enumerate()
-            .map(|(order_index, count)| if *count > 0 {orders[order_index].trash()} else {0})
+            .map(|(order_index, count)| if *count > 0 {orders[order_index].total_container_volume} else {0})
             .sum::<u32>() as i32;
 
         solution.truck1.recalculate_total_time();

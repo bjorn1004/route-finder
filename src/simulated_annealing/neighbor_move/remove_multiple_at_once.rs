@@ -137,7 +137,7 @@ impl NeighborMove for RemoveMultipleOrders {
             };
         }
 
-        total_change + order.penalty()
+        total_change + order.penalty
     }
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
@@ -156,6 +156,6 @@ impl NeighborMove for RemoveMultipleOrders {
 
         solution.order_flags.clear(self.order_index);
 
-        total_change + get_orders()[self.order_index].penalty()
+        total_change + get_orders()[self.order_index].penalty
     }
 }

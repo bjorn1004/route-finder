@@ -107,7 +107,7 @@ impl NeighborMove for AddMultipleNewOrders {
             .map(|order_info| self.calculate_time_difference(solution, order_info))
             .sum::<Time>()
             // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
-            - get_orders()[self.order_index].penalty()
+            - get_orders()[self.order_index].penalty
     }
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
@@ -125,6 +125,6 @@ impl NeighborMove for AddMultipleNewOrders {
         }
 
         // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
-        total_score_change - get_orders()[self.order_index].penalty()
+        total_score_change - get_orders()[self.order_index].penalty
     }
 }

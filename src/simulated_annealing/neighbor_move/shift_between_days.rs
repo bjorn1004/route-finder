@@ -89,7 +89,7 @@ impl ShiftBetweenDays {
         if requirement(route, node) {
             if let Some((shift_order, _, _)) = shift {
                 let orders = get_orders();
-                if route.capacity + orders[shift_order].trash() > 100_000 {
+                if route.capacity + orders[shift_order].total_container_volume > 100_000 {
                     return None;
                 }
             }
@@ -233,7 +233,7 @@ impl NeighborMove for ShiftBetweenDays {
         }
 
         let capacity_penalty = max(
-            (((target_day.get(self.target.time_of_day).capacity as i32 + get_orders()[self.target.order].trash() as i32 - 100_000))*3)/100,
+            (((target_day.get(self.target.time_of_day).capacity as i32 + get_orders()[self.target.order].total_container_volume as i32 - 100_000))*3)/100,
             0
         );
 

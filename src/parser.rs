@@ -25,16 +25,24 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
         .map(|line| -> Result<Company, Box<dyn Error + Send + Sync>> {
             let mut columns = line.split(';');
 
+            let order = get_next(&mut columns, "Order")?.parse()?;
+            let place = String::from(get_next(&mut columns, "Plaats")?.trim());
+            let frequency = get_next(&mut columns, "Frequentie")?.parse()?;
+            let container_count = get_next(&mut columns, "AantContainers")?.parse()?;
+            let container_volume = get_next(&mut columns, "VolumePerContainer")?.parse()?;
+            let emptying_time = ((get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<f32>()?) * MINUTE as f32) as Time;
             Ok(Company {
-                order: get_next(&mut columns, "Order")?.parse()?,
-                place: String::from(get_next(&mut columns, "Plaats")?.trim()),
-                frequency: get_next(&mut columns, "Frequentie")?.parse()?,
-                container_count: get_next(&mut columns, "AantContainers")?.parse()?,
-                container_volume: get_next(&mut columns, "VolumePerContainer")?.parse()?,
-                emptying_time: ((get_next(&mut columns, "LedigingsDuurMinuten")?.parse::<f32>()?) * MINUTE as f32) as Time,
+                order,
+                place,
+                frequency,
+                container_count,
+                container_volume,
+                emptying_time,
                 matrix_id: get_next(&mut columns, "MatrixID")?.parse::<u16>()?.into(),
                 x_coordinate: get_next(&mut columns, "XCoordinaat")?.parse()?,
                 y_coordinate: get_next(&mut columns, "YCoordinaat")?.parse()?,
+                total_container_volume: container_count as u32 * container_volume as u32,
+                penalty: 3 * frequency as Time * emptying_time,
             })
         })
         .collect::<Result<Vec<Company>, Box<dyn Error + Send + Sync>>>();
@@ -50,6 +58,8 @@ pub fn parse_orderfile() -> Result<Vec<Company>, Box<dyn Error + Send + Sync>> {
             matrix_id: 287.into(),
             x_coordinate: 56343016,
             y_coordinate: 513026712,
+            total_container_volume: 0,
+            penalty: 0,
         })
     }
     list

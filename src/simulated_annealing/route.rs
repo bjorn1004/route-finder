@@ -120,7 +120,7 @@ impl Route {
             - order.emptying_time;
 
         self.time += time_diff;
-        self.capacity -= order.trash();
+        self.capacity -= order.total_container_volume;
         lv.remove(node);
         lv.compact();
         time_diff
@@ -141,7 +141,7 @@ impl Route {
             - order.emptying_time;
 
         self.time += time_diff;
-        self.capacity -= order.trash();
+        self.capacity -= order.total_container_volume;
         lv.remove(node);
         time_diff
     }
@@ -176,7 +176,7 @@ impl Route {
             + order.emptying_time;
 
         self.time += time_diff;
-        self.capacity += order.trash();
+        self.capacity += order.total_container_volume;
         lv.insert_after(insert_after_this, order_index);
 
         time_diff

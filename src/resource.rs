@@ -13,6 +13,8 @@ pub struct Company {
     pub matrix_id: MatrixID,
     pub x_coordinate: u32,
     pub y_coordinate: u32, // maybe turn this into a nalgebra vector if we need it
+    pub total_container_volume: u32,
+    pub penalty: Time,
 }
 pub type MatrixID = NodeIndex<u16>;
 /// time in centiseconds
@@ -23,12 +25,6 @@ pub const MINUTE:Time = 60*100;
 pub const HALF_HOUR:Time = 30*60*100;
 /// 12 * 60 * 60 * 100 centiseconds;
 pub const FULL_DAY:Time = 12*60*60*100;
-impl Company {
-    pub fn trash(&self) -> u32 {
-        self.container_count as u32 * self.container_volume as u32
-    }
-    pub fn penalty(&self) -> Time {3 * self.frequency as Time * self.emptying_time}
-}
 
 #[derive(Debug, Clone, Copy)]
 pub enum Frequency {
