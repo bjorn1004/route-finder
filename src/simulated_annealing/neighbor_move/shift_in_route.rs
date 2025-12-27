@@ -2,7 +2,6 @@ use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::resource::Time;
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
-use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::week::{DayEnum};
 use rand::Rng;
 use crate::simulated_annealing::solution::Solution;
