@@ -7,11 +7,9 @@ use crate::simulated_annealing::simulated_annealing::{EndOfStepInfo, SimulatedAn
 use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
 use crate::MULTIPL_ADD_AND_REMOVE;
-use crate::resource::MINUTE;
 use crate::simulated_annealing::neighbor_move::add_multiple_at_once::AddMultipleNewOrders;
 use crate::simulated_annealing::neighbor_move::remove::RemoveOrder;
 use crate::simulated_annealing::neighbor_move::remove_multiple_at_once::RemoveMultipleOrders;
-use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::solution::Solution;
 
 impl SimulatedAnnealing {
@@ -40,22 +38,20 @@ impl SimulatedAnnealing {
                         } else {
                             continue;
                         }
-                    } else {
-                        if let Some(random_order) = solution.unfilled_orders.pop_front() {
-                            let new_order = AddNewOrder::new(
-                                &solution,
-                                rng,
-                                random_order,
-                            );
-                            if new_order.is_none() {
-                                solution.unfilled_orders.push_back(random_order);
-                                continue;
-                            }
-                            order_to_add = EndOfStepInfo::Add(random_order);
-                            Box::new(new_order.unwrap())
-                        } else {
-                            continue; // queue is empty, try something else
+                    } else if let Some(random_order) = solution.unfilled_orders.pop_front() {
+                        let new_order = AddNewOrder::new(
+                            &solution,
+                            rng,
+                            random_order,
+                        );
+                        if new_order.is_none() {
+                            solution.unfilled_orders.push_back(random_order);
+                            continue;
                         }
+                        order_to_add = EndOfStepInfo::Add(random_order);
+                        Box::new(new_order.unwrap())
+                    } else {
+                        continue; // queue is empty, try something else
                     }
                 }
                 1 => {
@@ -81,7 +77,7 @@ impl SimulatedAnnealing {
                 3 => {
                     if MULTIPL_ADD_AND_REMOVE {
                         if let Some((remove, _order_to_add)) = RemoveMultipleOrders::new(
-                            &solution,
+                            solution,
                             rng,
                         ){
                             order_to_add = EndOfStepInfo::Removed(_order_to_add);
@@ -89,16 +85,14 @@ impl SimulatedAnnealing {
                         } else {
                             continue;
                         }
+                    } else if let Some((remove, _order_to_add)) = RemoveOrder::new(
+                        solution,
+                        rng
+                    ){
+                        order_to_add = EndOfStepInfo::Removed(_order_to_add);
+                        Box::new(remove)
                     } else {
-                        if let Some((remove, _order_to_add)) = RemoveOrder::new(
-                            &solution,
-                            rng
-                        ){
-                            order_to_add = EndOfStepInfo::Removed(_order_to_add);
-                            Box::new(remove)
-                        } else {
-                            continue;
-                        }
+                        continue;
                     }
                 }
                 _ => unreachable!(),

@@ -353,7 +353,7 @@ impl<T> CompactLinkedVector<T> {
     }
 }
 
-// made this iterator using chatgpt, I am not competent enough with lifetimes to do this myself.
+// made this iterator using ChatGPT, I am not competent enough with lifetimes to do this myself.
 pub struct Iter<'a, T> {
     list: &'a CompactLinkedVector<T>,
     current: Option<LVNodeIndex>,
@@ -451,8 +451,6 @@ mod tests {
         assert_eq!(count, iter_count)
     }
 
-    use rand::rngs::SmallRng;
-
     use super::*;
     use std::collections::HashSet;
     #[test]
@@ -487,7 +485,7 @@ mod tests {
         assert_eq!(lv.empty_indices.len(), 2)
     }
 
-    // From this point on, the tests are written by chatgpt
+    // From this point on, the tests are written by ChatGPT
     #[test]
     fn insert_front_and_back_multiple() {
         let mut lv = CompactLinkedVector::new();

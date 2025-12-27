@@ -1,16 +1,14 @@
-use std::cmp::max;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
 use crate::resource::{Time, HALF_HOUR};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{time_between_three_nodes, time_between_two_nodes};
-use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove, ScoreChange};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
-use crate::simulated_annealing::week::{DayEnum, Week};
+use crate::simulated_annealing::week::{DayEnum};
 
 /// This will add an order to a random route where it is allowed to add it to.
 /// If you try to add an order, that doesn't have any allowed routes, it panics
@@ -27,7 +25,6 @@ impl AddNewOrder {
         let truck_enum: TruckEnum = rng.random();
         let truck = if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2};
 
-        let capacity = get_orders()[order].trash();
         // check if there is still an allowed day open
         if let Some(day_enum) = solution.order_flags.get_random_allowed_day(order, rng){
             let day = truck.get(day_enum);
