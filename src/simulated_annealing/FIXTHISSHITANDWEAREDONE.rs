@@ -9,8 +9,8 @@ pub fn fixplzplzplzpl(solution: &mut Solution) {
     let orders = get_orders();
     let mut order_count: HashMap<usize, usize> = HashMap::new();
 
-    count_per_week(&mut solution.truck1, &mut order_count);
-    count_per_week(&mut solution.truck2, &mut order_count);
+    count_per_week(&solution.truck1, &mut order_count);
+    count_per_week(&solution.truck2, &mut order_count);
 
     let a: Vec<(&usize, &usize)> = order_count
         .iter()
