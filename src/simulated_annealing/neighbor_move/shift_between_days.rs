@@ -218,7 +218,7 @@ impl ShiftBetweenDays {
 impl NeighborMove for ShiftBetweenDays {
     fn evaluate(&self, solution: &Solution) -> CostChange {
         // this is the time difference
-        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(&solution);
+        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(solution);
 
         let target_day = (if self.target.truck == TruckEnum::Truck1 {
             &solution.truck1
@@ -233,7 +233,7 @@ impl NeighborMove for ShiftBetweenDays {
         }
 
         let capacity_penalty = max(
-            (((target_day.get(self.target.time_of_day).capacity as i32 + get_orders()[self.target.order].total_container_volume as i32 - 100_000))*3)/100,
+            ((target_day.get(self.target.time_of_day).capacity as i32 + get_orders()[self.target.order].total_container_volume as i32 - 100_000)*3)/100,
             0
         );
 
@@ -241,7 +241,7 @@ impl NeighborMove for ShiftBetweenDays {
     }
 
     fn apply(&self, solution: &mut Solution) -> Time {
-        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(&solution);
+        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(solution);
         let (shift_route, target_route): (&mut Route, &mut Route) =
             match (self.shift.truck, self.target.truck) {
                 (TruckEnum::Truck1, TruckEnum::Truck2) => (

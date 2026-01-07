@@ -54,7 +54,7 @@ impl RemoveMultipleOrders{
             let unremoved_days = solution.order_flags.get_other_days_of_an_order(*order_index, day_enum);
 
             for other_day in unremoved_days{
-                orders_to_remove.push(Self::find_other_day(&solution, other_day, *order_index))
+                orders_to_remove.push(Self::find_other_day(solution, other_day, *order_index))
 
             }
             return Some((RemoveMultipleOrders{

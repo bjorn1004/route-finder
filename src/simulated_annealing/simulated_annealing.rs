@@ -1,5 +1,4 @@
 use super::week::Week;
-use crate::datastructures::linked_vectors::LinkedVector;
 use crate::printer::print_solution;
 use crate::resource::Time;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::CostChange;
@@ -159,7 +158,6 @@ impl SimulatedAnnealing {
         loop {
             if self.stop_rec.try_recv().is_ok() {
                 return None;
-                break;
             }
             if self.pause_rec.try_recv().is_ok() {
                 self.paused = !self.paused;
@@ -286,7 +284,7 @@ impl SimulatedAnnealing {
 
         solution.truck1.recalculate_total_time();
         solution.truck2.recalculate_total_time();
-        let after_recalc = calculate_score(&solution, &solution.order_flags);
+        let after_recalc = calculate_score(solution, &solution.order_flags);
         if after_recalc != before_recalc {
             println!("Incorrect score was stored");
             println!();

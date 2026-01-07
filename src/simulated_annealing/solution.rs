@@ -1,8 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::fs::{read_to_string};
-use crate::{get_orders, MULTIPL_ADD_AND_REMOVE};
+use crate::{get_orders};
 use crate::datastructures::linked_vectors::LinkedVector;
-use crate::resource::Company;
 use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::OrderIndex;
@@ -33,23 +32,10 @@ impl Solution {
     fn fill_unfilled_orders_list() -> VecDeque<OrderIndex> {
         let mut deliveries = Vec::new();
         let orders = get_orders();
-        if MULTIPL_ADD_AND_REMOVE{
-            for i in 0..orders.len() - 1{
-            deliveries.push(i);
-            }
-        VecDeque::from(deliveries)
-        } else {
-            let mut list: Vec<(usize, &Company)> = orders.iter().enumerate().collect();
-            list.sort_by_key(|(_, order)| order.frequency as u8);
-            for (index, order) in list.iter() {
-            for _ in 0..order.frequency as u8 {
-            deliveries.push(*index);
-            }
+        for i in 0..orders.len() - 1{
+        deliveries.push(i);
         }
-
         VecDeque::from(deliveries)
-
-        }
     }
 
 
