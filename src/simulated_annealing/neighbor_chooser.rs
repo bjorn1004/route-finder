@@ -1,14 +1,11 @@
 use rand::{Rng};
-use crate::simulated_annealing::neighbor_move::add_new_order::AddNewOrder;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
 use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 use crate::simulated_annealing::neighbor_move::shift_in_route::ShiftInRoute;
 use crate::simulated_annealing::simulated_annealing::{EndOfStepInfo, SimulatedAnnealing};
 use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
-use crate::MULTIPL_ADD_AND_REMOVE;
 use crate::simulated_annealing::neighbor_move::add_multiple_at_once::AddMultipleNewOrders;
-use crate::simulated_annealing::neighbor_move::remove::RemoveOrder;
 use crate::simulated_annealing::neighbor_move::remove_multiple_at_once::RemoveMultipleOrders;
 use crate::simulated_annealing::solution::Solution;
 
@@ -23,27 +20,11 @@ impl SimulatedAnnealing {
             // something to decide which thing to choose
             let transactionthingy: Box<dyn NeighborMove> = match a {
                 0 => {
-                    if MULTIPL_ADD_AND_REMOVE{
-                        if let Some(random_order) = solution.unfilled_orders.pop_front() {
-                            let new_order = AddMultipleNewOrders::new(
-                                &solution,
-                                rng,
-                                random_order);
-                            if new_order.is_none() {
-                                solution.unfilled_orders.push_back(random_order);
-                                continue;
-                            }
-                            order_to_add = EndOfStepInfo::Add(random_order);
-                            Box::new(new_order.unwrap())
-                        } else {
-                            continue;
-                        }
-                    } else if let Some(random_order) = solution.unfilled_orders.pop_front() {
-                        let new_order = AddNewOrder::new(
+                    if let Some(random_order) = solution.unfilled_orders.pop_front() {
+                        let new_order = AddMultipleNewOrders::new(
                             &solution,
                             rng,
-                            random_order,
-                        );
+                            random_order);
                         if new_order.is_none() {
                             solution.unfilled_orders.push_back(random_order);
                             continue;
@@ -51,7 +32,7 @@ impl SimulatedAnnealing {
                         order_to_add = EndOfStepInfo::Add(random_order);
                         Box::new(new_order.unwrap())
                     } else {
-                        continue; // queue is empty, try something else
+                        continue;
                     }
                 }
                 1 => {
@@ -75,19 +56,9 @@ impl SimulatedAnnealing {
                     Box::new(shift.unwrap())
                 }
                 3 => {
-                    if MULTIPL_ADD_AND_REMOVE {
-                        if let Some((remove, _order_to_add)) = RemoveMultipleOrders::new(
-                            solution,
-                            rng,
-                        ){
-                            order_to_add = EndOfStepInfo::Removed(_order_to_add);
-                            Box::new(remove)
-                        } else {
-                            continue;
-                        }
-                    } else if let Some((remove, _order_to_add)) = RemoveOrder::new(
+                    if let Some((remove, _order_to_add)) = RemoveMultipleOrders::new(
                         solution,
-                        rng
+                        rng,
                     ){
                         order_to_add = EndOfStepInfo::Removed(_order_to_add);
                         Box::new(remove)
