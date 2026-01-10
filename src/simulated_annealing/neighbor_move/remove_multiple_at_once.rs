@@ -1,9 +1,9 @@
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::get_orders;
-use crate::resource::{Time, HALF_HOUR};
 use crate::simulated_annealing::day::TimeOfDay;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove, ScoreChange};
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove, ScoreChange};
 use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
@@ -104,53 +104,53 @@ impl RemoveMultipleOrders{
         }
         None
     }
-
-    fn apply_on_one_route(&self, route: &mut Route, node_index: LVNodeIndex) -> Time {
-
-        let score = route.apply_remove_node(node_index);
-
-        if route.linked_vector.len() == 2 {
-            return score - HALF_HOUR;
-        };
-
-        score
-    }
 }
 
 impl NeighborMove for RemoveMultipleOrders {
-    fn evaluate(&self, solution: &Solution) -> CostChange {
+    fn evaluate(&self, solution: &Solution) -> Evaluation {
         let order = &get_orders()[self.order_index];
-        let mut total_change = 0;
 
-        for order_info in &self.orders_to_remove{
-            let route = (if order_info.truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2})
-                .get(order_info.day_enum)
-                .get(order_info.time_of_day);
+        let evaluation: Evaluation = self.orders_to_remove.iter()
+            .map(|order_info|{
+                let day = if order_info.truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2}.get(order_info.day_enum);
+                let route = day.get(order_info.time_of_day);
 
-            total_change += route.calculate_remove_node(order_info.node_index);
+                let time_diff = route.calculate_remove_node(order_info.node_index);
 
-            total_change += if route.linked_vector.len() == 3 {
-                -HALF_HOUR
-            } else {
-                0
-            };
+                let (time_overflow, time_overflow_lessened) =
+                    calculate_time_overflow(time_diff, day.get_total_time());
+
+                let (capacity_overflow, capacity_overflow_lessened) =
+                    calculate_capacity_overflow(order.total_container_volume as i32, route.capacity as i32);
+
+                Evaluation{
+                    cost: time_diff,
+                    time_overflow,
+                    time_overflow_lessened,
+                    capacity_overflow,
+                    capacity_overflow_lessened,
+                }
+            })
+            .sum();
+
+        Evaluation{
+            cost: evaluation.cost + get_orders()[self.order_index].penalty,
+            ..evaluation
         }
-
-        total_change + order.penalty
     }
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
-
         let mut total_change = 0;
+
         let mut truck1 = solution.truck1.get_all_as_mut();
         let mut truck2 = solution.truck2.get_all_as_mut();
+
         for order_info in &self.orders_to_remove{
             if order_info.truck_enum == TruckEnum::Truck1 {
-                total_change += self.apply_on_one_route(truck1[order_info.day_enum as usize * 2 + order_info.time_of_day as usize], order_info.node_index);
+                total_change += truck1[order_info.day_enum as usize * 2 + order_info.time_of_day as usize].apply_remove_node(order_info.node_index);
             } else {
-                total_change += self.apply_on_one_route(truck2[order_info.day_enum as usize * 2 + order_info.time_of_day as usize], order_info.node_index);
+                total_change += truck2[order_info.day_enum as usize * 2 + order_info.time_of_day as usize].apply_remove_node(order_info.node_index);
             }
-
         }
 
         solution.order_flags.clear(self.order_index);

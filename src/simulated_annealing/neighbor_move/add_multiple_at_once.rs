@@ -1,11 +1,12 @@
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::{Company, Time, HALF_HOUR};
+use crate::resource::{Company};
 use crate::simulated_annealing::day::TimeOfDay;
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
-use crate::simulated_annealing::route::{OrderIndex, Route};
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove, ScoreChange};
+use crate::simulated_annealing::route::{OrderIndex};
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove, ScoreChange};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::week::{DayEnum};
@@ -76,38 +77,43 @@ impl AddMultipleNewOrders {
         }
 
     }
-
-
-    fn calculate_time_difference(&self, solution: &Solution, order_to_add: &AddOrderInfo) -> Time{
-        let orders = get_orders();
-        let order = &orders[self.order_index];
-        let route = (if order_to_add.truck_enum == TruckEnum::Truck1 { &solution.truck1 } else {&solution.truck2}).get(order_to_add.day).get(order_to_add.time_of_day);
-
-        let time = route.calculate_add_order(order_to_add.insert_after_index, self.order_index);
-        time + order.emptying_time
-    }
-
-    fn apply_on_one_route(&self, route: &mut Route, order_info: &AddOrderInfo) -> Time {
-
-        let score = route.apply_add_order(order_info.insert_after_index, self.order_index);
-
-        if route.linked_vector.len() == 3{
-            return score + HALF_HOUR;
-        };
-
-        score
-    }
 }
 
 
 impl NeighborMove for AddMultipleNewOrders {
-    fn evaluate(&self, solution: &Solution) -> CostChange {
-        self.where_to_add_orders
+    fn evaluate(&self, solution: &Solution) -> Evaluation {
+        let orders = get_orders();
+        let order = &orders[self.order_index];
+        let evaluation:Evaluation = self.where_to_add_orders
             .iter()
-            .map(|order_info| self.calculate_time_difference(solution, order_info))
-            .sum::<Time>()
-            // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
-            - get_orders()[self.order_index].penalty
+            .map(|order_info| {
+                let day = (if order_info.truck_enum == TruckEnum::Truck1 { &solution.truck1 } else {&solution.truck2})
+                    .get(order_info.day);
+                let route = day.get(order_info.time_of_day);
+                // calculate the time it takes to do add this order
+                let time_diff =
+                    route.calculate_add_order(order_info.insert_after_index, self.order_index);
+
+                let (time_overflow, time_overflow_lessened) =
+                    calculate_time_overflow(time_diff, day.get_total_time());
+                let (capacity_overflow, capacity_overflow_lessened) =
+                    calculate_capacity_overflow(order.total_container_volume as i32, route.capacity as i32);
+
+                Evaluation{
+                    cost: time_diff,
+                    time_overflow,
+                    time_overflow_lessened,
+                    capacity_overflow,
+                    capacity_overflow_lessened
+                }
+            })
+            .sum();
+
+
+        Evaluation{
+            cost: evaluation.cost - get_orders()[self.order_index].penalty,
+            ..evaluation
+        }
     }
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
@@ -117,14 +123,20 @@ impl NeighborMove for AddMultipleNewOrders {
         let mut total_score_change = 0;
         for order_info in &self.where_to_add_orders {
             if order_info.truck_enum == TruckEnum::Truck1{
-                total_score_change +=  self.apply_on_one_route(truck1[order_info.day as usize * 2 + order_info.time_of_day as usize], order_info);
+                total_score_change += truck1[order_info.day as usize * 2 + order_info.time_of_day as usize].apply_add_order(
+                    order_info.insert_after_index,
+                    self.order_index
+                );
             } else {
-                total_score_change += self.apply_on_one_route(truck2[order_info.day as usize * 2 + order_info.time_of_day as usize], order_info);
-            }
+                total_score_change += truck2[order_info.day as usize * 2 + order_info.time_of_day as usize].apply_add_order(
+                    order_info.insert_after_index,
+                    self.order_index
+                );
+            };
             solution.order_flags.add_order(self.order_index, order_info.day);
         }
 
-        // We can always subtract the penalty, becuase this operation will add the order on as many days as needed to mee the frequency requirement.
+        // We can always subtract the penalty, because this operation will add the order on as many days as needed to mee the frequency requirement.
         total_score_change - get_orders()[self.order_index].penalty
     }
 }

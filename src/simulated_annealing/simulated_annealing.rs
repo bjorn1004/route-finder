@@ -1,7 +1,7 @@
 use super::week::Week;
 use crate::printer::print_solution;
 use crate::resource::Time;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::CostChange;
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation};
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::calculate_score;
 use crate::simulated_annealing::solution::Solution;
@@ -258,7 +258,8 @@ impl SimulatedAnnealing {
         }
     }
 
-    fn accept<R: Rng + ?Sized>(&self, cost_change: CostChange, rng: &mut R) -> bool {
+    fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
+        let cost_change = evaluation.cost;
         if cost_change <= 0 {
             return true;
         }
