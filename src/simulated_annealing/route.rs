@@ -137,7 +137,6 @@ impl Route {
     }
     /// a special function for the FIXPLZPLZPLZPLZPLZPLZPLZ function.
     pub fn apply_remove_node_without_compact(&mut self, _node: LVNodeIndex) -> Time{
-        panic!("This function should not be called anymore ever using our multiple add and remove neighbors");
         let orders = get_orders();
         let lv = &mut self.linked_vector;
         let order = &orders[*lv.get_value_unsafe(_node)];

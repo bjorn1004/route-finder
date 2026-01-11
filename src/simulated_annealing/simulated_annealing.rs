@@ -280,7 +280,8 @@ impl SimulatedAnnealing {
         let before_recalc = calculate_score(&solution, &solution.order_flags);
         if before_fixplzplzplzplzplz != before_recalc {
             println!("fixplzplzplzplz removed at least one order to get a correct answer");
-            println!("SHIT GOT TOTALLY FUCKED IN ILS");
+            println!("SHIT GOT TOTALLY FUCKED");
+            panic!("This should not ever happen anymore. We should never have a solution with incomplete orders.")
         }
 
         solution.truck1.recalculate_total_time();
