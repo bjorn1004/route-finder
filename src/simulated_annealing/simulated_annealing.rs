@@ -259,16 +259,31 @@ impl SimulatedAnnealing {
     }
 
     fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
-        let cost_change = evaluation.cost;
-        if cost_change <= 0 {
+        let evaluation = evaluation.validate();
+        
+        let time_overflow_penalty = 10;
+        let capacity_overflow_penalty = 1000;
+
+        let time_lessened_boost = 15;
+        let capacity_lessened_boost = 45;
+
+        // Calculate total adjusted cost using all factors
+        let mut total_cost = evaluation.cost as i64;
+        
+        total_cost += (evaluation.time_overflow as i64 * time_overflow_penalty) / 100;
+        total_cost += (evaluation.capacity_overflow as i64 * capacity_overflow_penalty) / 100;
+
+        // total_cost -= (evaluation.time_overflow_lessened as i64 * time_lessened_boost) / 100;
+        // total_cost -= (evaluation.capacity_overflow_lessened as i64 * capacity_lessened_boost) / 100;
+
+        // If it's an improvement or neutral, always accept
+        if total_cost <= 0 {
             return true;
         }
-        let prob = E.powf(-(cost_change as f32) / self.temp);
+
+        let prob = E.powf(-(total_cost as f32) / self.temp);
         let rand_float: f32 = rng.random();
-        if rand_float < prob {
-            return true;
-        }
-        false
+        rand_float < prob
     }
 
     fn cleanup(&mut self, solution: &mut Solution) -> Time {

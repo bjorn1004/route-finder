@@ -40,7 +40,8 @@ pub fn calculate_time_overflow(time_difference: Time, total_day_time: Time) -> (
     // time_overflow before adding time_difference
     // -time_differnce. This value represents how much overflow could be lessened if we were waay over limits.
     // The lowest value of these 2 is how much the difference lessened the overflow.
-    let time_overflow_lessened = min(total_day_time - FULL_DAY, -time_difference);
+    let time_overflow_lessened = -min(total_day_time - FULL_DAY, -time_difference);
+    let time_overflow_lessened = max(time_overflow_lessened, 0);
     (time_overflow, time_overflow_lessened)
 }
 
@@ -52,7 +53,8 @@ pub fn calculate_time_overflow(time_difference: Time, total_day_time: Time) -> (
 pub fn calculate_capacity_overflow(capacity_difference: i32, route_capacity: i32) -> (i32, i32) {
     let capacity_overflow = max(capacity_difference + route_capacity - 100_000, 0);
 
-    let capacity_overflow_lessened = min(route_capacity - 100_000, -capacity_difference);
+    let capacity_overflow_lessened = -min(route_capacity - 100_000, -capacity_difference);
+    let capacity_overflow_lessened = max(capacity_overflow_lessened, 0);
     (capacity_overflow, capacity_overflow_lessened)
 
 }

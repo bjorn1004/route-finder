@@ -204,13 +204,14 @@ impl ShiftBetweenDays {
         let (shift_c_overflow, shift_c_lessened) = calculate_capacity_overflow(-(order.total_container_volume as i32), shift_route.capacity as i32);
         let (target_c_overflow, target_c_lessened) = calculate_capacity_overflow(order.total_container_volume as i32, target_route.capacity as i32);
 
-        Evaluation {
+        let a = Evaluation {
             cost: shift_diff + target_diff,
             time_overflow: shift_t_overflow + target_t_overflow,
             time_overflow_lessened: shift_t_lessened + target_t_lesssened,
             capacity_overflow: shift_c_overflow + target_c_overflow,
             capacity_overflow_lessened: shift_c_lessened + target_c_lessened,
-        }
+        };
+        a.validate()
     }
 }
 
@@ -225,6 +226,10 @@ impl NeighborMove for ShiftBetweenDays {
     }
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
+        // first we clear the order_flags
+        solution.order_flags.clear(self.order);
+
+        // get all the data and apply the remove and adds
         let shift_info = self.shifts[0].as_ref().unwrap();
         let shift_route = solution.get_truck_mut(shift_info.truck)
             .get_mut(shift_info.day)
@@ -236,6 +241,9 @@ impl NeighborMove for ShiftBetweenDays {
             .get_mut(target_info.day)
             .get_mut(target_info.time_of_day);
         let target_diff = target_route.apply_add_order(target_info.node_index, self.order);
+
+        // update the order flags
+        solution.order_flags.add_order(self.order, target_info.day);
 
         // ugly code that maybe works
         if self.shifts[1].is_some(){
@@ -250,6 +258,10 @@ impl NeighborMove for ShiftBetweenDays {
                 .get_mut(target_info.day)
                 .get_mut(target_info.time_of_day);
             let target_diff2 = target_route.apply_add_order(target_info.node_index, self.order);
+
+            // update the order flags
+            solution.order_flags.add_order(self.order, target_info.day);
+
             return shift_diff + target_diff + shift_diff2 + target_diff2;
         }
 

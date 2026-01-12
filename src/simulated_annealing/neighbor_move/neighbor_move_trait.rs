@@ -52,3 +52,12 @@ impl Sum for Evaluation {
         iter.fold(Self::default(), |a, b| a + b)
     }
 }
+impl Evaluation {
+    pub fn validate(self) -> Self {
+        debug_assert!(self.time_overflow >= 0);
+        debug_assert!(self.time_overflow_lessened >= 0);
+        debug_assert!(self.capacity_overflow >= 0);
+        debug_assert!(self.capacity_overflow_lessened >= 0);
+        self
+    }
+}
