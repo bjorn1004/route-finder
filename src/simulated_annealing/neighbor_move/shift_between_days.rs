@@ -1,8 +1,10 @@
+use petgraph::matrix_graph::Nullable;
 use rand::Rng;
 use DayEnum::{Monday, Tuesday, Wednesday};
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::get_orders;
 use crate::simulated_annealing::day::TimeOfDay;
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove, ScoreChange};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::{OrderIndex, Route};
@@ -43,7 +45,24 @@ impl ShiftBetweenDays {
         let mut second_shift: Option<TruckDayTimeNode> = None;
 
         let targets = match frequency {
-            1 => [Some(Self::find_random_target(solution, rng, first_thingy.day)?), None],
+            1 => {
+                // this is my attempt at getting a random number between 0 and 4 that is different from the shift day.
+                // random day between 0 and 3.
+                let random_num = rng.random_range(0..4);
+                let target_day = if random_num == first_thingy.day as u8 {
+                    // if we got the same day as the shift day, we use day 4 (0 based indexing)
+                    Friday
+                } else {
+                    // just use the random number we found.
+                    match random_num {
+                        0 => Monday,
+                        1 => Tuesday,
+                        2 => Wednesday,
+                        3 => Thursday,
+                        _ => unreachable!(),
+                    }
+                };
+                [Some(Self::find_random_target(solution, rng, target_day)?), None]},
             2 => {
                 let other_shift_day = match first_thingy.day {
                     Monday => Thursday,
@@ -68,24 +87,8 @@ impl ShiftBetweenDays {
             },
             3 => return None,
             4 => {
-                // this is my attempt at getting a random number between 1 and 5 that is different from the shift day.
-                // random day between 1 and 4.
-                let random_num = rng.random_range(1..5);
-                let target_day = if random_num == first_thingy.day as u8 {
-                    // if we got the same day as the shift day, we use day 5
-                    Friday
-                } else {
-                    // just use the random number we found.
-                    match random_num {
-                        1 => Monday,
-                        2 => Tuesday,
-                        3 => Wednesday,
-                        4 => Thursday,
-                        _ => unreachable!(),
-                    }
-                };
-
-                [Some(Self::find_random_target(solution, rng, target_day)?), None]
+                return None;
+                [Some(Self::find_random_target(solution, rng, Monday)?), None]
             },
             5 => return None,
             _ => unreachable!()
@@ -158,17 +161,99 @@ impl ShiftBetweenDays {
         }
         None
     }
+    /// gets a random target_node on the given day. This could be any node in a route besides the tail.
     fn find_random_target<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, day_enum: DayEnum) -> Option<TruckDayTimeNode>{
-        todo!()
+        let truck:TruckEnum = rng.random();
+        let day = solution.get_truck(truck).get(day_enum);
+        let time_of_day = rng.random();
+        let route = day.get(time_of_day);
+
+        let (node_index, _order_index) = route.linked_vector.get_random(rng)?;
+
+        if node_index == route.linked_vector.get_tail_index()?{
+            return None;
+        }
+
+        Some(TruckDayTimeNode{
+            truck,
+            day: day_enum,
+            time_of_day,
+            node_index,
+        })
+    }
+    /// I call this function once most of the time with i=0. This gets the first element in the shift and target array.
+    /// If there is a frequency 2 order, this function is also called with i=1.
+    fn evaluation_helper(&self, solution: &Solution, i: usize) -> Evaluation {
+        let shift_info = self.shifts[i].as_ref().unwrap();
+        let shift_day = solution.get_truck(shift_info.truck).get(shift_info.day);
+        let shift_route = shift_day.get(shift_info.time_of_day);
+
+        let shift_diff = shift_route.calculate_remove_node(shift_info.node_index);
+
+        let target_info = self.targets[i].as_ref().unwrap();
+        let target_day = solution.get_truck(target_info.truck).get(target_info.day);
+        let target_route = target_day.get(target_info.time_of_day);
+
+        let target_diff = target_route.calculate_add_order(target_info.node_index, self.order);
+
+        let (shift_t_overflow, shift_t_lessened) = calculate_time_overflow(shift_diff, shift_day.get_total_time());
+        let (target_t_overflow, target_t_lesssened) = calculate_time_overflow(target_diff, target_day.get_total_time());
+
+        let orders = get_orders();
+        let order = &orders[self.order];
+        let (shift_c_overflow, shift_c_lessened) = calculate_capacity_overflow(-(order.total_container_volume as i32), shift_route.capacity as i32);
+        let (target_c_overflow, target_c_lessened) = calculate_capacity_overflow(order.total_container_volume as i32, target_route.capacity as i32);
+
+        Evaluation {
+            cost: shift_diff + target_diff,
+            time_overflow: shift_t_overflow + target_t_overflow,
+            time_overflow_lessened: shift_t_lessened + target_t_lesssened,
+            capacity_overflow: shift_c_overflow + target_c_overflow,
+            capacity_overflow_lessened: shift_c_lessened + target_c_lessened,
+        }
     }
 }
 
 impl NeighborMove for ShiftBetweenDays {
     fn evaluate(&self, solution: &Solution) -> Evaluation {
-        todo!()
+        let first_shift = self.evaluation_helper(solution, 0);
+        // if we are doing a shift for frequency 2, also calaculate the second stored shift
+        if self.shifts[1].is_some(){
+            return self.evaluation_helper(solution, 1) + first_shift;
+        }
+        first_shift
     }
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
-        todo!()
+        let shift_info = self.shifts[0].as_ref().unwrap();
+        let shift_route = solution.get_truck_mut(shift_info.truck)
+            .get_mut(shift_info.day)
+            .get_mut(shift_info.time_of_day);
+        let shift_diff = shift_route.apply_remove_node(shift_info.node_index);
+
+        let target_info = self.targets[0].as_ref().unwrap();
+        let target_route = solution.get_truck_mut(target_info.truck)
+            .get_mut(target_info.day)
+            .get_mut(target_info.time_of_day);
+        let target_diff = target_route.apply_add_order(target_info.node_index, self.order);
+
+        // ugly code that maybe works
+        if self.shifts[1].is_some(){
+            let shift_info = self.shifts[1].as_ref().unwrap();
+            let shift_route = solution.get_truck_mut(shift_info.truck)
+                .get_mut(shift_info.day)
+                .get_mut(shift_info.time_of_day);
+            let shift_diff2 = shift_route.apply_remove_node(shift_info.node_index);
+
+            let target_info = self.targets[1].as_ref().unwrap();
+            let target_route = solution.get_truck_mut(target_info.truck)
+                .get_mut(target_info.day)
+                .get_mut(target_info.time_of_day);
+            let target_diff2 = target_route.apply_add_order(target_info.node_index, self.order);
+            return shift_diff + target_diff + shift_diff2 + target_diff2;
+        }
+
+
+        shift_diff + target_diff
     }
 }

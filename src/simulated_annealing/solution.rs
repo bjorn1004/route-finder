@@ -144,6 +144,12 @@ impl Solution {
             TruckEnum::Truck2 => {&self.truck2}
         }
     }
+    pub fn get_truck_mut(&mut self, truck_enum: TruckEnum) -> &mut Week {
+        match truck_enum {
+            TruckEnum::Truck1 => {&mut self.truck1}
+            TruckEnum::Truck2 => {&mut self.truck2}
+        }
+    }
 }
 
 impl Default for Solution {
