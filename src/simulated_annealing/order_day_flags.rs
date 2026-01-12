@@ -210,7 +210,7 @@ impl OrderFlags {
             }
         }
 
-        return vec;
+        vec
 
     }
     pub fn flag_to_day(flag: u8) -> Option<DayEnum> {

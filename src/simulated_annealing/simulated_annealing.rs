@@ -1,7 +1,7 @@
 use super::week::Week;
 use crate::printer::print_solution;
 use crate::resource::Time;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation};
+use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::calculate_score;
 use crate::simulated_annealing::solution::Solution;
@@ -231,7 +231,7 @@ impl SimulatedAnnealing {
         let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng, weights, solution);
 
         // get the change in capacity/time
-        let cost = neighborhood.evaluate(&solution);
+        let cost = neighborhood.evaluate(solution);
 
         // if we want to go through with this thing
         if self.accept(cost, rng) {
@@ -283,11 +283,11 @@ impl SimulatedAnnealing {
 
     fn cleanup(&mut self, solution: &mut Solution) -> Time {
         // Cleanup: remove incomplete orders and recalculate scores
-        let before_fixplzplzplzplzplz = calculate_score(&solution, &solution.order_flags);
+        let before_fixplzplzplzplzplz = calculate_score(solution, &solution.order_flags);
 
         fixplzplzplzpl(solution);
 
-        let before_recalc = calculate_score(&solution, &solution.order_flags);
+        let before_recalc = calculate_score(solution, &solution.order_flags);
         if before_fixplzplzplzplzplz != before_recalc {
             println!("fixplzplzplzplz removed at least one order to get a correct answer");
             println!("SHIT GOT TOTALLY FUCKED");

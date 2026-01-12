@@ -1,7 +1,8 @@
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::resource::{Time};
 use crate::simulated_annealing::day::TimeOfDay;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{Evaluation, NeighborMove};
+use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove};
 use crate::simulated_annealing::week::{DayEnum};
 use rand::Rng;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::calculate_time_overflow;
