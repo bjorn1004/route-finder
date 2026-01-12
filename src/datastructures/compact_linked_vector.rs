@@ -48,7 +48,7 @@ impl<T: std::fmt::Debug + PartialEq<T>> LinkedVector<T> for CompactLinkedVector<
 
         while let Some(node) = self.list.choose(rng) {
             if node.next.is_none() && node.prev.is_none() {
-                continue;
+                panic!("found an unlinked node in a compacted list");
             }
             return Some((node.index, &node.value));
         }
@@ -120,6 +120,10 @@ impl<T: std::fmt::Debug + PartialEq<T>> LinkedVector<T> for CompactLinkedVector<
     fn remove(&mut self, index: LVNodeIndex) {
         if index >= self.list.len() {
             panic!("index out of range")
+        }
+
+        if index == 0 || index == 1 {
+            panic!("plz don't remove the dummy nodes in the route");
         }
 
         let node = &self.list[index];
