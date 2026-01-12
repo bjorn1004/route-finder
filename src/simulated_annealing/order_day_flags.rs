@@ -197,6 +197,8 @@ impl OrderFlags {
         self.orders[order_index] = 0;
     }
 
+    // Give this function an order index and the day you already found an order.
+    // This function returns the order days that this order is in a route.
     pub fn get_other_days_of_an_order(&self, order_index: OrderIndex, day_enum: DayEnum) -> Vec<DayEnum>{
         let flags = self.orders[order_index];
         let mut vec = Vec::new();

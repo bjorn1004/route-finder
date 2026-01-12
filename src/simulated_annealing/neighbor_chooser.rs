@@ -1,6 +1,6 @@
 use rand::{Rng};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
-use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
+use crate::simulated_annealing::neighbor_move::shift_between_days_OLD::ShiftBetweenDaysOLD;
 use crate::simulated_annealing::neighbor_move::shift_in_route::ShiftInRoute;
 use crate::simulated_annealing::simulated_annealing::{EndOfStepInfo, SimulatedAnnealing};
 use rand::distr::weighted::WeightedIndex;
@@ -46,7 +46,7 @@ impl SimulatedAnnealing {
                     Box::new(shift.unwrap())
                 }
                 2 => {
-                    let shift = ShiftBetweenDays::new(
+                    let shift = ShiftBetweenDaysOLD::new(
                         solution,
                         rng,
                     );

@@ -204,6 +204,9 @@ impl Route {
             time_diff
         }
     }
+    pub fn is_empty(&self) -> bool {
+        self.linked_vector.len() == 2
+    }
 }
 
 impl Default for Route {
