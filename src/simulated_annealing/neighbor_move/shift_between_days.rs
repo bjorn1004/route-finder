@@ -228,10 +228,9 @@ impl NeighborMove for ShiftBetweenDays {
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
         // first we clear the order_flags
-        solution.order_flags.clear(self.order);
-
         // get all the data and apply the remove and adds
         let shift_info = self.shifts[0].as_ref().unwrap();
+        solution.order_flags.remove_order(self.order, shift_info.day);
         let shift_route = solution.get_truck_mut(shift_info.truck)
             .get_mut(shift_info.day)
             .get_mut(shift_info.time_of_day);
@@ -249,6 +248,7 @@ impl NeighborMove for ShiftBetweenDays {
         // ugly code that maybe works
         if self.shifts[1].is_some(){
             let shift_info = self.shifts[1].as_ref().unwrap();
+            solution.order_flags.remove_order(self.order, shift_info.day);
             let shift_route = solution.get_truck_mut(shift_info.truck)
                 .get_mut(shift_info.day)
                 .get_mut(shift_info.time_of_day);

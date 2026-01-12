@@ -178,7 +178,7 @@ impl SimulatedAnnealing {
                 rng,
                 [
                     10,  // add new order
-                    2,    // remove
+                    1,    // remove
                     200, // within a route
                     100, // within a day
                     30, // shift between days
@@ -262,8 +262,8 @@ impl SimulatedAnnealing {
 
     fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
 
-        let time_delta_multiplier = 3;
-        let capacity_delta_multiplier = 1000;
+        let time_delta_multiplier = 6;
+        let capacity_delta_multiplier = 1500;
 
         // Calculate total adjusted cost using all factors
         let mut total_cost = evaluation.cost as i64;

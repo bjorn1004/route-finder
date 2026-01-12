@@ -11,7 +11,7 @@ use crate::simulated_annealing::week::{DayEnum, Week};
 
 pub struct RemoveMultipleOrders{
     orders_to_remove: Vec<RemoveOrderInfo>,
-    pub order_index: OrderIndex,
+    order_index: OrderIndex,
 }
 
 struct RemoveOrderInfo {
