@@ -1,4 +1,3 @@
-use petgraph::matrix_graph::Nullable;
 use rand::Rng;
 use DayEnum::{Monday, Tuesday, Wednesday};
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
@@ -87,8 +86,11 @@ impl ShiftBetweenDays {
             },
             3 => return None,
             4 => {
-                return None;
-                [Some(Self::find_random_target(solution, rng, Monday)?), None]
+                let flags = solution.order_flags.get_flag(shift_order_index);
+                // Flip all bits, then mask to keep only the 5 day bits
+                let available_days_mask = (!flags) & 0b11111;
+                let day = OrderFlags::flag_to_day(available_days_mask)?;
+                [Some(Self::find_random_target(solution, rng, day)?), None]
             },
             5 => return None,
             _ => unreachable!()
@@ -198,22 +200,19 @@ impl ShiftBetweenDays {
 
         let target_diff = target_route.calculate_add_order(target_info.node_index, self.order);
 
-        let (shift_t_overflow, shift_t_lessened) = calculate_time_overflow(shift_diff, shift_day.get_total_time());
-        let (target_t_overflow, target_t_lesssened) = calculate_time_overflow(target_diff, target_day.get_total_time());
+        let shift_t_delta = calculate_time_overflow(shift_diff, shift_day.get_total_time());
+        let target_t_delta = calculate_time_overflow(target_diff, target_day.get_total_time());
 
         let orders = get_orders();
         let order = &orders[self.order];
-        let (shift_c_overflow, shift_c_lessened) = calculate_capacity_overflow(-(order.total_container_volume as i32), shift_route.capacity as i32);
-        let (target_c_overflow, target_c_lessened) = calculate_capacity_overflow(order.total_container_volume as i32, target_route.capacity as i32);
+        let shift_c_delta = calculate_capacity_overflow(-(order.total_container_volume as i32), shift_route.capacity as i32);
+        let target_c_delta = calculate_capacity_overflow(order.total_container_volume as i32, target_route.capacity as i32);
 
-        let a = Evaluation {
+        Evaluation {
             cost: shift_diff + target_diff,
-            time_overflow: shift_t_overflow + target_t_overflow,
-            time_overflow_delta: shift_t_lessened + target_t_lesssened,
-            capacity_overflow: shift_c_overflow + target_c_overflow,
-            capacity_overflow_delta: shift_c_lessened + target_c_lessened,
-        };
-        a.validate()
+            time_overflow_delta: shift_t_delta + target_t_delta,
+            capacity_overflow_delta: shift_c_delta + target_c_delta,
+        }
     }
 }
 

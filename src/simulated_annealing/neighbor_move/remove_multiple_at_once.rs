@@ -117,18 +117,16 @@ impl NeighborMove for RemoveMultipleOrders {
 
                 let time_diff = route.calculate_remove_node(order_info.node_index);
 
-                let (time_overflow, time_overflow_lessened) =
+                let time_overflow_delta =
                     calculate_time_overflow(time_diff, day.get_total_time());
 
-                let (capacity_overflow, capacity_overflow_lessened) =
+                let capacity_overflow_delta =
                     calculate_capacity_overflow(-(order.total_container_volume as i32), route.capacity as i32);
 
                 Evaluation{
                     cost: time_diff,
-                    time_overflow,
-                    time_overflow_delta: time_overflow_lessened,
-                    capacity_overflow,
-                    capacity_overflow_delta: capacity_overflow_lessened,
+                    time_overflow_delta,
+                    capacity_overflow_delta,
                 }
             })
             .sum();

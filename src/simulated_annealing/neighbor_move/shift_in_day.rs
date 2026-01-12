@@ -125,21 +125,19 @@ impl NeighborMove for ShiftInDay {
         let shift_diff = shift_route.calculate_remove_node(self.shift.node_index);
         let target_diff = target_route.calculate_add_order(self.target.node_index, self.shift.order);
 
-        let (shift_t_overflow, shift_t_lessened) = calculate_time_overflow(shift_diff, shift_day.get_total_time());
-        let (target_t_overflow, target_t_lesssened) = calculate_time_overflow(target_diff, target_day.get_total_time());
+        let shift_t_delta = calculate_time_overflow(shift_diff, shift_day.get_total_time());
+        let target_t_delta = calculate_time_overflow(target_diff, target_day.get_total_time());
 
 
         let orders = get_orders();
         let order = &orders[self.shift.order];
-        let (shift_c_overflow, shift_c_lessened) = calculate_capacity_overflow(-(order.total_container_volume as i32), shift_route.capacity as i32);
-        let (target_c_overflow, target_c_lessened) = calculate_capacity_overflow(order.total_container_volume as i32, target_route.capacity as i32);
+        let shift_c_delta = calculate_capacity_overflow(-(order.total_container_volume as i32), shift_route.capacity as i32);
+        let target_c_delta = calculate_capacity_overflow(order.total_container_volume as i32, target_route.capacity as i32);
 
         Evaluation {
             cost: shift_diff + target_diff,
-            time_overflow: shift_t_overflow + target_t_overflow,
-            time_overflow_delta: shift_t_lessened + target_t_lesssened,
-            capacity_overflow: shift_c_overflow + target_c_overflow,
-            capacity_overflow_delta: shift_c_lessened + target_c_lessened,
+            time_overflow_delta: shift_t_delta + target_t_delta,
+            capacity_overflow_delta: shift_c_delta + target_c_delta,
         }
     }
 

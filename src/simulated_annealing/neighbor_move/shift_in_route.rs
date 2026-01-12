@@ -90,16 +90,14 @@ impl NeighborMove for ShiftInRoute {
         let time_difference = route.calculate_remove_node(self.shifting_node) +
             route.calculate_add_order(self.target_neighbor1, *lv.get_value_unsafe(self.shifting_node));
 
-        let (time_overflow, time_overflow_lessened) = calculate_time_overflow(time_difference, day.get_total_time());
+        let time_overflow_delta = calculate_time_overflow(time_difference, day.get_total_time());
 
 
         // We don't calculate anything in regard to the capacity,
         // because the capacity of this route does not change.
         Evaluation {
             cost: time_difference,
-            time_overflow,
-            time_overflow_delta: time_overflow_lessened,
-            capacity_overflow: 0,
+            time_overflow_delta,
             capacity_overflow_delta: 0,
         }
     }

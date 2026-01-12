@@ -72,7 +72,7 @@ impl Distribution<TruckEnum> for StandardUniform {
 }
 
 impl SimulatedAnnealing {
-    pub fn new<R: Rng + ?Sized>(rng: &mut R, config: SimulatedAnnealingConfig) -> Self {
+    pub fn new<R: Rng + ?Sized>(_rng: &mut R, config: SimulatedAnnealingConfig) -> Self {
         // intializationthings
         SimulatedAnnealing {
             idx: config.idx,
@@ -261,8 +261,7 @@ impl SimulatedAnnealing {
     }
 
     fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
-        let evaluation = evaluation.validate();
-        
+
         let time_delta_multiplier = 3;
         let capacity_delta_multiplier = 1000;
 

@@ -94,17 +94,15 @@ impl NeighborMove for AddMultipleNewOrders {
                 let time_diff =
                     route.calculate_add_order(order_info.insert_after_index, self.order_index);
 
-                let (time_overflow, time_overflow_lessened) =
+                let time_overflow_delta =
                     calculate_time_overflow(time_diff, day.get_total_time());
-                let (capacity_overflow, capacity_overflow_lessened) =
+                let capacity_overflow_delta =
                     calculate_capacity_overflow(order.total_container_volume as i32, route.capacity as i32);
 
                 Evaluation{
                     cost: time_diff,
-                    time_overflow,
-                    time_overflow_delta: time_overflow_lessened,
-                    capacity_overflow,
-                    capacity_overflow_delta: capacity_overflow_lessened
+                    time_overflow_delta,
+                    capacity_overflow_delta
                 }
             })
             .sum();
