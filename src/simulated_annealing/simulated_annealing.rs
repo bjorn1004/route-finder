@@ -120,10 +120,11 @@ impl SimulatedAnnealing {
             self.temp = f32::MAX;
             for _ in 0..self.num_perturbations {
                 self.do_step(&mut rng, [
-                    1, // add new order
-                    10, // shift within a route
-                    10, // shift between days
-                    1,  // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                    1, // add
+                    1, // remove
+                    1, // shift in route
+                    1, // shift in day
+                    1, // shift between days
                     ],
                     &mut next_iteration,
                 );
@@ -176,10 +177,11 @@ impl SimulatedAnnealing {
             self.do_step(
                 rng,
                 [
-                    100,  // add new order
-                    1000, // within a route
-                    1000, // shift between days
-                    1,    // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                    10,  // add new order
+                    2,    // remove
+                    200, // within a route
+                    100, // within a day
+                    30, // shift between days
                 ],
                 &mut solution,
             );
@@ -223,7 +225,7 @@ impl SimulatedAnnealing {
     fn do_step<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
-        weights: [i32; 4],
+        weights: [i32; 5],
         solution: &mut Solution,
     ) {
         let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng, weights, solution);
@@ -261,20 +263,14 @@ impl SimulatedAnnealing {
     fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
         let evaluation = evaluation.validate();
         
-        let time_overflow_penalty = 10;
-        let capacity_overflow_penalty = 1000;
-
-        let time_lessened_boost = 15;
-        let capacity_lessened_boost = 45;
+        let time_delta_multiplier = 3;
+        let capacity_delta_multiplier = 1000;
 
         // Calculate total adjusted cost using all factors
         let mut total_cost = evaluation.cost as i64;
-        
-        total_cost += (evaluation.time_overflow as i64 * time_overflow_penalty) / 100;
-        total_cost += (evaluation.capacity_overflow as i64 * capacity_overflow_penalty) / 100;
 
-        // total_cost -= (evaluation.time_overflow_lessened as i64 * time_lessened_boost) / 100;
-        // total_cost -= (evaluation.capacity_overflow_lessened as i64 * capacity_lessened_boost) / 100;
+        total_cost += (evaluation.time_overflow_delta as i64 * time_delta_multiplier) / 100;
+        total_cost += (evaluation.capacity_overflow_delta as i64 * capacity_delta_multiplier) / 100;
 
         // If it's an improvement or neutral, always accept
         if total_cost <= 0 {

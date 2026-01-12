@@ -17,9 +17,9 @@ pub struct Evaluation{
     pub cost: CostChange,
     // ben nog op zoek naar betere namen
     pub time_overflow: Time,
-    pub time_overflow_lessened: Time,
+    pub time_overflow_delta: Time,
     pub capacity_overflow: i32,
-    pub capacity_overflow_lessened: i32,
+    pub capacity_overflow_delta: i32,
 }
 
 impl Add for Evaluation {
@@ -29,21 +29,21 @@ impl Add for Evaluation {
         Self {
             cost: self.cost + other.cost,
             time_overflow: self.time_overflow + other.time_overflow,
-            time_overflow_lessened: self.time_overflow_lessened + other.time_overflow_lessened,
+            time_overflow_delta: self.time_overflow_delta + other.time_overflow_delta,
             capacity_overflow: self.capacity_overflow + other.capacity_overflow,
-            capacity_overflow_lessened: self.capacity_overflow_lessened
-                + other.capacity_overflow_lessened,
+            capacity_overflow_delta: self.capacity_overflow_delta
+                + other.capacity_overflow_delta,
         }
     }
 }
 impl Default for Evaluation {
     fn default() -> Self {
         Self {
-            cost: CostChange::default(),
-            time_overflow: Time::default(),
-            time_overflow_lessened: Time::default(),
+            cost: 0,
+            time_overflow: 0,
+            time_overflow_delta: 0,
             capacity_overflow: 0,
-            capacity_overflow_lessened: 0,
+            capacity_overflow_delta: 0,
         }
     }
 }
@@ -55,9 +55,7 @@ impl Sum for Evaluation {
 impl Evaluation {
     pub fn validate(self) -> Self {
         debug_assert!(self.time_overflow >= 0);
-        debug_assert!(self.time_overflow_lessened >= 0);
         debug_assert!(self.capacity_overflow >= 0);
-        debug_assert!(self.capacity_overflow_lessened >= 0);
         self
     }
 }

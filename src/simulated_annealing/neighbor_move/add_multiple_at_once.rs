@@ -102,9 +102,9 @@ impl NeighborMove for AddMultipleNewOrders {
                 Evaluation{
                     cost: time_diff,
                     time_overflow,
-                    time_overflow_lessened,
+                    time_overflow_delta: time_overflow_lessened,
                     capacity_overflow,
-                    capacity_overflow_lessened
+                    capacity_overflow_delta: capacity_overflow_lessened
                 }
             })
             .sum();

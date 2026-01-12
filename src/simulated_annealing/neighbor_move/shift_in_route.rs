@@ -98,9 +98,9 @@ impl NeighborMove for ShiftInRoute {
         Evaluation {
             cost: time_difference,
             time_overflow,
-            time_overflow_lessened,
+            time_overflow_delta: time_overflow_lessened,
             capacity_overflow: 0,
-            capacity_overflow_lessened: 0,
+            capacity_overflow_delta: 0,
         }
     }
 

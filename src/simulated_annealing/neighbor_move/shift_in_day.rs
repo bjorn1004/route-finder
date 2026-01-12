@@ -79,20 +79,24 @@ impl ShiftInDay {
         };
 
         let route = (if truck == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2}).get(day).get(time_of_day);
-        let (node_index, order) = route.linked_vector.get_random(rng).unwrap();
 
-        // If the random node is the tail, we can't shift behind it.
-        // If the random node is the head, we can shift behind it.
-        if node_index == route.linked_vector.get_tail_index().unwrap(){
-            None
-        } else {
-            Some(TruckDayTimeNode{
-                truck,
-                day,
-                time_of_day,
-                node_index,
-                order: *order,
-            })
+
+        loop {
+            let (node_index, order) = route.linked_vector.get_random(rng).unwrap();
+            // If the random node is the tail, we can't shift behind it.
+            // If the random node is the head (or any other node), we can shift behind it.
+            if node_index == route.linked_vector.get_tail_index().unwrap(){
+                continue
+            } else {
+                return Some(TruckDayTimeNode{
+                    truck,
+                    day,
+                    time_of_day,
+                    node_index,
+                    order: *order,
+                });
+            }
+
         }
     }
     fn other_truck(truck: TruckEnum) -> TruckEnum {
@@ -133,9 +137,9 @@ impl NeighborMove for ShiftInDay {
         Evaluation {
             cost: shift_diff + target_diff,
             time_overflow: shift_t_overflow + target_t_overflow,
-            time_overflow_lessened: shift_t_lessened + target_t_lesssened,
+            time_overflow_delta: shift_t_lessened + target_t_lesssened,
             capacity_overflow: shift_c_overflow + target_c_overflow,
-            capacity_overflow_lessened: shift_c_lessened + target_c_lessened,
+            capacity_overflow_delta: shift_c_lessened + target_c_lessened,
         }
     }
 

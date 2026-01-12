@@ -168,18 +168,20 @@ impl ShiftBetweenDays {
         let time_of_day = rng.random();
         let route = day.get(time_of_day);
 
-        let (node_index, _order_index) = route.linked_vector.get_random(rng)?;
 
-        if node_index == route.linked_vector.get_tail_index()?{
-            return None;
+        loop {
+            let (node_index, _order_index) = route.linked_vector.get_random(rng)?;
+            if node_index == route.linked_vector.get_tail_index()?{
+                continue;
+            }
+
+            return Some(TruckDayTimeNode{
+                truck,
+                day: day_enum,
+                time_of_day,
+                node_index,
+            });
         }
-
-        Some(TruckDayTimeNode{
-            truck,
-            day: day_enum,
-            time_of_day,
-            node_index,
-        })
     }
     /// I call this function once most of the time with i=0. This gets the first element in the shift and target array.
     /// If there is a frequency 2 order, this function is also called with i=1.
@@ -207,9 +209,9 @@ impl ShiftBetweenDays {
         let a = Evaluation {
             cost: shift_diff + target_diff,
             time_overflow: shift_t_overflow + target_t_overflow,
-            time_overflow_lessened: shift_t_lessened + target_t_lesssened,
+            time_overflow_delta: shift_t_lessened + target_t_lesssened,
             capacity_overflow: shift_c_overflow + target_c_overflow,
-            capacity_overflow_lessened: shift_c_lessened + target_c_lessened,
+            capacity_overflow_delta: shift_c_lessened + target_c_lessened,
         };
         a.validate()
     }
