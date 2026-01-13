@@ -8,3 +8,4 @@ mod FIXTHISSHITANDWEAREDONE;
 mod neighbor_chooser;
 mod score_calculator;
 pub mod solution;
+mod order_location;
