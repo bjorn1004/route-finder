@@ -136,14 +136,14 @@ impl Route {
         }
     }
     /// a special function for the FIXPLZPLZPLZPLZPLZPLZPLZ function.
-    pub fn apply_remove_node_without_compact(&mut self, _node: LVNodeIndex) -> Time{
+    pub fn apply_remove_node_without_compact(&mut self, node: LVNodeIndex) -> Time{
         let orders = get_orders();
         let lv = &mut self.linked_vector;
-        let order = &orders[*lv.get_value_unsafe(_node)];
+        let order = &orders[*lv.get_value_unsafe(node)];
 
-        let prev = orders[*lv.get_prev_value_unsafe(_node)].matrix_id;
+        let prev = orders[*lv.get_prev_value_unsafe(node)].matrix_id;
         let middle = order.matrix_id;
-        let next = orders[*lv.get_next_value_unsafe(_node)].matrix_id;
+        let next = orders[*lv.get_next_value_unsafe(node)].matrix_id;
 
         let time_diff =
             - time_between_three_nodes(prev, middle, next)
@@ -152,7 +152,7 @@ impl Route {
 
         self.time += time_diff;
         self.capacity -= order.total_container_volume;
-        lv.remove(_node);
+        lv.remove(node);
         time_diff
     }
     /// Calculates the time it takes to add an order after the given node.
