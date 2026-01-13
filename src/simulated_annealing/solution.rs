@@ -1,6 +1,7 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap};
 use std::fs::{read_to_string};
 use crate::{get_orders};
+use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
@@ -13,7 +14,7 @@ pub struct Solution{
     pub truck1: Week,
     pub truck2: Week,
     pub score: i32,
-    pub unfilled_orders: VecDeque<OrderIndex>,
+    pub unfilled_orders: CompactLinkedVector<OrderIndex>,
     pub order_flags: OrderFlags,
 }
 
@@ -29,13 +30,13 @@ impl Solution {
         }
     }
 
-    fn fill_unfilled_orders_list() -> VecDeque<OrderIndex> {
-        let mut deliveries = Vec::new();
+    fn fill_unfilled_orders_list() -> CompactLinkedVector<OrderIndex> {
+        let mut deliveries = CompactLinkedVector::new();
         let orders = get_orders();
-        for i in 0..orders.len() - 1{
-        deliveries.push(i);
+        for i in 0..orders.len() - 1 {
+            deliveries.push_back(i);
         }
-        VecDeque::from(deliveries)
+        deliveries
     }
 
 
@@ -123,7 +124,10 @@ impl Solution {
         solution.truck2.recalculate_total_time();
         solution.score = calculate_score(&solution, &solution.order_flags);
 
-        solution.unfilled_orders = VecDeque::from(new_unfilled_orders);
+        solution.unfilled_orders = CompactLinkedVector::new();
+        for a in new_unfilled_orders.iter() {
+            solution.unfilled_orders.push_back(*a);
+        }
         solution
     }
 
