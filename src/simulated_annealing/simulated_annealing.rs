@@ -1,7 +1,7 @@
 use super::week::Week;
 use crate::printer::print_solution;
 use crate::resource::Time;
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::CostChange;
+use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::score_calculator::calculate_score;
 use crate::simulated_annealing::solution::Solution;
@@ -73,7 +73,7 @@ impl Distribution<TruckEnum> for StandardUniform {
 }
 
 impl SimulatedAnnealing {
-    pub fn new<R: Rng + ?Sized>(rng: &mut R, config: SimulatedAnnealingConfig) -> Self {
+    pub fn new<R: Rng + ?Sized>(_rng: &mut R, config: SimulatedAnnealingConfig) -> Self {
         // intializationthings
         SimulatedAnnealing {
             idx: config.idx,
@@ -121,10 +121,11 @@ impl SimulatedAnnealing {
             self.temp = f32::MAX;
             for _ in 0..self.num_perturbations {
                 self.do_step(&mut rng, [
-                    1, // add new order
-                    10, // shift within a route
-                    10, // shift between days
-                    1,  // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                    1, // add
+                    1, // remove
+                    1, // shift in route
+                    1, // shift in day
+                    1, // shift between days
                     ],
                     &mut next_iteration,
                 );
@@ -177,10 +178,11 @@ impl SimulatedAnnealing {
             self.do_step(
                 rng,
                 [
-                    100,  // add new order
-                    1000, // within a route
-                    1000, // shift between days
-                    1,    // if self.solution.score <= 6000*MINUTE {1} else {0}, // remove
+                    10,  // add new order
+                    1,    // remove
+                    200, // within a route
+                    100, // within a day
+                    30, // shift between days
                 ],
                 &mut solution,
             );
@@ -224,13 +226,13 @@ impl SimulatedAnnealing {
     fn do_step<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
-        weights: [i32; 4],
+        weights: [i32; 5],
         solution: &mut Solution,
     ) {
         let (neighborhood, order_to_add_after_apply) = self.choose_neighbor(rng, weights, solution);
 
         // get the change in capacity/time
-        let cost = neighborhood.evaluate(&solution);
+        let cost = neighborhood.evaluate(solution);
 
         // if we want to go through with this thing
         if self.accept(cost, rng) {
@@ -261,28 +263,38 @@ impl SimulatedAnnealing {
         }
     }
 
-    fn accept<R: Rng + ?Sized>(&self, cost_change: CostChange, rng: &mut R) -> bool {
-        if cost_change <= 0 {
+    fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
+
+        let time_delta_multiplier = 6;
+        let capacity_delta_multiplier = 1500;
+
+        // Calculate total adjusted cost using all factors
+        let mut total_cost = evaluation.cost as i64;
+
+        total_cost += (evaluation.time_overflow_delta as i64 * time_delta_multiplier) / 100;
+        total_cost += (evaluation.capacity_overflow_delta as i64 * capacity_delta_multiplier) / 100;
+
+        // If it's an improvement or neutral, always accept
+        if total_cost <= 0 {
             return true;
         }
-        let prob = E.powf(-(cost_change as f32) / self.temp);
+
+        let prob = E.powf(-(total_cost as f32) / self.temp);
         let rand_float: f32 = rng.random();
-        if rand_float < prob {
-            return true;
-        }
-        false
+        rand_float < prob
     }
 
     fn cleanup(&mut self, solution: &mut Solution) -> Time {
         // Cleanup: remove incomplete orders and recalculate scores
-        let before_fixplzplzplzplzplz = calculate_score(&solution, &solution.order_flags);
+        let before_fixplzplzplzplzplz = calculate_score(solution, &solution.order_flags);
 
         fixplzplzplzpl(solution);
 
-        let before_recalc = calculate_score(&solution, &solution.order_flags);
+        let before_recalc = calculate_score(solution, &solution.order_flags);
         if before_fixplzplzplzplzplz != before_recalc {
             println!("fixplzplzplzplz removed at least one order to get a correct answer");
-            println!("SHIT GOT TOTALLY FUCKED IN ILS");
+            println!("SHIT GOT TOTALLY FUCKED");
+            panic!("This should not ever happen anymore. We should never have a solution with incomplete orders.")
         }
 
         solution.truck1.recalculate_total_time();

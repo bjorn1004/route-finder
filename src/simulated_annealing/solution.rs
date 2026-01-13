@@ -5,8 +5,9 @@ use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::simulated_annealing::day::{TimeOfDay};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
-use crate::simulated_annealing::route::OrderIndex;
+use crate::simulated_annealing::route::{OrderIndex};
 use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
+use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 #[derive(Clone)]
@@ -139,6 +140,19 @@ impl Solution {
             assert_eq!(orders[order_index].order, order.order);
         }
         map
+    }
+
+    pub fn get_truck(&self, truck_enum: TruckEnum) -> &Week {
+        match truck_enum {
+            TruckEnum::Truck1 => {&self.truck1}
+            TruckEnum::Truck2 => {&self.truck2}
+        }
+    }
+    pub fn get_truck_mut(&mut self, truck_enum: TruckEnum) -> &mut Week {
+        match truck_enum {
+            TruckEnum::Truck1 => {&mut self.truck1}
+            TruckEnum::Truck2 => {&mut self.truck2}
+        }
     }
 }
 

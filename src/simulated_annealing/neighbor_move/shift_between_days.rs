@@ -1,30 +1,28 @@
-use std::cmp::max;
+use rand::Rng;
+use DayEnum::{Monday, Tuesday, Wednesday};
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::get_orders;
-use crate::resource::{FULL_DAY, HALF_HOUR, Time};
 use crate::simulated_annealing::day::TimeOfDay;
-use crate::simulated_annealing::neighbor_move::evaluation_helper::{
-    time_between_three_nodes, time_between_two_nodes,
-};
-use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{CostChange, NeighborMove};
+use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
+use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
+use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove, ScoreChange};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
-use crate::simulated_annealing::week::{DayEnum, Week};
-use rand::Rng;
 use crate::simulated_annealing::solution::Solution;
+use crate::simulated_annealing::week::{DayEnum, Week};
+use crate::simulated_annealing::week::DayEnum::{Friday, Thursday};
 
 pub struct ShiftBetweenDays {
-    shift: TruckDayTimeNode,
-    target: TruckDayTimeNode,
+    shifts: [Option<TruckDayTimeNode>; 2],
+    targets: [Option<TruckDayTimeNode>; 2],
+    order: OrderIndex,
 }
-
-pub struct TruckDayTimeNode {
+struct TruckDayTimeNode{
     truck: TruckEnum,
     day: DayEnum,
     time_of_day: TimeOfDay,
     node_index: LVNodeIndex,
-    order: OrderIndex,
 }
 
 impl ShiftBetweenDays {
@@ -32,251 +30,244 @@ impl ShiftBetweenDays {
         solution: &Solution,
         rng: &mut R,
     ) -> Option<Self> {
-        let shift = Self::get_random_truck_day_time_node(
-            solution,
-            rng,
-            |r: &Route, i: LVNodeIndex| {
-                r.linked_vector.get_tail_index().unwrap() != i
-                    && r.linked_vector.get_head_index().unwrap() != i
-            },
-            None,
-        )?;
+        let (first_thingy, shift_order_index) = Self::find_first_random_node(solution, rng)?;
 
-        let target = Self::get_random_truck_day_time_node(
-            solution,
-            rng,
-            |r: &Route, i: LVNodeIndex| r.linked_vector.get_tail_index().unwrap() != i,
-            Some((shift.order, shift.day, &solution.order_flags)),
-        )?;
-
-        if shift.truck == target.truck && // if same truck
-            shift.day == target.day && // and same day
-            shift.time_of_day == target.time_of_day
-        // and same time of day (or same route)
-        {
-            None
-        } else {
-            Some(ShiftBetweenDays { shift, target })
+        let order = &get_orders()[shift_order_index];
+        // if the order has frequency 3 or 5, we can't shift to another place
+        let frequency = order.frequency as u8;
+        if frequency == 3 ||
+            frequency == 5 {
+            return None;
         }
+
+
+
+        let mut second_shift: Option<TruckDayTimeNode> = None;
+
+        let targets = match frequency {
+            1 => {
+                // this is my attempt at getting a random number between 0 and 4 that is different from the shift day.
+                // random day between 0 and 3.
+                let random_num = rng.random_range(0..4);
+                let target_day = if random_num == first_thingy.day as u8 {
+                    // if we got the same day as the shift day, we use day 4 (0 based indexing)
+                    Friday
+                } else {
+                    // just use the random number we found.
+                    match random_num {
+                        0 => Monday,
+                        1 => Tuesday,
+                        2 => Wednesday,
+                        3 => Thursday,
+                        _ => unreachable!(),
+                    }
+                };
+                [Some(Self::find_random_target(solution, rng, target_day)?), None]},
+            2 => {
+                let other_shift_day = match first_thingy.day {
+                    Monday => Thursday,
+                    Tuesday => Friday,
+                    Wednesday => unreachable!(),
+                    Thursday => Monday,
+                    Friday => Tuesday,
+                };
+                let other_shift_node = Self::find_other_day(solution, other_shift_day, shift_order_index);
+                second_shift = Some(other_shift_node);
+
+                let target_days = match first_thingy.day {
+                    Monday => [Tuesday, Friday],
+                    Tuesday => [Monday, Thursday],
+                    Wednesday => unreachable!(),
+                    Thursday => [Tuesday, Friday],
+                    Friday => [Monday, Thursday],
+                };
+
+                [Some(Self::find_random_target(solution, rng, target_days[0])?),
+                    Some(Self::find_random_target(solution, rng, target_days[1])?)]
+            },
+            3 => return None,
+            4 => {
+                let flags = solution.order_flags.get_flag(shift_order_index);
+                // Flip all bits, then mask to keep only the 5 day bits
+                let available_days_mask = (!flags) & 0b11111;
+                let day = OrderFlags::flag_to_day(available_days_mask)?;
+                [Some(Self::find_random_target(solution, rng, day)?), None]
+            },
+            5 => return None,
+            _ => unreachable!()
+        };
+        Some(Self {
+            shifts: [Some(first_thingy), second_shift],
+            targets,
+            order: shift_order_index,
+        })
     }
-
-    fn get_random_truck_day_time_node<R: Rng + ?Sized>(
-        solution: &Solution,
-        rng: &mut R,
-        requirement: fn(&Route, LVNodeIndex) -> bool,
-        shift: Option<(OrderIndex, DayEnum, &OrderFlags)>,
-    ) -> Option<TruckDayTimeNode> {
-        let truck_enum: TruckEnum = rng.random();
-        let truck = if truck_enum == TruckEnum::Truck1 {
-            &solution.truck1
-        } else {
-            &solution.truck2
-        };
-
-        // if this is the random day we want to shift to, check if there are options
-        let day: DayEnum = if let Some((shift_order, day_enum, flags)) = shift {
-            flags.get_random_day_to_shift_to(shift_order, day_enum, rng)?
-        } else {
-            // if it is the first random node we try to get, just pick it from a random day
-            rng.random()
-        };
+    fn find_first_random_node<R: Rng + ?Sized>(solution: &Solution, rng: &mut R) -> Option<(TruckDayTimeNode, OrderIndex)>{
+        let truck:TruckEnum = rng.random();
+        let day: DayEnum = rng.random();
         let time_of_day: TimeOfDay = rng.random();
 
-        let route = truck.get(day).get(time_of_day);
+        let route = (if truck == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2}).get(day).get(time_of_day);
 
-        let (node, _) = route.linked_vector.get_random(rng).unwrap();
+        let (node_index, order) = route.linked_vector.get_random(rng).unwrap();
 
-        if requirement(route, node) {
-            if let Some((shift_order, _, _)) = shift {
-                let orders = get_orders();
-                if route.capacity + orders[shift_order].total_container_volume > 100_000 {
-                    return None;
-                }
-            }
-            Some(TruckDayTimeNode {
-                truck: truck_enum,
-                day,
+        if node_index == route.linked_vector.get_head_index().unwrap() ||
+            node_index == route.linked_vector.get_tail_index().unwrap(){
+            return None;
+        }
+
+        Some((TruckDayTimeNode{
+            truck,
+            day,
+            time_of_day,
+            node_index,
+        }, *order))
+    }
+    // COPIED SHIT FROM REMOVE MULTIPLE AT ONCE BECAUSE I LAZY
+    // WILL BE CLEANED UP ONCE WE HAVE A NEW STRUCT TO FIND OTHER OCCURENCES OF AN ORDER IN O(1) TIME
+    fn find_other_day(solution: &Solution, day_enum: DayEnum, order_index: OrderIndex) -> TruckDayTimeNode {
+        if let Some((time_of_day, node_index)) = Self::find_other_day_in_truck(&solution.truck1, day_enum, order_index) {
+            return TruckDayTimeNode{
+                truck: TruckEnum::Truck1,
+                day: day_enum,
                 time_of_day,
-                node_index: node,
-                order: *route.linked_vector.get_value(node).unwrap(),
-            })
+                node_index,
+            }
+        } else if let Some((time_of_day, node_index)) = Self::find_other_day_in_truck(&solution.truck2, day_enum, order_index) {
+            return TruckDayTimeNode{
+                truck: TruckEnum::Truck2,
+                day: day_enum,
+                time_of_day,
+                node_index,
+            }
+        }
+
+        panic!("couldn't find the order to remove. Something probably went wrong with the orderflags")
+    }
+
+    fn find_other_day_in_truck(truck: &Week, day_enum: DayEnum, order_index: OrderIndex) -> Option<(TimeOfDay, LVNodeIndex)>{
+        let day = truck.get(day_enum);
+        if let Some(node_index) = Self::find_other_day_in_route(day.get(TimeOfDay::Morning), order_index) {
+            Some((TimeOfDay::Morning, node_index))
+        } else if let Some(node_index) = Self::find_other_day_in_route(day.get(TimeOfDay::Afternoon), order_index) {
+            Some((TimeOfDay::Afternoon, node_index))
         } else {
             None
         }
     }
 
-    /// returns a tuple where item1 contains change in time to shiftRoute, item2 contains change to targetRoute
-    fn evaluate_shift_neighbors(&self, solution: &Solution) -> (Time/*shift*/, Time/*target*/, Time /*empty_shift*/, Time /*new_target*/) {
-
-        let shift_route = (if self.shift.truck == TruckEnum::Truck1 {
-            &solution.truck1
-        } else {
-            &solution.truck2
-        })
-            .get(self.shift.day)
-            .get(self.shift.time_of_day);
-
-        let shift_diff = shift_route.calculate_remove_node(self.shift.node_index);
-
-        let target_route = (if self.target.truck == TruckEnum::Truck1 {
-            &solution.truck1
-        } else {
-            &solution.truck2
-        })
-            .get(self.target.day)
-            .get(self.target.time_of_day);
-
-        let target_diff = target_route.calculate_add_order(self.target.node_index, self.shift.order);
-
-        #[cfg(debug_assertions)]
-        {
-            let shift_lv = &(if self.shift.truck == TruckEnum::Truck1 {
-                &solution.truck1
-            } else {
-                &solution.truck2
-            })
-                .get(self.shift.day)
-                .get(self.shift.time_of_day)
-                .linked_vector;
-
-            let orders = get_orders();
-            let emptying_time = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].emptying_time;
-
-            let before_shift = orders[*shift_lv.get_prev_value_unsafe(self.shift.node_index)].matrix_id;
-
-            let shift = orders[*shift_lv.get_value_unsafe(self.shift.node_index)].matrix_id;
-            let after_shift = orders[*shift_lv.get_next_value_unsafe(self.shift.node_index)].matrix_id;
-
-            let target_lv = &(if self.target.truck == TruckEnum::Truck1 {
-                &solution.truck1
-            } else {
-                &solution.truck2
-            })
-                .get(self.target.day)
-                .get(self.target.time_of_day)
-                .linked_vector;
-            let t1 = orders[*target_lv.get_value_unsafe(self.target.node_index)].matrix_id;
-            let t2 = orders[*target_lv.get_next_value_unsafe(self.target.node_index)].matrix_id;
-
-            // add the difference between the shifting_node and the two nodes where it will be put between
-            let mut old_target_diff = time_between_three_nodes(t1, shift, t2);
-            // remove the time between these two nodes
-            old_target_diff -= time_between_two_nodes(t1, t2);
-            old_target_diff += emptying_time;
-
-            // add the time between the two neighbors of the node that will be shifted
-            let mut old_shift_diff = time_between_two_nodes(before_shift, after_shift);
-            // remove the time between the node that will be shifted and it's current neighbors
-            old_shift_diff -= time_between_three_nodes(before_shift, shift, after_shift);
-            old_shift_diff -= emptying_time;
-            assert_eq!(shift_diff, old_shift_diff);
-            assert_eq!(target_diff, old_target_diff);
+    fn find_other_day_in_route(route: &Route, order_index: OrderIndex) -> Option<LVNodeIndex> {
+        for (node_index, _order_index) in route.linked_vector.iter(){
+            if *_order_index == order_index {
+                return Some(node_index);
+            }
         }
-
-        let shift_route_empty: Time = if shift_route.linked_vector.len() == 3 {
-            -HALF_HOUR
-        } else {
-            0
-        };
-        let target_diff_new_route: Time = if target_route.linked_vector.len() == 2 {
-            HALF_HOUR
-        } else {
-            0
-        };
-        (shift_diff, target_diff, shift_route_empty, target_diff_new_route)
+        None
     }
-
-    fn apply_same_truck_case(
-        &self,
-        truck: &mut Week,
-        order_flags: &mut OrderFlags,
-        shift_diff: Time,
-        target_diff: Time,
-        empty_shift: Time,
-        new_target: Time,
-    ) -> Time {
-        let shift_route = truck
-            .get_mut(self.shift.day)
-            .get_mut(self.shift.time_of_day);
-
-        shift_route.apply_remove_node(self.shift.node_index);
-        order_flags.remove_order(self.shift.order, self.shift.day);
-
-        let target_route = truck
-            .get_mut(self.target.day)
-            .get_mut(self.target.time_of_day);
-
-        target_route.apply_add_order(self.target.node_index, self.shift.order);
-
-        order_flags.add_order(self.shift.order, self.target.day);
+    /// gets a random target_node on the given day. This could be any node in a route besides the tail.
+    fn find_random_target<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, day_enum: DayEnum) -> Option<TruckDayTimeNode>{
+        let truck:TruckEnum = rng.random();
+        let day = solution.get_truck(truck).get(day_enum);
+        let time_of_day = rng.random();
+        let route = day.get(time_of_day);
 
 
-        shift_diff + target_diff + empty_shift + new_target
+        loop {
+            let (node_index, _order_index) = route.linked_vector.get_random(rng)?;
+            if node_index == route.linked_vector.get_tail_index()?{
+                continue;
+            }
+
+            return Some(TruckDayTimeNode{
+                truck,
+                day: day_enum,
+                time_of_day,
+                node_index,
+            });
+        }
+    }
+    /// I call this function once most of the time with i=0. This gets the first element in the shift and target array.
+    /// If there is a frequency 2 order, this function is also called with i=1.
+    fn evaluation_helper(&self, solution: &Solution, i: usize) -> Evaluation {
+        let shift_info = self.shifts[i].as_ref().unwrap();
+        let shift_day = solution.get_truck(shift_info.truck).get(shift_info.day);
+        let shift_route = shift_day.get(shift_info.time_of_day);
+
+        let shift_diff = shift_route.calculate_remove_node(shift_info.node_index);
+
+        let target_info = self.targets[i].as_ref().unwrap();
+        let target_day = solution.get_truck(target_info.truck).get(target_info.day);
+        let target_route = target_day.get(target_info.time_of_day);
+
+        let target_diff = target_route.calculate_add_order(target_info.node_index, self.order);
+
+        let shift_t_delta = calculate_time_overflow(shift_diff, shift_day.get_total_time());
+        let target_t_delta = calculate_time_overflow(target_diff, target_day.get_total_time());
+
+        let orders = get_orders();
+        let order = &orders[self.order];
+        let shift_c_delta = calculate_capacity_overflow(-(order.total_container_volume as i32), shift_route.capacity as i32);
+        let target_c_delta = calculate_capacity_overflow(order.total_container_volume as i32, target_route.capacity as i32);
+
+        Evaluation {
+            cost: shift_diff + target_diff,
+            time_overflow_delta: shift_t_delta + target_t_delta,
+            capacity_overflow_delta: shift_c_delta + target_c_delta,
+        }
     }
 }
 
 impl NeighborMove for ShiftBetweenDays {
-    fn evaluate(&self, solution: &Solution) -> CostChange {
-        // this is the time difference
-        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(solution);
-
-        let target_day = (if self.target.truck == TruckEnum::Truck1 {
-            &solution.truck1
-        } else {
-            &solution.truck2
-        })
-        .get(self.target.day);
-        if target_day.get_total_time() + target_diff > FULL_DAY {
-            let overtime = ((target_day.get_total_time() + target_diff - FULL_DAY) * /*penalty percentage*/3)
-                / 100;
-            return shift_diff + target_diff + overtime;
+    fn evaluate(&self, solution: &Solution) -> Evaluation {
+        let first_shift = self.evaluation_helper(solution, 0);
+        // if we are doing a shift for frequency 2, also calaculate the second stored shift
+        if self.shifts[1].is_some(){
+            return self.evaluation_helper(solution, 1) + first_shift;
         }
-
-        let capacity_penalty = max(
-            ((target_day.get(self.target.time_of_day).capacity as i32 + get_orders()[self.target.order].total_container_volume as i32 - 100_000)*3)/100,
-            0
-        );
-
-        shift_diff + target_diff + empty_shift + new_target + capacity_penalty
+        first_shift
     }
 
-    fn apply(&self, solution: &mut Solution) -> Time {
-        let (shift_diff, target_diff, empty_shift, new_target) = self.evaluate_shift_neighbors(solution);
-        let (shift_route, target_route): (&mut Route, &mut Route) =
-            match (self.shift.truck, self.target.truck) {
-                (TruckEnum::Truck1, TruckEnum::Truck2) => (
-                    solution.truck1
-                        .get_mut(self.shift.day)
-                        .get_mut(self.shift.time_of_day),
-                    solution.truck2
-                        .get_mut(self.target.day)
-                        .get_mut(self.target.time_of_day),
-                ),
-                (TruckEnum::Truck2, TruckEnum::Truck1) => (
-                    solution.truck2
-                        .get_mut(self.shift.day)
-                        .get_mut(self.shift.time_of_day),
-                    solution.truck1
-                        .get_mut(self.target.day)
-                        .get_mut(self.target.time_of_day),
-                ),
-                (t1, t2) if t1 == t2 => {
-                    let truck = if t1 == TruckEnum::Truck1 {
-                        &mut solution.truck1
-                    } else {
-                        &mut solution.truck2
-                    };
-                    return self.apply_same_truck_case(truck, &mut solution.order_flags, shift_diff, target_diff, empty_shift, new_target);
-                }
-                _ => unreachable!(),
-            };
+    fn apply(&self, solution: &mut Solution) -> ScoreChange {
+        // first we clear the order_flags
+        // get all the data and apply the remove and adds
+        let shift_info = self.shifts[0].as_ref().unwrap();
+        solution.order_flags.remove_order(self.order, shift_info.day);
+        let shift_route = solution.get_truck_mut(shift_info.truck)
+            .get_mut(shift_info.day)
+            .get_mut(shift_info.time_of_day);
+        let shift_diff = shift_route.apply_remove_node(shift_info.node_index);
 
-        shift_route.apply_remove_node(self.shift.node_index);
-        target_route.apply_add_order(self.target.node_index, self.shift.order);
+        let target_info = self.targets[0].as_ref().unwrap();
+        let target_route = solution.get_truck_mut(target_info.truck)
+            .get_mut(target_info.day)
+            .get_mut(target_info.time_of_day);
+        let target_diff = target_route.apply_add_order(target_info.node_index, self.order);
 
-        solution.order_flags.remove_order(self.shift.order, self.shift.day);
-        solution.order_flags.add_order(self.shift.order, self.target.day);
+        // update the order flags
+        solution.order_flags.add_order(self.order, target_info.day);
 
-        shift_diff + target_diff + empty_shift + new_target
+        // ugly code that maybe works
+        if self.shifts[1].is_some(){
+            let shift_info = self.shifts[1].as_ref().unwrap();
+            solution.order_flags.remove_order(self.order, shift_info.day);
+            let shift_route = solution.get_truck_mut(shift_info.truck)
+                .get_mut(shift_info.day)
+                .get_mut(shift_info.time_of_day);
+            let shift_diff2 = shift_route.apply_remove_node(shift_info.node_index);
+
+            let target_info = self.targets[1].as_ref().unwrap();
+            let target_route = solution.get_truck_mut(target_info.truck)
+                .get_mut(target_info.day)
+                .get_mut(target_info.time_of_day);
+            let target_diff2 = target_route.apply_add_order(target_info.node_index, self.order);
+
+            // update the order flags
+            solution.order_flags.add_order(self.order, target_info.day);
+
+            return shift_diff + target_diff + shift_diff2 + target_diff2;
+        }
+
+
+        shift_diff + target_diff
     }
 }

@@ -101,9 +101,14 @@ impl Route {
 
         let time_diff =
             - time_between_three_nodes(prev, middle, next)
-                + time_between_two_nodes(prev, next);
+            + time_between_two_nodes(prev, next)
+            - order.emptying_time;
 
-        time_diff - order.emptying_time
+        if lv.len() == 3 {
+            time_diff - HALF_HOUR
+        } else {
+            time_diff
+        }
     }
     pub fn apply_remove_node(&mut self, node: LVNodeIndex) -> Time{
         let orders = get_orders();
@@ -123,7 +128,12 @@ impl Route {
         self.capacity -= order.total_container_volume;
         lv.remove(node);
         lv.compact();
-        time_diff
+
+        if lv.len() == 2 {
+            time_diff - HALF_HOUR
+        } else {
+            time_diff
+        }
     }
     /// a special function for the FIXPLZPLZPLZPLZPLZPLZPLZ function.
     pub fn apply_remove_node_without_compact(&mut self, node: LVNodeIndex) -> Time{
@@ -145,6 +155,11 @@ impl Route {
         lv.remove(node);
         time_diff
     }
+    /// Calculates the time it takes to add an order after the given node.
+    ///
+    /// Adds half an hour to the time if the route is empty
+    ///
+    /// Does not add emptying
     pub fn calculate_add_order(&self, insert_after_this: LVNodeIndex, order_to_insert: OrderIndex) -> Time {
         let orders = get_orders();
         let lv = &self.linked_vector;
@@ -158,7 +173,11 @@ impl Route {
         let time_diff = time_between_three_nodes(prev, middle, next)
             - time_between_two_nodes(prev, next);
 
-        time_diff + order.emptying_time
+        if lv.len() == 2 {
+            time_diff + order.emptying_time + HALF_HOUR
+        } else {
+            time_diff + order.emptying_time
+        }
     }
     pub fn apply_add_order(&mut self, insert_after_this: LVNodeIndex, order_index: OrderIndex) -> Time {
         let orders = get_orders();
@@ -179,7 +198,14 @@ impl Route {
         self.capacity += order.total_container_volume;
         lv.insert_after(insert_after_this, order_index);
 
-        time_diff
+        if lv.len() == 3 {
+            time_diff + HALF_HOUR
+        } else {
+            time_diff
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.linked_vector.len() == 2
     }
 }
 

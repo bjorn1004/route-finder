@@ -1,6 +1,5 @@
 use rand::{Rng};
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::NeighborMove;
-use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
 use crate::simulated_annealing::neighbor_move::shift_in_route::ShiftInRoute;
 use crate::simulated_annealing::simulated_annealing::{EndOfStepInfo, SimulatedAnnealing};
 use rand::distr::weighted::WeightedIndex;
@@ -8,10 +7,12 @@ use rand::prelude::*;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::simulated_annealing::neighbor_move::add_multiple_at_once::AddMultipleNewOrders;
 use crate::simulated_annealing::neighbor_move::remove_multiple_at_once::RemoveMultipleOrders;
+use crate::simulated_annealing::neighbor_move::shift_between_days::ShiftBetweenDays;
+use crate::simulated_annealing::neighbor_move::shift_in_day::ShiftInDay;
 use crate::simulated_annealing::solution::Solution;
 
 impl SimulatedAnnealing {
-    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R, weights: [i32;4], solution: &mut Solution) -> (Box<dyn NeighborMove>, EndOfStepInfo) {
+    pub fn choose_neighbor<R: Rng + ?Sized>(&mut self, rng: &mut R, weights: [i32;5], solution: &mut Solution) -> (Box<dyn NeighborMove>, EndOfStepInfo) {
         // https://docs.rs/rand_distr/latest/rand_distr/weighted/struct.WeightedIndex.html
         let weights = WeightedIndex::new(weights).unwrap();
         let mut order_to_add:EndOfStepInfo = EndOfStepInfo::Nothing;
@@ -37,26 +38,6 @@ impl SimulatedAnnealing {
                     }
                 }
                 1 => {
-                    let shift = ShiftInRoute::new(
-                        solution,
-                        rng
-                    );
-                    if shift.is_none() {
-                        continue;
-                    }
-                    Box::new(shift.unwrap())
-                }
-                2 => {
-                    let shift = ShiftBetweenDays::new(
-                        solution,
-                        rng,
-                    );
-                    if shift.is_none() {
-                        continue;
-                    }
-                    Box::new(shift.unwrap())
-                }
-                3 => {
                     if let Some((remove, _order_to_add)) = RemoveMultipleOrders::new(
                         solution,
                         rng,
@@ -66,6 +47,36 @@ impl SimulatedAnnealing {
                     } else {
                         continue;
                     }
+                }
+                2 => {
+                    let shift = ShiftInRoute::new(
+                        solution,
+                        rng
+                    );
+                    if shift.is_none() {
+                        continue;
+                    }
+                    Box::new(shift.unwrap())
+                }
+                3 => {
+                    let shift = ShiftInDay::new(
+                        solution,
+                        rng
+                    );
+                    if shift.is_none() {
+                        continue;
+                    }
+                    Box::new(shift.unwrap())
+                }
+                4 => {
+                    let shift = ShiftBetweenDays::new(
+                        solution,
+                        rng,
+                    );
+                    if shift.is_none() {
+                        continue;
+                    }
+                    Box::new(shift.unwrap())
                 }
                 _ => unreachable!(),
             };
