@@ -3,6 +3,7 @@ use crate::simulated_annealing::day::{Day, TimeOfDay};
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::week::{DayEnum, Week};
 use std::collections::HashMap;
+use crate::datastructures::linked_vectors::LinkedVector;
 use crate::simulated_annealing::solution::Solution;
 
 pub fn fixplzplzplzpl(solution: &mut Solution) {

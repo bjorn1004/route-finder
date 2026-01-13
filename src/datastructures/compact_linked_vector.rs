@@ -122,10 +122,6 @@ impl<T: std::fmt::Debug + PartialEq<T>> LinkedVector<T> for CompactLinkedVector<
             panic!("index out of range")
         }
 
-        if index == 0 || index == 1 {
-            panic!("plz don't remove the dummy nodes in the route");
-        }
-
         let node = &self.list[index];
         if let Some(prev) = node.prev {
             self.list[prev].next = node.next;

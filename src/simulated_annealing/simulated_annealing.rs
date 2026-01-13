@@ -14,6 +14,7 @@ use std::f32::consts::E;
 use std::fs::create_dir;
 use std::sync::Arc;
 use time::OffsetDateTime;
+use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 
 type RouteState = (Arc<Week>, Arc<Week>);
 
@@ -237,9 +238,14 @@ impl SimulatedAnnealing {
 
             solution.score += neighborhood.apply(solution);
 
-            if let EndOfStepInfo::Removed(order_to_add_after_apply) = order_to_add_after_apply {
-                solution.unfilled_orders.push_back(order_to_add_after_apply)
+            if let EndOfStepInfo::Add(order_to_add) = order_to_add_after_apply {
+                solution.unfilled_orders.push_back(order_to_add);
             }
+            if let EndOfStepInfo::Remove(node_index) = order_to_add_after_apply {
+                solution.unfilled_orders.remove(node_index);
+                solution.unfilled_orders.compact();
+            }
+
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
             // Future: It should only send a new route when it's faster, not just accepted
             if !self.route_sender.is_full() {
@@ -252,9 +258,6 @@ impl SimulatedAnnealing {
                 self.egui_ctx.request_repaint();
             }
             return;
-        }
-        if let EndOfStepInfo::Add(order_to_add_after_apply) = order_to_add_after_apply {
-            solution.unfilled_orders.push_back(order_to_add_after_apply)
         }
     }
 
@@ -300,6 +303,6 @@ impl SimulatedAnnealing {
 
 pub enum EndOfStepInfo {
     Nothing,
-    Removed(OrderIndex),
+    Remove(LVNodeIndex),
     Add(OrderIndex),
 }
