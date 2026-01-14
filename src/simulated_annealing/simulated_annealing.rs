@@ -81,7 +81,7 @@ impl SimulatedAnnealing {
             end_temp: config.end_temp,
             reheating_temp: 6000f32,
             max_iterations: 100,
-            num_perturbations: 80,
+            num_perturbations: 10,
             q: config.q,
             step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
@@ -123,7 +123,7 @@ impl SimulatedAnnealing {
                 self.do_step(&mut rng, [
                     1, // add
                     1, // remove
-                    1, // shift in route
+                    0, // shift in route
                     1, // shift in day
                     1, // shift between days
                     ],
@@ -178,10 +178,10 @@ impl SimulatedAnnealing {
             self.do_step(
                 rng,
                 [
-                    10,  // add new order
+                    30,  // add new order
                     1,    // remove
-                    200, // within a route
-                    100, // within a day
+                    150, // within a route
+                    80, // within a day
                     30, // shift between days
                 ],
                 &mut solution,
@@ -266,7 +266,7 @@ impl SimulatedAnnealing {
     fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
 
         let time_delta_multiplier = 6;
-        let capacity_delta_multiplier = 1500;
+        let capacity_delta_multiplier = 2500;
 
         // Calculate total adjusted cost using all factors
         let mut total_cost = evaluation.cost as i64;
