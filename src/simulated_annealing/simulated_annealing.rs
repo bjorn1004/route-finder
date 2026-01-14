@@ -81,15 +81,15 @@ impl SimulatedAnnealing {
             idx: config.idx,
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
             end_temp: config.end_temp,
-            reheating_temp: 6000f32,
+            reheating_temp: 4000f32,
             max_iterations: 100,
             num_perturbations: 10,
             q: config.q,
             step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
 
-            best_solution: Solution::default(),
-            //best_solution: Solution::from_file("output/GUDSHIT"),
+            // best_solution: Solution::default(),
+            best_solution: Solution::from_file("output/0 5421.txt"),
             paused: false,
             egui_ctx: config.egui_ctx,
             pause_rec: config.pause_rec,
@@ -144,7 +144,10 @@ impl SimulatedAnnealing {
             print_solution(&next_iteration, &output_dir, i)
                 .expect("failed to print the solution");
 
+            self.num_perturbations += 2;
+
             if next_iteration.score <= self.best_solution.score {
+                self.num_perturbations = 10;
                 self.best_solution = next_iteration;
             }
         }
