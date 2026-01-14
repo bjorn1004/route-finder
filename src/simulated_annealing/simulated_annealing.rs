@@ -13,6 +13,7 @@ use rand::{Rng, SeedableRng};
 use std::f32::consts::E;
 use std::fs::create_dir;
 use std::sync::Arc;
+use std::time::Instant;
 use time::OffsetDateTime;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 
@@ -154,6 +155,7 @@ impl SimulatedAnnealing {
         mut solution: Solution,
     ) -> Option<Solution> {
         // let now = Instant::now();
+        let mut last_route_sent_to_gui = Instant::now();
         // this ic currently an infinite loop.
 
         // main loop: gui stuff and do_step and thermostat
@@ -193,6 +195,21 @@ impl SimulatedAnnealing {
             if self.step_count.is_multiple_of(self.q) {
                 self.temp *= self.a;
                 self.temp_sender.try_send(self.temp).ok();
+            }
+            // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
+            // Future: It should only send a new route when it's faster, not just accepted
+            if !self.route_sender.is_full() {
+                if last_route_sent_to_gui.elapsed().as_secs() > 1 {
+                    self.route_sender
+                        .try_send((
+                            Arc::new(solution.truck1.clone()),
+                            Arc::new(solution.truck2.clone()),
+                        ))
+                        .ok();
+                    self.egui_ctx.request_repaint();
+
+                    last_route_sent_to_gui = Instant::now();
+                }
             }
             if self.temp <= self.end_temp {
                 break;
@@ -248,17 +265,6 @@ impl SimulatedAnnealing {
                 solution.unfilled_orders.compact();
             }
 
-            // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
-            // Future: It should only send a new route when it's faster, not just accepted
-            if !self.route_sender.is_full() {
-                self.route_sender
-                    .try_send((
-                        Arc::new(solution.truck1.clone()),
-                        Arc::new(solution.truck2.clone()),
-                    ))
-                    .ok();
-                self.egui_ctx.request_repaint();
-            }
             return;
         }
     }
