@@ -1,3 +1,4 @@
+use std::cmp::max;
 use super::week::Week;
 use crate::printer::print_solution;
 use crate::resource::Time;
@@ -13,7 +14,7 @@ use rand::{Rng, SeedableRng};
 use std::f32::consts::E;
 use std::fs::create_dir;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use time::OffsetDateTime;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 
@@ -190,16 +191,17 @@ impl SimulatedAnnealing {
             );
 
             self.step_count += 1;
-            self.q_sender.try_send(self.step_count % self.q).ok();
-            self.score_sender.try_send(solution.score).ok();
             if self.step_count.is_multiple_of(self.q) {
                 self.temp *= self.a;
-                self.temp_sender.try_send(self.temp).ok();
             }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
             // Future: It should only send a new route when it's faster, not just accepted
+            // Now only sends all the data 30 times per second. Should be good enough for now
             if !self.route_sender.is_full() {
-                if last_route_sent_to_gui.elapsed().as_secs() > 1 {
+                if last_route_sent_to_gui.elapsed() >= Duration::from_millis(33) {
+                    self.q_sender.try_send(self.step_count % self.q).ok();
+                    self.score_sender.try_send(solution.score).ok();
+                    self.temp_sender.try_send(self.temp).ok();
                     self.route_sender
                         .try_send((
                             Arc::new(solution.truck1.clone()),
