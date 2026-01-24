@@ -279,7 +279,7 @@ impl SimulatedAnnealing {
 
     fn accept<R: Rng + ?Sized>(&self, evaluation: Evaluation, rng: &mut R) -> bool {
 
-        let time_delta_multiplier = 6;
+        let time_delta_multiplier = 12;
         let capacity_delta_multiplier = 2500;
 
         // Calculate total adjusted cost using all factors
