@@ -64,6 +64,8 @@ impl Solution {
 
         let start_index = 2;
         let mut node_index = start_index;
+        let mut order_locations:Vec<Vec<ExactLocation>> = get_orders().iter().map(|_| vec![]).collect();
+
         for line in lines{
             let truck_enum = match line[0].trim() {
                 "1" => Truck1,
@@ -108,14 +110,22 @@ impl Solution {
             let before_end = route.linked_vector.get_prev_index(end).unwrap();
             solution.score += route.apply_add_order(before_end, order_index);
 
-            solution.order_location.add_order(order_index, ExactLocation{
+            order_locations[order_index].push(ExactLocation{
                 truck_enum,
                 day_enum,
                 time_of_day: current_time,
                 node_index,
-            }, orders[order_index].frequency);
-            
+            });
+
             node_index += 1;
+        }
+
+        for (order_i, order_loc) in order_locations.iter().enumerate(){
+            if order_i == 1177 {
+                continue;
+            }
+            // clone because too lazy to do it gud
+            solution.order_location.add_multiple(order_i, order_loc.clone(), orders[order_i].frequency)
         }
 
         let unfilled_orders = solution.order_location.unfilled_orders();

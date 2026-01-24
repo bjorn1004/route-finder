@@ -46,15 +46,6 @@ impl OrderLocation{
     pub fn get_order_location(&self, order_index: OrderIndex) -> OrderInfo{
         self.list[order_index]
     }
-    pub fn add_order(&mut self, order_index: OrderIndex, loc: ExactLocation, frequency: Frequency){
-        match frequency {
-            Frequency::None => return,
-            Frequency::Once => self.list[order_index] = Filled,
-            Frequency::Twice => todo!(),
-            Frequency::Thrice => todo!(),
-            Frequency::FourTimes => todo!(),
-        }
-    }
     pub fn add_multiple(&mut self, order_index: OrderIndex, locs: Vec<ExactLocation>, frequency: Frequency) {
          self.list[order_index] = match frequency {
              Frequency::None => unreachable!(),
@@ -63,12 +54,14 @@ impl OrderLocation{
              Frequency::Thrice => Thrice([locs[0], locs[1], locs[2]]),
              Frequency::FourTimes => {
 
-                 let mut set:HashSet<DayEnum> = HashSet::new();
-                 for i in &locs{
-                     set.insert(i.day_enum);
+                 #[cfg(debug_assertions)]
+                 {
+                     let mut set: HashSet<DayEnum> = HashSet::new();
+                     for i in &locs {
+                         set.insert(i.day_enum);
+                     }
+                     assert_eq!(set.len(), locs.len());
                  }
-
-                 assert_eq!(set.len(), locs.len());
                  Frice([locs[0], locs[1], locs[2], locs[3]])
              }
          }
@@ -95,11 +88,13 @@ impl OrderLocation{
                 Empty => return, // if it is empty, we don't need to do anything probably????
                 Filled => {}
                 Twice([o1, o2]) => self.list[order_i] = if o1.day_enum == day {
+                    #[cfg(debug_assertions)]
                     assert_eq!(o1.day_enum, day);
                     Twice([ExactLocation{
                     node_index: node_i,
                     ..o1
                 }, o2])} else {
+                    #[cfg(debug_assertions)]
                     assert_eq!(o2.day_enum, day);
                     Twice([o1, ExactLocation{
                         node_index: node_i,
@@ -123,13 +118,15 @@ impl OrderLocation{
                             node_index: node_i,
                             ..arr[i]
                         };
-
-                        let mut set:HashSet<DayEnum> = HashSet::new();
-                        for i in arr{
-                            set.insert(i.day_enum);
+                        #[cfg(debug_assertions)]
+                        {
+                            let mut set:HashSet<DayEnum> = HashSet::new();
+                            for i in arr{
+                                set.insert(i.day_enum);
+                            }
+                            assert_eq!(set.len(), arr.len());
                         }
 
-                        assert_eq!(set.len(), arr.len());
                         self.list[order_i] = Frice(arr);
 
                     } else {
@@ -167,21 +164,19 @@ impl OrderLocation{
             },
             Frice(mut arr) => {
                 if let Some(i) = arr.iter().position(|o| o.day_enum == day) {
-
-
                     arr[i] = exact_location;
-
-                    let mut set:HashSet<DayEnum> = HashSet::new();
-                    for i in arr{
-                        set.insert(i.day_enum);
-                                            let mut set:HashSet<DayEnum> = HashSet::new();
-                        for i in arr{
+                    #[cfg(debug_assertions)]
+                    {
+                        let mut set: HashSet<DayEnum> = HashSet::new();
+                        for i in arr {
                             set.insert(i.day_enum);
+                            let mut set: HashSet<DayEnum> = HashSet::new();
+                            for i in arr {
+                                set.insert(i.day_enum);
+                            }
                         }
-
                         assert_eq!(set.len(), arr.len());
-}
-                    assert_eq!(set.len(), arr.len());
+                    }
 
                     self.list[order_index] = Frice(arr);
                 } else {

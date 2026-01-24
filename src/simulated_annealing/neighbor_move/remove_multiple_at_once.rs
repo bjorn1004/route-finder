@@ -1,15 +1,15 @@
 use rand::Rng;
-use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
+use crate::datastructures::linked_vectors::{LinkedVector};
 use crate::get_orders;
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
 use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove, ScoreChange};
 use crate::simulated_annealing::order_location::{ExactLocation, OrderInfo};
-use crate::simulated_annealing::route::{OrderIndex, Route};
+use crate::simulated_annealing::route::{OrderIndex};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
-use crate::simulated_annealing::week::{DayEnum, Week};
+use crate::simulated_annealing::week::{DayEnum};
 
 pub struct RemoveMultipleOrders{
     orders_to_remove: Vec<ExactLocation>,

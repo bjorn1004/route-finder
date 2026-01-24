@@ -86,7 +86,7 @@ impl NeighborMove for ShiftInRoute {
 
         // If a shift where to happen with a route with length 3, this calculation would be wrong.
         // The calculate_remove_node function would remove 30 minutes from time_difference. This is because the route would be empty after removing
-        // Calculate add order would not add 30 minutes to the time difference, because the route is currently not empty
+        // Calculate add order would not add 30 minutes to the time difference, because the route is currently not empty.
         // This would thus result in a time difference of 30 minutes while nothing changed to the route.
         let time_difference = route.calculate_remove_node(self.shifting_node) +
             route.calculate_add_order(self.target_neighbor1, *lv.get_value_unsafe(self.shifting_node));

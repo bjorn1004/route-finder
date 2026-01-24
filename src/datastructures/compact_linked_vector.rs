@@ -164,11 +164,6 @@ impl<T: std::fmt::Debug + PartialEq<T> + Copy + Clone> LinkedVector<T> for Compa
         self.list[after_target.unwrap()].prev = Some(target_index);
         self.list[target_index].next = after_target;
 
-        #[cfg(debug_assertions)]
-        {
-
-        }
-
         panic!("THIS THING DOES NOT WORK YET PLZ DON'T USE YET")
     }
 

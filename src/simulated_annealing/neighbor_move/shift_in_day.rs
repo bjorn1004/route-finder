@@ -5,12 +5,11 @@ use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
 use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove, ScoreChange};
-use crate::simulated_annealing::order_location::{ExactLocation, OrderLocation};
+use crate::simulated_annealing::order_location::{ExactLocation};
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::week::DayEnum;
-use crate::simulated_annealing::week::DayEnum::Monday;
 
 pub struct ShiftInDay {
     shift: TruckDayTimeNode,
@@ -157,6 +156,7 @@ impl NeighborMove for ShiftInDay {
         
         let test:Vec<(LVNodeIndex, OrderIndex, DayEnum)> = compact_changes.iter().map(|(a, b)| (*a, *b, self.shift.day)).collect();
 
+        #[cfg(debug_assertions)]
         assert_eq!(self.target.day, self.shift.day);
         solution.order_location.update_shifts_in_route(test);
         // solution.order_location.remove_order(self.shift.order);

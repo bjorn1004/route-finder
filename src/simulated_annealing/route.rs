@@ -225,7 +225,6 @@ mod tests {
     use crate::{get_distance_matrix, get_orders, DISTANCE_MATRIX, ORDERS};
     use crate::parser::{parse_distance_matrix, parse_orderfile};
     use crate::resource::{Company, Frequency};
-    use crate::simulated_annealing::route::Route;
 
     fn before_all(){
         // We make most of the frequencies 0 to make the penalty score a lot lower.

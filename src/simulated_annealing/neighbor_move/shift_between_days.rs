@@ -46,7 +46,7 @@ impl ShiftBetweenDays {
                 // random day between 0 and 3.
                 let random_num = rng.random_range(0..4);
                 let target_day = if random_num == first_thingy.day_enum as u8 {
-                    // if we got the same day as the shift day, we use day 4 (0 based indexing)
+                    // if we got the same day as the shift day, we use day 4 (0-based indexing)
                     Friday
                 } else {
                     // just use the random number we found.
@@ -69,9 +69,11 @@ impl ShiftBetweenDays {
 
 
                 second_shift = if shift_info[0].day_enum == first_thingy.day_enum {
+                    #[cfg(debug_assertions)]
                     assert_eq!(shift_info[0], first_thingy);
                     Some(shift_info[1])
                 } else {
+                    #[cfg(debug_assertions)]
                     assert_eq!(shift_info[1], first_thingy);
                     Some(shift_info[0])
                 };
@@ -102,7 +104,7 @@ impl ShiftBetweenDays {
                         }
                     }
 
-                    // Flip all bits, then mask to keep only the 5 day bits
+                    // Flip all bits, then mask to keep only the 5-day bits
                     let available_days_mask = (!flags) & 0b11111;
 
                     let other_day = match available_days_mask {
@@ -213,7 +215,7 @@ impl NeighborMove for ShiftBetweenDays {
     }
 
     fn apply(&self, solution: &mut Solution) -> ScoreChange {
-        // first we clear the order_flags
+        // first we clear the order_flags,
         // get all the data and apply the remove and adds
         let shift_info = self.shifts[0].as_ref().unwrap();
         let shift_route = solution.get_truck_mut(shift_info.truck_enum)

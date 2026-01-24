@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::{Company, Frequency};
+use crate::resource::{Frequency};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
 use crate::simulated_annealing::route::{OrderIndex};
@@ -52,18 +52,20 @@ impl AddMultipleNewOrders {
                     days_to_add.push(all_days[random_index]);
                     all_days.remove(random_index);
                 }
-                let mut set:HashSet<DayEnum> = HashSet::new();
-                for i in &days_to_add{
-                    set.insert(*i);
-                }
+                #[cfg(debug_assertions)]{
+                    let mut set: HashSet<DayEnum> = HashSet::new();
+                    for i in &days_to_add {
+                        set.insert(*i);
+                    }
 
-                assert_eq!(set.len(), days_to_add.len());
+                    assert_eq!(set.len(), days_to_add.len());
+                }
                 days_to_add
             }
         };
         for day in days_to_add {
 
-            if let Some(order_to_add) = Self::get_random_allowed_order(solution, rng, day, order) {
+            if let Some(order_to_add) = Self::get_random_allowed_order(solution, rng, day) {
                 orders_to_add.push(order_to_add);
             } else {
                 return None
@@ -75,7 +77,7 @@ impl AddMultipleNewOrders {
         })
     }
 
-    fn get_random_allowed_order<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, day_enum: DayEnum, order: &Company) -> Option<AddOrderInfo>{
+    fn get_random_allowed_order<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, day_enum: DayEnum) -> Option<AddOrderInfo>{
 
         let truck_enum: TruckEnum = rng.random();
         let truck = if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2};
