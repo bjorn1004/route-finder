@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use time::OffsetDateTime;
 use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
-
+use crate::simulated_annealing::move_routes_between_trucks::move_route_between_trucks;
 type RouteState = (Arc<Week>, Arc<Week>);
 
 pub struct SimulatedAnnealingConfig {
@@ -199,6 +199,7 @@ impl SimulatedAnnealing {
             self.step_count += 1;
             if self.step_count.is_multiple_of(self.q) {
                 self.temp *= self.a;
+                solution = move_route_between_trucks(solution);
             }
             // Yes... it uses a clone, I really tried to avoid it, but there's simply no way to ensure no data races or heavy slowdown through locking
             // Future: It should only send a new route when it's faster, not just accepted
