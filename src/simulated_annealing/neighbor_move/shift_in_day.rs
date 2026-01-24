@@ -42,13 +42,11 @@ impl ShiftInDay {
         let day:DayEnum = rng.random();
         let time_of_day:TimeOfDay = rng.random();
         let route = (if truck == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2}).get(day).get(time_of_day);
-        let (node_index, order) = route.linked_vector.get_random(rng).unwrap();
-
-        // if the random node is a tail or head, we can't shift it.
-        if node_index == route.linked_vector.get_tail_index().unwrap() ||
-            node_index == route.linked_vector.get_head_index().unwrap(){
-            None
-        } else {
+        if let Some((node_index, order)) = route.linked_vector.get_random_not_trash(rng) {
+            #[cfg(debug_assertions)]{
+                assert_ne!(node_index, 0);
+                assert_ne!(node_index, 1);
+            }
             Some(TruckDayTimeNode{
                 truck,
                 day,
@@ -56,6 +54,8 @@ impl ShiftInDay {
                 node_index,
                 order: *order,
             })
+        } else {
+            None
         }
     }
 
