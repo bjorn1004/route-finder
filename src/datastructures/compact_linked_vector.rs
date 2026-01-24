@@ -349,6 +349,32 @@ impl<T: Copy + Clone> CompactLinkedVector<T> {
     pub fn len(&self) -> usize {
         self.list.len()
     }
+
+    pub fn get_random_not_trash<R>(&self, rng: &mut R) -> Option<(LVNodeIndex, &T)>
+    where
+        R: Rng + ?Sized,
+    {
+        if !self.empty_indices.is_empty() {
+            panic!("plz run compact before getting random values")
+        }
+
+        if self.list.len() == 2 {
+            return None;
+        }
+
+        if self.list.len() == 3 {
+            return Some((0, &self.list[2].value));
+        }
+
+        let index = rng.random_range(2..self.list.len());
+
+        let node = &self.list[index];
+
+        if node.next.is_none() && node.prev.is_none() {
+            panic!("found an unlinked node in a compacted list");
+        }
+        return Some((node.index, &node.value));
+    }
 }
 
 // made this iterator using ChatGPT, I am not competent enough with lifetimes to do this myself.

@@ -32,16 +32,9 @@ impl ShiftInRoute {
         if lv.len() < 5 {
             return None;
         }
-        loop {
-            let (node_index, _) = lv.get_random(rng).unwrap();
-            if node_index == lv.get_head_index().unwrap()
-                || node_index == lv.get_tail_index().unwrap()
-            {
-                continue;
-            }
-            shifting_node = node_index;
-            break;
-        }
+        
+        let (node_index, _) = lv.get_random_not_trash(rng).unwrap();
+        shifting_node = node_index;
 
         let before_shifting_node = lv.get_prev_index(shifting_node).unwrap();
 
