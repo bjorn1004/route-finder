@@ -24,23 +24,26 @@ impl ShiftInRoute {
         let day_enum: DayEnum = rng.random();
         let day = truck.get(day_enum);
 
-        let time_of_day: TimeOfDay = rng.random();
-        let route = day.get(time_of_day);
+        let mut time_of_day: TimeOfDay = rng.random();
+
+        let route = if day.get(time_of_day).linked_vector.len() == 2 {
+            time_of_day = Self::other_time_of_day(time_of_day);
+            day.get(Self::other_time_of_day(time_of_day))
+        } else {
+            day.get(time_of_day)
+        };
 
         let lv = &route.linked_vector;
-        let shifting_node: LVNodeIndex;
+
         if lv.len() < 5 {
             return None;
         }
-        loop {
-            let (node_index, _) = lv.get_random(rng).unwrap();
-            if node_index == lv.get_head_index().unwrap()
-                || node_index == lv.get_tail_index().unwrap()
-            {
-                continue;
-            }
+
+        let shifting_node: LVNodeIndex;
+        if let Some((node_index, _)) = lv.get_random_not_trash(rng){
             shifting_node = node_index;
-            break;
+        } else {
+            return None;
         }
 
         let before_shifting_node = lv.get_prev_index(shifting_node).unwrap();
@@ -65,6 +68,12 @@ impl ShiftInRoute {
             shifting_node,
             target_neighbor1,
         })
+    }
+    fn other_time_of_day(time_of_day: TimeOfDay) -> TimeOfDay {
+        match time_of_day {
+            TimeOfDay::Morning => TimeOfDay::Afternoon,
+            TimeOfDay::Afternoon => TimeOfDay::Morning,
+        }
     }
 
     pub fn time_difference(&self, solution: &Solution) -> Time {
