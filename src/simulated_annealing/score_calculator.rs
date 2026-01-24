@@ -1,11 +1,11 @@
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::get_orders;
 use crate::resource::Time;
-use crate::simulated_annealing::order_day_flags::OrderFlags;
+use crate::simulated_annealing::order_location::OrderLocation;
 use crate::simulated_annealing::route::Route;
 use crate::simulated_annealing::solution::Solution;
 
-pub fn calculate_score(solution: &Solution, order_flags: &OrderFlags) -> Time {
+pub fn calculate_score(solution: &Solution, order_location: &OrderLocation) -> Time {
     let truck1 = &solution.truck1;
     let truck2 = &solution.truck2;
     let orders = get_orders();
@@ -19,13 +19,6 @@ pub fn calculate_score(solution: &Solution, order_flags: &OrderFlags) -> Time {
     }
 
     order_count.pop(); // remove dropoff
-
-    
-    #[cfg(debug_assertions)]
-    for (counted_orders, saved_order_count) in order_count.iter().zip(order_flags.get_counts()){
-        assert_eq!(*counted_orders as u32, saved_order_count);
-    }
-    
 
     let unfinished_orders: Vec<usize> = order_count
         .iter()
@@ -60,6 +53,6 @@ pub fn calculate_starting_score() -> Time {
         truck2: Default::default(),
         score: 0, // this value is not used and does not matter in this function
         unfilled_orders: CompactLinkedVector::new(), // does not matter
-        order_flags: OrderFlags::new(0),// does not matter
-    }, &OrderFlags::new(get_orders().iter().count()))
+        order_location: OrderLocation::new(),// does not matter
+    }, &OrderLocation::new())
 }

@@ -4,10 +4,11 @@ use crate::{get_orders};
 use crate::datastructures::compact_linked_vector::CompactLinkedVector;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::simulated_annealing::day::{TimeOfDay};
-use crate::simulated_annealing::order_day_flags::OrderFlags;
+use crate::simulated_annealing::order_location::{ExactLocation, OrderLocation};
 use crate::simulated_annealing::route::{OrderIndex};
 use crate::simulated_annealing::score_calculator::{calculate_score, calculate_starting_score};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
+use crate::simulated_annealing::simulated_annealing::TruckEnum::{Truck1, Truck2};
 use crate::simulated_annealing::week::{DayEnum, Week};
 
 #[derive(Clone)]
@@ -16,7 +17,7 @@ pub struct Solution{
     pub truck2: Week,
     pub score: i32,
     pub unfilled_orders: CompactLinkedVector<OrderIndex>,
-    pub order_flags: OrderFlags,
+    pub order_location: OrderLocation,
 }
 
 
@@ -27,7 +28,7 @@ impl Solution {
             truck2: Default::default(),
             score: calculate_starting_score(),
             unfilled_orders: Self::fill_unfilled_orders_list(),
-            order_flags: Default::default(),
+            order_location: OrderLocation::new(),
         }
     }
 
@@ -55,16 +56,23 @@ impl Solution {
              .expect("Could not read the solution file");
         let lines: Vec<Vec<&str>> = solution_file.lines().map(|line|line.split(";").collect()).collect();
         let mut solution = Self::new();
+        let orders = get_orders();
 
         let mut current_day = DayEnum::Monday;
         let mut current_time = TimeOfDay::Morning;
         let id_to_index = Self::order_id_to_index_hash_map();
 
+        let start_index = 2;
+        let mut node_index = start_index;
         for line in lines{
-            let truck = match line[0].trim() {
-                "1" => &mut solution.truck1,
-                "2" => &mut solution.truck2,
+            let truck_enum = match line[0].trim() {
+                "1" => Truck1,
+                "2" => Truck2,
                 _ => panic!("Invalid truck number")
+            };
+            let truck = match truck_enum {
+                Truck1 => &mut solution.truck1,
+                Truck2 => &mut solution.truck2,
             };
 
             let day_enum = match line[1].trim() {
@@ -79,12 +87,14 @@ impl Solution {
             if day_enum != current_day {
                 current_day = day_enum;
                 current_time = TimeOfDay::Morning;
+                node_index = start_index;
             }
 
             let day = truck.get_mut(day_enum);
 
             if line[3].trim() == "0" {
                 current_time = TimeOfDay::Afternoon;
+                node_index = start_index;
                 continue;
             }
 
@@ -97,33 +107,35 @@ impl Solution {
             let end = route.linked_vector.get_tail_index().unwrap();
             let before_end = route.linked_vector.get_prev_index(end).unwrap();
             solution.score += route.apply_add_order(before_end, order_index);
-            solution.order_flags.add_order(order_index, day_enum);
+
+            solution.order_location.add_order(order_index, ExactLocation{
+                truck_enum,
+                day_enum,
+                time_of_day: current_time,
+                node_index,
+            }, orders[order_index].frequency);
+            
+            node_index += 1;
         }
 
-        let unfilled_order_counts: Vec<u32>=
-            solution.order_flags
-            .get_counts().iter()
-                .zip(get_orders().iter())
-                .map(|(amount_done, order)| order.frequency as u32 - *amount_done)
-                .collect();
+        let unfilled_orders = solution.order_location.unfilled_orders();
 
         let mut new_unfilled_orders = Vec::new();
-        for (order_index, count) in unfilled_order_counts.iter().enumerate() {
-            for _ in 0..*count{
-                new_unfilled_orders.push(order_index as OrderIndex);
+        for (order_index, count) in unfilled_orders.iter() {
+            for _ in 0..*count as usize {
+                new_unfilled_orders.push(*order_index);
             }
         }
 
         let orders = get_orders();
-        solution.score -= unfilled_order_counts
+        solution.score -= unfilled_orders
             .iter()
-            .enumerate()
-            .map(|(order_index, count)| if *count > 0 {orders[order_index].total_container_volume} else {0})
+            .map(|(order_index, count)| if *count as usize > 0 {orders[*order_index].total_container_volume} else {0})
             .sum::<u32>() as i32;
 
         solution.truck1.recalculate_total_time();
         solution.truck2.recalculate_total_time();
-        solution.score = calculate_score(&solution, &solution.order_flags);
+        solution.score = calculate_score(&solution, &solution.order_location);
 
         solution.unfilled_orders = CompactLinkedVector::new();
         for a in new_unfilled_orders.iter() {
@@ -144,14 +156,14 @@ impl Solution {
 
     pub fn get_truck(&self, truck_enum: TruckEnum) -> &Week {
         match truck_enum {
-            TruckEnum::Truck1 => {&self.truck1}
-            TruckEnum::Truck2 => {&self.truck2}
+            Truck1 => {&self.truck1}
+            Truck2 => {&self.truck2}
         }
     }
     pub fn get_truck_mut(&mut self, truck_enum: TruckEnum) -> &mut Week {
         match truck_enum {
-            TruckEnum::Truck1 => {&mut self.truck1}
-            TruckEnum::Truck2 => {&mut self.truck2}
+            Truck1 => {&mut self.truck1}
+            Truck2 => {&mut self.truck2}
         }
     }
 }

@@ -29,7 +29,7 @@ pub struct CompactLinkedVector<T> {
     tail: Option<LVNodeIndex>, // the index of the tail in our list
     empty_indices: Vec<LVNodeIndex>,
 }
-impl<T: std::fmt::Debug + PartialEq<T>> LinkedVector<T> for CompactLinkedVector<T> {
+impl<T: std::fmt::Debug + PartialEq<T> + Copy + Clone> LinkedVector<T> for CompactLinkedVector<T> {
     fn get_random<R>(&self, rng: &mut R) -> Option<(LVNodeIndex, &T)>
     where
         R: Rng + ?Sized,
@@ -208,7 +208,7 @@ impl<T: std::fmt::Debug + PartialEq<T>> LinkedVector<T> for CompactLinkedVector<
         &self.list[self.list[index].prev.unwrap()].value
     }
 }
-impl<T> CompactLinkedVector<T> {
+impl<T: Copy + Clone> CompactLinkedVector<T> {
     pub fn new() -> Self {
         CompactLinkedVector {
             list: vec![],
@@ -287,14 +287,15 @@ impl<T> CompactLinkedVector<T> {
 
     /// Please don't use this function often,
     /// it takes O(nlogn) where n is the length of the empty indices
-    pub fn compact(&mut self) -> Vec<(LVNodeIndex)>{
+    /// Returns a list of indexes where each T has been moved to
+    pub fn compact(&mut self) -> Vec<(LVNodeIndex, T)>{
         self.empty_indices.sort();
         let mut indexes = Vec::new();
         while let Some(index) = self.empty_indices.pop() {
             self.move_back_to_new_index(index);
             indexes.push(index);
         }
-        indexes
+        indexes.iter().map(|i| (*i, self.list[*i].value)).collect()
     }
 
     fn move_back_to_new_index(&mut self, new_i: LVNodeIndex) {

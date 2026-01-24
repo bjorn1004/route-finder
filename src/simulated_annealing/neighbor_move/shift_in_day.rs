@@ -5,10 +5,12 @@ use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
 use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove, ScoreChange};
+use crate::simulated_annealing::order_location::OrderLocation;
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::week::DayEnum;
+use crate::simulated_annealing::week::DayEnum::Monday;
 
 pub struct ShiftInDay {
     shift: TruckDayTimeNode,
@@ -146,11 +148,16 @@ impl NeighborMove for ShiftInDay {
         let shift_day = (if self.shift.truck == TruckEnum::Truck1 {&mut solution.truck1} else {&mut solution.truck2}).get_mut(self.shift.day);
         let shift_route = shift_day.get_mut(self.shift.time_of_day);
 
-        let shift_diff = shift_route.apply_remove_node(self.shift.node_index);
+
+        let (shift_diff, compact_changes) = shift_route.apply_remove_node(self.shift.node_index);
 
         let target_route = (if self.target.truck == TruckEnum::Truck1 {&mut solution.truck1} else {&mut solution.truck2}).get_mut(self.target.day).get_mut(self.target.time_of_day);
         
         let target_diff = target_route.apply_add_order(self.target.node_index, self.shift.order);
+        
+        let test:Vec<(LVNodeIndex, OrderIndex, DayEnum)> = compact_changes.iter().map(|(a, b)| (*a, *b, self.shift.day)).collect();
+        
+        solution.order_location.update_shifts_in_route(test);
         shift_diff + target_diff
     }
 }

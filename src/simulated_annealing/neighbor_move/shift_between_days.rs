@@ -7,6 +7,7 @@ use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_cap
 use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove, ScoreChange};
 use crate::simulated_annealing::order_day_flags::OrderFlags;
+use crate::simulated_annealing::order_location::OrderInfo;
 use crate::simulated_annealing::route::{OrderIndex, Route};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
@@ -64,6 +65,13 @@ impl ShiftBetweenDays {
                 };
                 [Some(Self::find_random_target(solution, rng, target_day)?), None]},
             2 => {
+                let order_info = solution.order_location.get_order_location(shift_order_index);
+
+                let shift_info = match order_info {
+                    OrderInfo::Twice(a) => a, 
+                    _ => unreachable!()
+                };
+                
                 let other_shift_day = match first_thingy.day {
                     Monday => Thursday,
                     Tuesday => Friday,
@@ -231,11 +239,12 @@ impl NeighborMove for ShiftBetweenDays {
         // first we clear the order_flags
         // get all the data and apply the remove and adds
         let shift_info = self.shifts[0].as_ref().unwrap();
-        solution.order_flags.remove_order(self.order, shift_info.day);
         let shift_route = solution.get_truck_mut(shift_info.truck)
             .get_mut(shift_info.day)
             .get_mut(shift_info.time_of_day);
-        let shift_diff = shift_route.apply_remove_node(shift_info.node_index);
+
+        let (shift_diff, compact_changes) = shift_route.apply_remove_node(shift_info.node_index);
+        solution.order_location.update_shift_in_route(compact_changes[0], shift_info.day);
 
         let target_info = self.targets[0].as_ref().unwrap();
         let target_route = solution.get_truck_mut(target_info.truck)
@@ -243,26 +252,20 @@ impl NeighborMove for ShiftBetweenDays {
             .get_mut(target_info.time_of_day);
         let target_diff = target_route.apply_add_order(target_info.node_index, self.order);
 
-        // update the order flags
-        solution.order_flags.add_order(self.order, target_info.day);
-
         // ugly code that maybe works
         if self.shifts[1].is_some(){
             let shift_info = self.shifts[1].as_ref().unwrap();
-            solution.order_flags.remove_order(self.order, shift_info.day);
             let shift_route = solution.get_truck_mut(shift_info.truck)
                 .get_mut(shift_info.day)
                 .get_mut(shift_info.time_of_day);
-            let shift_diff2 = shift_route.apply_remove_node(shift_info.node_index);
+            let (shift_diff2, compact_changes) = shift_route.apply_remove_node(shift_info.node_index);
+            solution.order_location.update_shift_in_route(compact_changes[0], shift_info.day);
 
             let target_info = self.targets[1].as_ref().unwrap();
             let target_route = solution.get_truck_mut(target_info.truck)
                 .get_mut(target_info.day)
                 .get_mut(target_info.time_of_day);
             let target_diff2 = target_route.apply_add_order(target_info.node_index, self.order);
-
-            // update the order flags
-            solution.order_flags.add_order(self.order, target_info.day);
 
             return shift_diff + target_diff + shift_diff2 + target_diff2;
         }

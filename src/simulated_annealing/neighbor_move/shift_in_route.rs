@@ -118,6 +118,7 @@ impl NeighborMove for ShiftInRoute {
         lv.remove(self.shifting_node);
         lv.insert_after(self.target_neighbor1, shifting_value);
         // don't need to compact, because the lv has the same length as before the operations.
+        // don't need to update the order_location, because node_index stays the same.
 
         #[cfg(debug_assertions)]
         route.check_correctness_time();

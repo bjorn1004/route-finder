@@ -1,16 +1,16 @@
 use rand::Rng;
 use crate::datastructures::linked_vectors::{LinkedVector, LVNodeIndex};
 use crate::{get_orders};
-use crate::resource::{Company};
+use crate::resource::{Company, Frequency};
 use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
-use crate::simulated_annealing::order_day_flags::OrderFlags;
 use crate::simulated_annealing::route::{OrderIndex};
 use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove, ScoreChange};
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
 use crate::simulated_annealing::week::{DayEnum};
+use crate::simulated_annealing::week::DayEnum::{Friday, Monday, Thursday, Tuesday, Wednesday};
 
 /// This will add an order to a random route where it is allowed to add it to.
 /// If you try to add an order, that doesn't have any allowed routes, it panics
@@ -30,10 +30,29 @@ impl AddMultipleNewOrders {
     pub fn new<R: Rng+?Sized>(solution: &Solution, rng: &mut R, order_index: OrderIndex) ->  Option<Self>{
         let order = &get_orders()[order_index];
         let mut orders_to_add: Vec<AddOrderInfo> = Vec::new();
-        let mut flags = 0;
-        for _ in 0..order.frequency as u8 {
-            if let Some(order_to_add) = Self::get_random_allowed_order(solution, rng, flags, order) {
-                flags |= OrderFlags::day_to_flags(order_to_add.day);
+
+
+        let days_to_add:Vec<DayEnum> = match order.frequency {
+            Frequency::None => unreachable!(),
+            Frequency::Once => vec![rng.random()],
+            Frequency::Twice => {match rng.random_range(0..2) {
+                0 => vec![Monday, Thursday],
+                1 => vec![Tuesday, Friday],
+                _ => unreachable!()
+            }}
+            Frequency::Thrice => vec![Monday, Wednesday, Friday],
+            Frequency::FourTimes => {
+                let all_days = vec![Monday, Tuesday, Wednesday, Thursday, Friday];
+                let mut days_to_add:Vec<DayEnum> = Vec::new();
+                for _ in 0..4 {
+                    days_to_add.push(all_days[rng.random_range(0..all_days.len())]);
+                }
+                days_to_add
+            }
+        };
+        for day in days_to_add {
+
+            if let Some(order_to_add) = Self::get_random_allowed_order(solution, rng, day, order) {
                 orders_to_add.push(order_to_add);
             } else {
                 return None
@@ -45,37 +64,32 @@ impl AddMultipleNewOrders {
         })
     }
 
-    fn get_random_allowed_order<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, flags: u8, order: &Company) -> Option<AddOrderInfo>{
+    fn get_random_allowed_order<R: Rng + ?Sized>(solution: &Solution, rng: &mut R, day_enum: DayEnum, order: &Company) -> Option<AddOrderInfo>{
 
         let truck_enum: TruckEnum = rng.random();
         let truck = if truck_enum == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2};
 
-        // check if there is still an allowed day open
-        if let Some(day_enum) = OrderFlags::_get_random_allowed_day(flags, order.frequency, rng){
-            let day = truck.get(day_enum);
-            let (route, time_of_day_enum) = day.get_random(rng);
+        let day = truck.get(day_enum);
+        let (route, time_of_day_enum) = day.get_random(rng);
 
-            let lv = &route.linked_vector;
-            while let Some((index, _)) = lv.get_random(rng) {
-                if lv.get_tail_index() == Some(index) {
-                    // we don't want to add behind the tail.
-                    // we could try to instead insert in front of the tail but don't want to try that rn.
-                    // instead we try to randomly find a new value which hopefully isn't the tail
-                    continue
-                }
-
-
-                return Some(AddOrderInfo {
-                    truck_enum,
-                    day: day_enum,
-                    time_of_day: time_of_day_enum,
-                    insert_after_index: index,
-                })
+        let lv = &route.linked_vector;
+        while let Some((index, _)) = lv.get_random(rng) {
+            if lv.get_tail_index() == Some(index) {
+                // we don't want to add behind the tail.
+                // we could try to instead insert in front of the tail but don't want to try that rn.
+                // instead we try to randomly find a new value which hopefully isn't the tail
+                continue
             }
-            panic!("how did we get here?")
-        } else {
-            panic!("We tried to add an order, but there are no days days left where this order could be added")
+
+
+            return Some(AddOrderInfo {
+                truck_enum,
+                day: day_enum,
+                time_of_day: time_of_day_enum,
+                insert_after_index: index,
+            })
         }
+        panic!("how did we get here?")
 
     }
 }
@@ -132,7 +146,6 @@ impl NeighborMove for AddMultipleNewOrders {
                     self.order_index
                 );
             };
-            solution.order_flags.add_order(self.order_index, order_info.day);
         }
 
         // We can always subtract the penalty, because this operation will add the order on as many days as needed to mee the frequency requirement.
