@@ -297,11 +297,11 @@ impl SimulatedAnnealing {
 
     fn cleanup(&mut self, solution: &mut Solution) -> Time {
         // Cleanup: remove incomplete orders and recalculate scores
-        let before_fixplzplzplzplzplz = calculate_score(solution, &solution.order_flags);
+        let before_fixplzplzplzplzplz = calculate_score(solution, &solution.order_location);
 
         fixplzplzplzpl(solution);
 
-        let before_recalc = calculate_score(solution, &solution.order_flags);
+        let before_recalc = calculate_score(solution, &solution.order_location);
         if before_fixplzplzplzplzplz != before_recalc {
             println!("fixplzplzplzplz removed at least one order to get a correct answer");
             println!("SHIT GOT TOTALLY FUCKED");
@@ -310,7 +310,7 @@ impl SimulatedAnnealing {
 
         solution.truck1.recalculate_total_time();
         solution.truck2.recalculate_total_time();
-        let after_recalc = calculate_score(solution, &solution.order_flags);
+        let after_recalc = calculate_score(solution, &solution.order_location);
         if after_recalc != before_recalc {
             println!("Incorrect score was stored");
             println!();
