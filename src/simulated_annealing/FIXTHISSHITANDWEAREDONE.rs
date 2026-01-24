@@ -7,6 +7,7 @@ use crate::datastructures::linked_vectors::LinkedVector;
 use crate::simulated_annealing::solution::Solution;
 
 pub fn fixplzplzplzpl(solution: &mut Solution) {
+    return;
     let orders = get_orders();
     let mut order_count: HashMap<usize, usize> = HashMap::new();
 
@@ -23,12 +24,12 @@ pub fn fixplzplzplzpl(solution: &mut Solution) {
     let filtered_bad: Vec<&usize> = bad.iter().filter(|i| **i != dropoff_index).collect();
     let good_bad: Vec<usize> = filtered_bad.iter().map(|i| **i).collect();
 
-    for bad_order in &good_bad{
-        for _ in 0..solution.order_flags.get_filled_count(*bad_order){
-            solution.unfilled_orders.push_back(*bad_order);
-        }
-        solution.order_flags.clear(*bad_order);
-    }
+    // for bad_order in &good_bad{
+    //     for _ in 0..solution.order_flags.get_filled_count(*bad_order){
+    //         solution.unfilled_orders.push_back(*bad_order);
+    //     }
+    //     solution.order_flags.clear(*bad_order);
+    // }
 
     delete_bad_week(&mut solution.truck1, &good_bad);
     delete_bad_week(&mut solution.truck2, &good_bad);

@@ -5,6 +5,7 @@ use crate::simulated_annealing::day::TimeOfDay;
 use crate::simulated_annealing::neighbor_move::evaluation_helper::{calculate_capacity_overflow, calculate_time_overflow};
 use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
 use crate::simulated_annealing::neighbor_move::neighbor_move_trait::{NeighborMove, ScoreChange};
+use crate::simulated_annealing::order_location::{ExactLocation};
 use crate::simulated_annealing::route::OrderIndex;
 use crate::simulated_annealing::simulated_annealing::TruckEnum;
 use crate::simulated_annealing::solution::Solution;
@@ -146,11 +147,38 @@ impl NeighborMove for ShiftInDay {
         let shift_day = (if self.shift.truck == TruckEnum::Truck1 {&mut solution.truck1} else {&mut solution.truck2}).get_mut(self.shift.day);
         let shift_route = shift_day.get_mut(self.shift.time_of_day);
 
-        let shift_diff = shift_route.apply_remove_node(self.shift.node_index);
+
+        let (shift_diff, compact_changes) = shift_route.apply_remove_node(self.shift.node_index);
 
         let target_route = (if self.target.truck == TruckEnum::Truck1 {&mut solution.truck1} else {&mut solution.truck2}).get_mut(self.target.day).get_mut(self.target.time_of_day);
         
         let target_diff = target_route.apply_add_order(self.target.node_index, self.shift.order);
+        
+        let test:Vec<(LVNodeIndex, OrderIndex, DayEnum)> = compact_changes.iter().map(|(a, b)| (*a, *b, self.shift.day)).collect();
+
+        #[cfg(debug_assertions)]
+        assert_eq!(self.target.day, self.shift.day);
+        solution.order_location.update_shifts_in_route(test);
+        // solution.order_location.remove_order(self.shift.order);
+        // solution.order_location.add_order(self.shift.order, ExactLocation{
+        //     truck_enum: self.target.truck,
+        //     day_enum: self.target.day,
+        //     time_of_day: self.target.time_of_day,
+        //     node_index: target_route.linked_vector.len() - 1,
+        // }, );
+
+        // update the thing that moved after compact
+        solution.order_location
+            .update_shift_in_route((target_route.linked_vector.len() - 1, self.shift.order), self.shift.day);
+
+        // update the shifted node
+        solution.order_location.update_in_day(self.shift.order, ExactLocation {
+            truck_enum: self.target.truck,
+            day_enum: self.target.day,
+            time_of_day: self.target.time_of_day,
+            node_index: target_route.linked_vector.len() - 1,
+        });
+
         shift_diff + target_diff
     }
 }
