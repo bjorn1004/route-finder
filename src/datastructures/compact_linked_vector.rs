@@ -285,17 +285,16 @@ impl<T: Copy + Clone> CompactLinkedVector<T> {
         }
     }
 
-    /// Please don't use this function often,
-    /// it takes O(nlogn) where n is the length of the empty indices
+    /// it takes O(nlogn) where n is the length of the empty indices list
     /// Returns a list of indexes where each T has been moved to
     pub fn compact(&mut self) -> Vec<(LVNodeIndex, T)>{
         self.empty_indices.sort();
         let mut indexes = Vec::new();
         while let Some(index) = self.empty_indices.pop() {
+            indexes.push((index, self.list[self.list.len() - 1].value));
             self.move_back_to_new_index(index);
-            indexes.push(index);
         }
-        indexes.iter().map(|i| (*i, self.list[*i].value)).collect()
+        indexes
     }
 
     fn move_back_to_new_index(&mut self, new_i: LVNodeIndex) {

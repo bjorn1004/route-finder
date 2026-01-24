@@ -37,9 +37,9 @@ impl RemoveMultipleOrders{
                 continue;
             }
 
-            let unremoved_days = solution.order_location.get_order_location(*order_index);
+            let order_loc = solution.order_location.get_order_location(*order_index);
 
-            let mut orders_to_remove = match unremoved_days {
+            let orders_to_remove = match order_loc {
                 OrderInfo::Empty => unreachable!(),
                 OrderInfo::Filled =>
                 vec![ExactLocation{
