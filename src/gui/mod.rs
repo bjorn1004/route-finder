@@ -37,6 +37,9 @@ pub struct GuiApp {
     pub end_temp: f32,
     pub q: u32,
     pub alpha: f32,
+    pub reheat_temp: f32,
+    pub pertubations: u32,
+    pub max_iterations: u32,
 
     // Multithreading parameters
     pub num_threads: usize,
@@ -76,6 +79,9 @@ impl GuiApp {
             end_temp: 10.0,
             q: 500_000,
             alpha: 0.99,
+            reheat_temp: 600f32,
+            pertubations: 10,
+            max_iterations: 100,
             num_threads: std::thread::available_parallelism()
                 .map(|n| n.get())
                 .unwrap_or(4),

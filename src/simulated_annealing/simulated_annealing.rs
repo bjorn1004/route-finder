@@ -24,6 +24,9 @@ pub struct SimulatedAnnealingConfig {
     pub idx: usize,
     pub temp: f32,
     pub end_temp: f32,
+    pub reheating_temp: f32,
+    pub max_iterations: u32,
+    pub num_perturbations: u32,
     pub q: u32,
     pub a: f32,
     pub egui_ctx: egui::Context,
@@ -81,9 +84,9 @@ impl SimulatedAnnealing {
             idx: config.idx,
             temp: config.temp, // initialized as starting temperature, decreases to end_temp
             end_temp: config.end_temp,
-            reheating_temp: 4000f32,
-            max_iterations: 100,
-            num_perturbations: 10,
+            reheating_temp: config.reheating_temp,
+            max_iterations: config.max_iterations,
+            num_perturbations: config.num_perturbations,
             q: config.q,
             step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp

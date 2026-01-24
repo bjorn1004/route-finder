@@ -70,6 +70,9 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
                         idx,
                         temp: app.temp,
                         end_temp: app.end_temp,
+                        reheating_temp: app.reheat_temp,
+                        max_iterations: app.max_iterations,
+                        num_perturbations: app.pertubations,
                         q: app.q,
                         a: app.alpha,
                         egui_ctx: ctx.clone(),
@@ -144,6 +147,15 @@ pub fn show_left_panel(ui: &mut Ui, app: &mut GuiApp, ctx: &egui::Context) {
                 ui.end_row();
                 ui.label("End temp.:");
                 ui.add(egui::DragValue::new(&mut app.end_temp).range(0.0..=f32::INFINITY));
+                ui.end_row();
+                ui.label("Reheating temp:");
+                ui.add(egui::DragValue::new(&mut app.reheat_temp).range(0..=u32::MAX));
+                ui.end_row();
+                ui.label("Pertubations:");
+                ui.add(egui::DragValue::new(&mut app.pertubations).range(0..=u32::MAX));
+                ui.end_row();
+                ui.label("Max iterations:");
+                ui.add(egui::DragValue::new(&mut app.max_iterations).range(0..=u32::MAX));
                 ui.end_row();
                 ui.label("Q:");
                 ui.add(egui::DragValue::new(&mut app.q).range(0..=u32::MAX));
