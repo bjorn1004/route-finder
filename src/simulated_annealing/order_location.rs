@@ -199,11 +199,14 @@ impl OrderLocation{
             false => 1,
         }).sum()
     }
-    pub fn unfilled_orders(&self) -> Vec<(OrderIndex, Frequency)> {
-        self.list.iter().enumerate().filter_map(|(order_index, order_info)| match self.is_filled_helper(*order_info) {
+    pub fn unfilled_orders(&self) -> Vec<(OrderIndex)> {
+        let mut orders:Vec<(OrderIndex)> = self.list.iter().enumerate().filter_map(|(order_index, order_info)| match self.is_filled_helper(*order_info) {
             true => None,
-            false => Some((order_index as OrderIndex, get_orders()[order_index].frequency))
-        }).collect()
+            false => Some(order_index as OrderIndex)
+        }).collect();
+        // remove the last thingy, this is the droppoff
+        orders.pop();
+        orders
     }
 
 }

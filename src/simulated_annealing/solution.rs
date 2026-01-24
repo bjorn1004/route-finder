@@ -125,30 +125,22 @@ impl Solution {
                 continue;
             }
             // clone because too lazy to do it gud
+            if order_loc.len() == 0 {
+                continue;
+            }
             solution.order_location.add_multiple(order_i, order_loc.clone(), orders[order_i].frequency)
         }
 
         let unfilled_orders = solution.order_location.unfilled_orders();
+        
 
-        let mut new_unfilled_orders = Vec::new();
-        for (order_index, count) in unfilled_orders.iter() {
-            for _ in 0..*count as usize {
-                new_unfilled_orders.push(*order_index);
-            }
-        }
-
-        let orders = get_orders();
-        solution.score -= unfilled_orders
-            .iter()
-            .map(|(order_index, count)| if *count as usize > 0 {orders[*order_index].total_container_volume} else {0})
-            .sum::<u32>() as i32;
 
         solution.truck1.recalculate_total_time();
         solution.truck2.recalculate_total_time();
         solution.score = calculate_score(&solution, &solution.order_location);
 
         solution.unfilled_orders = CompactLinkedVector::new();
-        for a in new_unfilled_orders.iter() {
+        for a in unfilled_orders.iter() {
             solution.unfilled_orders.push_back(*a);
         }
         solution
