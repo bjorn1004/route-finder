@@ -1,5 +1,5 @@
-use std::cmp::max;
 use super::week::Week;
+use crate::datastructures::linked_vectors::{LVNodeIndex, LinkedVector};
 use crate::printer::print_solution;
 use crate::resource::Time;
 use crate::simulated_annealing::neighbor_move::evaluation::Evaluation;
