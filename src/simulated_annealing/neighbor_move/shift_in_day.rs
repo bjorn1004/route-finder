@@ -56,7 +56,19 @@ impl ShiftInDay {
                 order: *order,
             })
         } else {
-            None
+            let time_of_day = Self::other_time_of_day(time_of_day);
+            let route = (if truck == TruckEnum::Truck1 {&solution.truck1} else {&solution.truck2}).get(day).get(time_of_day);
+            if let Some((node_index, order)) = route.linked_vector.get_random_not_trash(rng) {
+                Some(TruckDayTimeNode{
+                    truck,
+                    day,
+                    time_of_day,
+                    node_index,
+                    order: *order,
+                })
+            } else {
+                None
+            }
         }
     }
 
