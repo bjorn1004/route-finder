@@ -45,8 +45,8 @@ pub struct SimulatedAnnealing {
     reheating_temp: f32,
     max_iterations: u32,
     num_perturbations: u32,
-    q: u32,
-    step_count: u32,
+    q: u64,
+    step_count: u64,
     a: f32,
 
     pub best_solution: Solution,
@@ -87,7 +87,7 @@ impl SimulatedAnnealing {
             reheating_temp: config.reheating_temp,
             max_iterations: config.max_iterations,
             num_perturbations: config.num_perturbations,
-            q: config.q,
+            q: config.q as u64,
             step_count: 0,
             a: config.a, // keep around 0.95 or 0.99. It's better to change Q or temp
 
@@ -206,7 +206,7 @@ impl SimulatedAnnealing {
             // Now only sends all the data 30 times per second. Should be good enough for now
             if !self.route_sender.is_full() {
                 if last_route_sent_to_gui.elapsed() >= Duration::from_millis(33) {
-                    self.q_sender.try_send(self.step_count % self.q).ok();
+                    self.q_sender.try_send((self.step_count % self.q) as u32).ok();
                     self.score_sender.try_send(solution.score).ok();
                     self.temp_sender.try_send(self.temp).ok();
                     self.route_sender

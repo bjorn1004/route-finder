@@ -1,9 +1,11 @@
+use std::collections::HashSet;
 use super::GuiApp;
 use crate::datastructures::linked_vectors::LinkedVector;
 use crate::get_orders;
 use crate::simulated_annealing::{day::TimeOfDay, simulated_annealing::TruckEnum, week::DayEnum};
 use egui::{Color32, Ui};
 use time::Time;
+use crate::simulated_annealing::route::OrderIndex;
 
 pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
     ui.vertical_centered(|ui| ui.heading("Inspector"));
@@ -120,39 +122,27 @@ pub fn show_right_panel(ui: &mut Ui, app: &mut GuiApp) {
                     .num_columns(2)
                     .show(ui, |ui| {
                         ui.label("Total orders:");
-                        let total_orders: usize = [TruckEnum::Truck1, TruckEnum::Truck2]
-                            .iter()
-                            .map(|&truck| {
-                                [
-                                    DayEnum::Monday,
-                                    DayEnum::Tuesday,
-                                    DayEnum::Wednesday,
-                                    DayEnum::Thursday,
-                                    DayEnum::Friday,
-                                ]
-                                .iter()
-                                .map(|&day| {
-                                    [TimeOfDay::Morning, TimeOfDay::Afternoon]
-                                        .iter()
-                                        .map(|&shift| {
-                                            let selection =
-                                                super::RouteSelection { truck, day, shift };
-                                            let route =
-                                                super::route_selection_to_route(routes, &selection);
-                                            route.linked_vector.len() - 2 // exclude depot nodes
-                                        })
-                                        .sum::<usize>()
-                                })
-                                .sum::<usize>()
-                            })
-                            .sum();
-                        let order_sum =
-                            get_orders().iter().fold(0, |a, o| o.frequency as usize + a);
+                        let mut total_orders: HashSet<OrderIndex> =HashSet::new();
+                        for truck in [TruckEnum::Truck1, TruckEnum::Truck2]{
+                            for day in [ DayEnum::Monday,
+                                        DayEnum::Tuesday,
+                                        DayEnum::Wednesday,
+                                        DayEnum::Thursday,
+                                        DayEnum::Friday]{
+                                for shift in [TimeOfDay::Morning, TimeOfDay::Afternoon]{
+                                    let selection = super::RouteSelection { truck, day, shift };
+                                    let route = super::route_selection_to_route(routes, &selection);
+                                    for (_, order_i) in route.linked_vector.iter(){
+                                        total_orders.insert(*order_i);
+                                    }
+                                }
+                            }
+                        }
                         ui.label(format!(
                             "{} / {} ({:.2}%)",
-                            total_orders,
-                            order_sum,
-                            total_orders as f32 / order_sum as f32 * 100f32
+                            total_orders.len() - 1,
+                            1177,
+                            (total_orders.len() - 1) as f32 / 1177f32 * 100f32
                         ));
                         ui.end_row();
                     });
