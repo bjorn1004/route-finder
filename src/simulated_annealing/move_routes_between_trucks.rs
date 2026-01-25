@@ -30,11 +30,9 @@ fn yay(mut solution: Solution, truck_enum: TruckEnum, day_enum: DayEnum) -> Solu
     };
 
     if t1.morning.linked_vector.len() == 2 && t1.afternoon.linked_vector.len() == 2{
-        if t2.morning.linked_vector.len() == 2 {
-            (t1.morning, t2.afternoon) = (t2.morning.clone(), t1.afternoon.clone());
-            solution = fix_order_locations(solution, truck_enum, day_enum, Morning);
-        } else {
-            (t1.morning, t2.morning) = (t2.morning.clone(), t1.morning.clone());
+        // if the morning is empty for
+        if t2.morning.linked_vector.len() > 2 && t2.afternoon.linked_vector.len() > 2 {
+            (t1.morning, t2.afternoon) = (t2.afternoon.clone(), t1.morning.clone());
             solution = fix_order_locations(solution, truck_enum, day_enum, Morning);
         }
     }
